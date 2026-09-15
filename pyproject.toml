@@ -1,0 +1,12 @@
+[project]
+name = "multiple-sclerosis-modeling-bordi"
+version = "0.1.0"
+description = "Multiple sclerosis modeling"
+readme = "docs/README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.14"
+dependencies = []
+
+[dependency-groups]
+dev = []
