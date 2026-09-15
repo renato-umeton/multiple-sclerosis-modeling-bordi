@@ -223,3 +223,6 @@ docs/plan1.md
 
 # macOS
 .DS_Store
+
+# Executed notebooks (papermill output)
+notebooks/executed/

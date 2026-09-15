@@ -41,7 +41,10 @@ every number from the paper with provenance, empty test passing.
 **Success Criteria**: uv sync, ruff check, ruff format --check, mypy, pytest all
 green locally; CI workflow file present.
 **Tests**: tests/test_params.py checks provenance strings are non-empty.
-**Status**: In Progress
+**Status**: Complete. Notes: mypy targets 3.12 because the numpy stubs use the
+type statement; ruff excludes docs/ because it formats code blocks in prose;
+the MIT classifier is omitted because PyPI rejects it next to a license
+expression.
 
 ## Stage 3: Modules
 **Goal**: model, renewal, io (wave 1); simulate, fit, stats (wave 2); cohort,
@@ -52,7 +55,7 @@ compliance and then for code quality by separate agents before the wave is commi
 least 90 percent; mypy strict clean; ruff clean.
 **Tests**: tests/test_model.py, test_simulate.py, test_renewal.py, test_fit.py,
 test_stats.py, test_io.py, test_cohort.py, test_plots.py, test_cli.py.
-**Status**: Not Started
+**Status**: In Progress
 
 ## Stage 4: Notebooks, documentation, metadata, data
 **Goal**: Four notebooks executed headlessly, synthetic data files with provenance,

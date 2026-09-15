@@ -1,15 +1,158 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
 [project]
-name = "multiple-sclerosis-modeling-bordi"
+name = "msrelapse"
 version = "0.1.0"
-description = "Multiple sclerosis modeling"
+description = "Stochastic double-well model of relapsing-remitting multiple sclerosis (Bordi et al. 2013)"
 readme = "README.md"
+requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.14"
-dependencies = []
+authors = [{ name = "Renato Umeton" }]
+keywords = [
+    "multiple-sclerosis",
+    "relapsing-remitting",
+    "double-well",
+    "stochastic-differential-equation",
+    "dynamical-systems",
+    "computational-biology",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    # No "License :: OSI Approved :: MIT License" classifier on purpose: PyPI
+    # rejects an upload that carries both a license expression and a legacy
+    # License:: classifier, and the expression above is the modern spelling.
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Typing :: Typed",
+]
+dependencies = [
+    "numpy>=1.26.0",
+    "scipy>=1.11.0",
+    "pandas>=2.1.0",
+]
+
+[project.optional-dependencies]
+plot = ["matplotlib>=3.8.0"]
+fast = [
+    "numba>=0.61.0; python_version < '3.14'",
+    "numba>=0.63.0; python_version >= '3.14'",
+]
+all = ["msrelapse[plot,fast]"]
+
+[project.scripts]
+msrelapse = "msrelapse.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi"
+Repository = "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi"
+Issues = "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi/issues"
 
 [dependency-groups]
-dev = []
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6",
+    "hypothesis>=6.130",
+    "ruff>=0.16,<0.17",
+    "mypy>=1.15",
+    "pandas-stubs; python_version >= '3.11'",
+    "scipy-stubs; python_version >= '3.12'",
+    "statsmodels>=0.14",
+    "pre-commit>=4",
+]
+docs = [
+    "mkdocs-material>=9.7",
+    "mkdocstrings-python>=2.0",
+]
+notebooks = [
+    "nbformat>=5.10",
+    "nbclient>=0.10",
+    "ipykernel>=6.29",
+    "papermill>=2.6",
+    "matplotlib>=3.8.0",
+]
 
-[tool.uv]
-package = false
+[tool.hatch.build.targets.wheel]
+packages = ["src/msrelapse"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src",
+    "tests",
+    "README.md",
+    "LICENSE",
+    "docs/paper_facts.md",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+# Ruff also lints and formats the Python blocks embedded in Markdown files. The
+# documents under docs/ quote the paper and contrast conventions, so they are
+# prose and are kept exactly as written; the gate covers package sources only.
+extend-exclude = ["docs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "NPY", "RUF", "D", "SIM", "PT", "PL"]
+ignore = ["PLR0913", "PLR2004"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D1"]
+"notebooks/**" = ["D1", "E402", "B018"]
+
+[tool.ruff.format]
+
+[tool.mypy]
+strict = true
+# The package supports Python 3.10, but the numpy stubs shipped with the
+# current numpy use PEP 695 syntax that mypy only parses from 3.12 on, so 3.12
+# is the oldest version mypy can be pointed at. The 3.10 floor is enforced by
+# the ruff target-version instead.
+python_version = "3.12"
+files = ["src", "tests"]
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = [
+    "scipy.*",
+    "numba.*",
+    "statsmodels.*",
+    "matplotlib.*",
+    "hypothesis.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers --strict-config"
+markers = [
+    "slow: long running test, deselect with -m 'not slow'",
+    "notebook: executes a notebook end to end",
+]
+filterwarnings = ["error::DeprecationWarning:msrelapse"]
+
+[tool.coverage.run]
+source = ["msrelapse"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "@(typing\\.)?overload",
+]
