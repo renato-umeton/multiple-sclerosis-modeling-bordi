@@ -17,6 +17,22 @@ and records the decisions taken where the specification left a choice open.
   release workflow and instructions and leaves the actual release to the maintainer.
 - ORCID and DOI fields in CITATION.cff and codemeta.json stay as placeholders
   until the maintainer fills them.
+- The paper's printed mean durations are naive means over its own follow up
+  windows (all runs including the censored final remission). A cohort generated
+  at a true mean of 100 weeks shows a naive mean near 73 weeks over the Figure 3
+  windows, so the paper twin is generated from generative means chosen so that
+  the naive means reproduce the printed 4.3 and 100 weeks (cohort.naive_mean_targets,
+  bordi2013_spec with match_naive_means True).
+- The weekly rounding rule marks every week a relapse touches, so continuous
+  time engines are aimed at tau_relapse minus 1 and tau_health plus 1 weeks
+  (cohort.continuous_targets). Sub week remissions merge neighbouring relapses;
+  that residual is documented, not hidden.
+- Crossings read off the integration grid overestimate episode lengths by about
+  C sqrt(dt); exit_times and the state machine both apply the Brownian bridge
+  shift of 0.5826 sigma sqrt(dt) to the thresholds.
+- Data files ship inside the package (src/msrelapse/data) with a loader in
+  msrelapse.datasets, so they are available after pip install; the plan's data/
+  directory is not used.
 
 ## Stage 1: Pin down the paper and the ecosystem
 **Goal**: Authoritative facts document from the PDF (equations, sign conventions,
