@@ -22,7 +22,7 @@ locked dependencies from `uv.lock`.
 ## Daily use
 
 ```bash
-uv run python script.py    # run inside the project environment
+uv run python path/to/script.py   # run inside the project environment
 uv add <package>           # add a dependency and update uv.lock
 uv add --dev <package>     # add a dev-only dependency
 uv sync                    # re-sync after pulling changes to uv.lock
