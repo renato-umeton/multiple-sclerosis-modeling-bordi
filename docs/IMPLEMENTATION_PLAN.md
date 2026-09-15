@@ -25,7 +25,14 @@ conventions, calibrated beta and sigma, dependency versions and CI action versio
 **Success Criteria**: Facts document written to docs/paper_facts.md; convention
 decision recorded; regression values with tolerances listed; PyPI name confirmed.
 **Tests**: None yet; produces the values the Stage 3 tests pin.
-**Status**: In Progress
+**Status**: Complete. Outcome: the paper's potential is V(x) = -x^2/2 + alpha x^4/4
++ beta x (equations 2 and 3), drift x - alpha x^3 - beta, noise variance epsilon,
+barrier 1/(4 alpha) growing as alpha falls, health well at negative x. The plan's
+provisional form was the other parameterisation and is dropped. Facts are in
+docs/paper_facts.md. The name msrelapse is free on PyPI. Calibration at alpha = 1
+to 100 and 4.3 weeks (mean first passage to the saddle) gives beta 0.210435 and
+sigma 0.507768; the Kramers form cannot reach 4.3 weeks because its prefactor
+floor is 4.44 weeks.
 
 ## Stage 2: Scaffold
 **Goal**: Installable src layout package with pyproject extras and dev group,
@@ -34,7 +41,7 @@ every number from the paper with provenance, empty test passing.
 **Success Criteria**: uv sync, ruff check, ruff format --check, mypy, pytest all
 green locally; CI workflow file present.
 **Tests**: tests/test_params.py checks provenance strings are non-empty.
-**Status**: Not Started
+**Status**: In Progress
 
 ## Stage 3: Modules
 **Goal**: model, renewal, io (wave 1); simulate, fit, stats (wave 2); cohort,
