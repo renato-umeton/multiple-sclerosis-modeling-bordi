@@ -1,0 +1,67 @@
+# Implementation plan for msrelapse
+
+Source specification: docs/plan1.md (local, not tracked). This file tracks progress
+and records the decisions taken where the specification left a choice open.
+
+## Decisions and assumptions
+
+- Data: the de-identified weekly series cannot be released without a decision from
+  the co-authors, so the package ships a synthetic twin generated from the fitted
+  parameters, with loud provenance, plus instructions for requesting the original.
+- Python: 3.10 through 3.14 supported, local development on 3.14.
+- Markdown lives in docs/ except README.md at the repository root, so CHANGELOG,
+  CONTRIBUTING, the data provenance note and the JOSS draft live under docs/.
+- CLI uses argparse to keep the dependency set minimal.
+- Package name msrelapse, subject to the PyPI availability check in Stage 1.
+- PyPI and Zenodo publishing need account credentials, so Stage 5 prepares the
+  release workflow and instructions and leaves the actual release to the maintainer.
+- ORCID and DOI fields in CITATION.cff and codemeta.json stay as placeholders
+  until the maintainer fills them.
+
+## Stage 1: Pin down the paper and the ecosystem
+**Goal**: Authoritative facts document from the PDF (equations, sign conventions,
+every reported number), numerical regression values for both potential
+conventions, calibrated beta and sigma, dependency versions and CI action versions.
+**Success Criteria**: Facts document written to docs/paper_facts.md; convention
+decision recorded; regression values with tolerances listed; PyPI name confirmed.
+**Tests**: None yet; produces the values the Stage 3 tests pin.
+**Status**: In Progress
+
+## Stage 2: Scaffold
+**Goal**: Installable src layout package with pyproject extras and dev group,
+ruff, mypy strict, pytest with coverage, pre-commit, CI matrix, _params.py holding
+every number from the paper with provenance, empty test passing.
+**Success Criteria**: uv sync, ruff check, ruff format --check, mypy, pytest all
+green locally; CI workflow file present.
+**Tests**: tests/test_params.py checks provenance strings are non-empty.
+**Status**: Not Started
+
+## Stage 3: Modules
+**Goal**: model, renewal, io (wave 1); simulate, fit, stats (wave 2); cohort,
+plots, cli and the public API with cite() (wave 3). Each module built test first
+with the tests listed in plan sections 4.1 to 4.10, each reviewed for spec
+compliance and then for code quality by separate agents before the wave is committed.
+**Success Criteria**: All plan section 4 tests pass with fixed seeds; coverage at
+least 90 percent; mypy strict clean; ruff clean.
+**Tests**: tests/test_model.py, test_simulate.py, test_renewal.py, test_fit.py,
+test_stats.py, test_io.py, test_cohort.py, test_plots.py, test_cli.py.
+**Status**: Not Started
+
+## Stage 4: Notebooks, documentation, metadata, data
+**Goal**: Four notebooks executed headlessly, synthetic data files with provenance,
+mkdocs site (index, theory, reproducing, citing, api), CITATION.cff, codemeta.json,
+CHANGELOG, CONTRIBUTING, issue templates, release workflow, JOSS draft.
+**Success Criteria**: Notebook 01 closing table within tolerance when executed in
+CI; mkdocs build passes strict mode; CITATION.cff validates with cffconvert;
+test_reproduce_paper.py green.
+**Tests**: tests/test_reproduce_paper.py, notebook execution job, cffconvert.
+**Status**: Not Started
+
+## Stage 5: Reviews and release preparation
+**Goal**: Three independent review rounds over the whole implementation, each
+followed by fixes and re-verification, then release checklist for v1.0.0.
+**Success Criteria**: Round three finds no critical or important issues; all
+quality gates green; definition of done checklist in plan section 11 addressed
+or explicitly deferred to the maintainer.
+**Tests**: Full suite on three operating systems in CI.
+**Status**: Not Started
