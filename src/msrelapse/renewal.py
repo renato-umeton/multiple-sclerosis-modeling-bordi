@@ -18,9 +18,10 @@ reported by the paper are never written here; import ``PAPER`` from
 
 References
 ----------
-C. Bordi, A. Speranza, and F. Bordi, "A mechanistic stochastic model helps
-understand multiple sclerosis," Computational and Mathematical Methods in
-Medicine, 2013, doi 10.1155/2013/910321.
+I. Bordi, R. Umeton, V. A. G. Ricigliano, V. Annibali, R. Mechelli, G. Ristori,
+F. Grassi, M. Salvetti, and A. Sutera, "A mechanistic, stochastic model helps
+understand multiple sclerosis course and pathogenesis," International Journal
+of Genomics, vol. 2013, 910321, 2013, doi 10.1155/2013/910321.
 """
 
 from __future__ import annotations
