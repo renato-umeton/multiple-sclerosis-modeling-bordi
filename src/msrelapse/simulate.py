@@ -31,27 +31,30 @@ Absorbing level
     Looking for a crossing only at the grid points misses the excursions
     between them, which overestimates an exit time by a term of order
     ``sqrt(dt)``. Moving the absorbing level towards the walker by
-    ``0.5826 sigma sqrt(dt)``, the Brownian bridge correction, cancels that
-    term and lets a step of 0.02 weeks stand in for one of 0.001.
+    :data:`BRIDGE_CONSTANT` ``sigma sqrt(dt)``, the Brownian bridge correction,
+    cancels that term and lets a step of 0.02 weeks stand in for one of 0.001.
+    Both :func:`exit_times` and :func:`to_states` carry it, the first on its
+    single absorbing level and the second on both thresholds of the band, and
+    :func:`simulate_weekly` turns it on by default.
 Hysteresis band
     A bare threshold at the saddle counts every wobble of the path across the
     barrier top as a relapse. Two thresholds placed a fraction of the way from
     the saddle towards each well bottom remove those spurious switches, and the
     same fraction passed to :func:`msrelapse.model.calibrate` with
     ``passage='band'`` makes the simulated durations approach the calibration
-    targets as the step shrinks. Only :func:`exit_times` carries the bridge
-    correction. :func:`to_states` tests the two thresholds on the integration
-    grid alone, so it finds a crossing a step late and starts the next episode
-    past the threshold instead of on it, which makes every episode run long.
-    Measured on the band calibrated potential over more than 60000 complete
-    episodes of each side, with a standard error of about half a percent, the
-    mean episode ran about 13 percent above its target on the relapse side and
-    about 11 percent above it on the health side at a step of 0.02 weeks, and
-    about 7 percent above on both sides at a step of 0.005 weeks. Those runs
-    were 48000 weeks long each: measure the same thing on a record of a few
-    thousand weeks and the health side comes out near 6 percent instead,
-    because a fixed window holds fewer long episodes than short ones and the
-    pooled mean under-weights them.
+    targets as the step shrinks. Read on the grid alone, both thresholds sit
+    further from the walker than they are written, so an episode starts a step
+    deep inside one state and ends a step past the other threshold and runs
+    long at both ends. Measured on the band calibrated potential, over 50 paths
+    of 12000 weeks holding about 5700 complete episodes of each side, the mean
+    episode ran about 13 percent above its target on the relapse side and about
+    11 percent above it on the health side at a step of 0.02 weeks. Passing the
+    same Brownian bridge shift to :func:`to_states` removes them: over twenty
+    seeds of that run the corrected relapse mean stayed between 0.99 and 1.03
+    of its target and the corrected health mean between 0.95 and 1.01, the
+    remaining deficit being the fixed window rather than the grid, since a
+    window of a given length holds fewer of the long episodes than of the short
+    ones and the pooled mean of the complete ones under-weights them.
 
 The optional numba kernels are exactly that, optional: :data:`HAS_NUMBA` says
 whether they are available, a pure numpy implementation runs whenever they are
@@ -88,6 +91,7 @@ except ImportError:  # pragma: no cover - depends on the installed extras
     HAS_NUMBA = False
 
 __all__ = [
+    "BRIDGE_CONSTANT",
     "HAS_NUMBA",
     "MAX_DT",
     "Paths",
@@ -118,12 +122,17 @@ value. The number is a property of the scheme and the potential, not of the
 paper.
 """
 
-# -zeta(1/2) / sqrt(2 pi), the mean overshoot of a Brownian bridge past a level
-# within one step of the grid, in units of sigma sqrt(dt). A walk watched only
-# at the grid points behaves like a continuously watched walk whose level sits
-# this much further away, so bringing the simulated level this much closer to
-# the walker cancels the sqrt(dt) bias.
-_BRIDGE_OVERSHOOT: Final = 0.5826
+BRIDGE_CONSTANT: Final = 0.5826
+"""Mean overshoot of a Brownian bridge past a level, in units of ``sigma sqrt(dt)``.
+
+The constant is ``-zeta(1/2) / sqrt(2 pi)``. A walk watched only at the grid
+points behaves like a continuously watched walk whose level sits this much
+further away, so bringing a simulated level this much closer to the walker
+cancels the ``sqrt(dt)`` bias of a crossing test evaluated on the grid. Callers
+of :func:`to_states` pass ``BRIDGE_CONSTANT * sigma * sqrt(dt)`` as its
+``level_shift``, which is what :func:`simulate_weekly` and :func:`exit_times` do
+for themselves.
+"""
 
 # Normal draws are generated a block of steps at a time for all paths at once,
 # which keeps the peak memory of a long run bounded. Neither bound changes the
@@ -307,10 +316,10 @@ def exit_times(  # noqa: PLR0917
         Threshold position of the ``band`` passage, ignored otherwise.
     bridge_correction : bool, optional
         Whether to move the absorbing level towards the walker by
-        ``0.5826 sigma sqrt(dt)``, which removes the ``sqrt(dt)`` bias of a
-        crossing test evaluated only at the grid points. Without it a step of
-        0.1 weeks runs about a fifth long; with it the same step lands within a
-        few percent of the exact answer.
+        :data:`BRIDGE_CONSTANT` ``sigma sqrt(dt)``, which removes the
+        ``sqrt(dt)`` bias of a crossing test evaluated only at the grid points.
+        Without it a step of 0.1 weeks runs about a fifth long; with it the
+        same step lands within a few percent of the exact answer.
     max_time : float, optional
         How long, in weeks, a path is followed before the measurement is
         declared a failure.
@@ -353,7 +362,7 @@ def exit_times(  # noqa: PLR0917
 
     start, absorb = passage_endpoints(well, side, passage, band_fraction)
     rising = side == "health"
-    overshoot = _BRIDGE_OVERSHOOT * sigma * math.sqrt(dt) if bridge_correction else 0.0
+    overshoot = BRIDGE_CONSTANT * sigma * math.sqrt(dt) if bridge_correction else 0.0
     level = absorb - overshoot if rising else absorb + overshoot
     collapsed = level <= start if rising else level >= start
     if collapsed:
@@ -399,6 +408,7 @@ def to_states(
     well: DoubleWell,
     band_fraction: float = 0.3,
     initial: int | None = None,
+    level_shift: float = 0.0,
 ) -> NDArray[np.int64]:
     """Map a path to the two clinical states through a hysteresis band.
 
@@ -421,6 +431,14 @@ def to_states(
     initial : int, optional
         State to start every path in. The default starts a path in health when
         its first sample lies below the saddle and in no health otherwise.
+    level_shift : float, optional
+        The Brownian bridge correction for crossings read off a grid, in units
+        of x. It moves the relapse entry threshold down by this much and the
+        health entry threshold up by it, which brings each of them towards the
+        walker that has to reach it. Must be finite and not negative, and it
+        must be narrow enough to leave the two thresholds apart. Pass
+        ``BRIDGE_CONSTANT * sigma * sqrt(dt)`` for the path this is mapping;
+        the default of 0 leaves the thresholds where `band_fraction` puts them.
 
     Returns
     -------
@@ -433,7 +451,9 @@ def to_states(
     ValueError
         If `x` is not one or two dimensional, is empty or holds a sample that
         is not a finite number, if `band_fraction` is not strictly between 0
-        and 1, or if `initial` is neither of the two state codes.
+        and 1, if `initial` is neither of the two state codes, or if
+        `level_shift` is negative, is not finite, or is wide enough to close
+        the band.
 
     Notes
     -----
@@ -442,14 +462,80 @@ def to_states(
     refused by name instead, which also catches a caller who brings paths of
     their own from an integration that blew up.
 
+    A threshold tested only at the grid points is crossed a step late, so a
+    walk watched that way behaves like a continuously watched walk whose
+    threshold sits :data:`BRIDGE_CONSTANT` ``sigma sqrt(dt)`` further away. Left
+    uncorrected that lengthens both ends of every episode, by about a tenth at
+    the calibrated parameters and a step of 0.02 weeks; see the module
+    docstring for the measurement.
+
+    The shift brings the two thresholds together and does not move them apart,
+    which is the direction :func:`exit_times` already moves its single level in.
+    Measured on 50 records of 12000 weeks at a step of 0.02 weeks on the band
+    calibrated potential, as the ratio of the mean complete episode to the exact
+    first passage time over the same band: 1.113 in health and 1.128 in no health
+    with no shift, 0.988 and 1.005 with the thresholds brought together as they
+    are here, and 1.233 and 1.244 with them moved apart, which roughly doubles
+    the bias the shift is there to remove.
+
     Examples
     --------
     >>> well = DoubleWell(1.0, 0.08)
     >>> to_states(np.array([-1.0, 0.0, 1.0]), well).tolist()
     [-1, -1, 1]
     """
-    values = _as_rows(x, np.float64, "x")
+    rows = _as_rows(x, np.float64, "x")
+    _check_samples_finite(rows, "x")
+    return _to_states(rows, well, band_fraction, initial, level_shift).reshape(np.shape(x))
+
+
+def _to_states(
+    values: NDArray[np.float64],
+    well: DoubleWell,
+    band_fraction: float,
+    initial: int | None,
+    level_shift: float,
+) -> NDArray[np.int64]:
+    """Map rows of samples already known to be finite to the two clinical states.
+
+    This is :func:`to_states` without the scan for a sample that is not a finite
+    number. The scan walks the whole integration grid and allocates a boolean
+    temporary of the size of it, which is worth paying once for samples a caller
+    brought from somewhere else and not worth paying twice for samples
+    :func:`simulate_paths` has just checked. The rows come in already converted
+    by :func:`_as_rows`, so that a path is reshaped once per call and one place
+    decides how, and the caller puts the answer back in the shape it asked with.
+
+    Parameters
+    ----------
+    values : numpy.ndarray
+        A cohort of paths of shape ``(n_paths, n_records)``, holding finite
+        samples only.
+    well : DoubleWell
+        The potential the path was drawn from, which fixes the thresholds.
+    band_fraction : float
+        Position of the two thresholds.
+    initial : int or None
+        State to start every path in, or None to read it off the first sample.
+    level_shift : float
+        The Brownian bridge correction, in units of x.
+
+    Returns
+    -------
+    numpy.ndarray
+        The states, of the same shape as `values` and of dtype int64.
+
+    Raises
+    ------
+    ValueError
+        If `band_fraction` is not strictly between 0 and 1, if `initial` is
+        neither of the two state codes, or if `level_shift` is not a distance
+        the band can carry.
+    """
     threshold_health, threshold_relapse = passage_endpoints(well, "health", "band", band_fraction)
+    threshold_health, threshold_relapse = _shifted_thresholds(
+        threshold_health, threshold_relapse, level_shift
+    )
     # A boolean is refused before the membership test, because True equals the
     # no health code and would otherwise start every path in relapse.
     if initial is not None and (
@@ -459,7 +545,6 @@ def to_states(
             f"initial must be {_HEALTH:+d} for health or {_NO_HEALTH:+d} for no health, "
             f"got {initial!r}"
         )
-    _check_samples_finite(values, "x")
     if initial is None:
         saddle = well.critical_points().saddle
         start = np.where(values[:, 0] < saddle, _HEALTH, _NO_HEALTH).astype(np.int64)
@@ -467,7 +552,7 @@ def to_states(
         start = np.full(values.shape[0], initial, dtype=np.int64)
     states = np.empty(values.shape, dtype=np.int64)
     _states_kernel()(values, states, threshold_health, threshold_relapse, start)
-    return states.reshape(np.shape(x))
+    return states
 
 
 def to_weekly(
@@ -585,6 +670,7 @@ def simulate_weekly(  # noqa: PLR0917
     x0: float | NDArray[np.float64] | None = None,
     patient_ids: Sequence[str] | None = None,
     use_numba: bool | None = None,
+    bridge_correction: bool = True,
 ) -> pd.DataFrame:
     """Simulate a cohort and return its weekly record.
 
@@ -620,6 +706,12 @@ def simulate_weekly(  # noqa: PLR0917
         when numba is importable. The hysteresis kernel of :func:`to_states` is
         always the compiled one when numba is importable, because
         :func:`to_states` takes no such argument.
+    bridge_correction : bool, optional
+        Whether to hand :func:`to_states` the Brownian bridge shift
+        :data:`BRIDGE_CONSTANT` ``sigma sqrt(dt)`` computed from this call's own
+        `sigma` and `dt`, which removes the ``sqrt(dt)`` bias of a crossing
+        tested only at the grid points. On by default; see Notes for what it is
+        worth and for what it does not cover.
 
     Returns
     -------
@@ -631,26 +723,14 @@ def simulate_weekly(  # noqa: PLR0917
     ------
     ValueError
         If `n_weeks` is below one, if any argument of :func:`simulate_paths` is
-        out of range, or if `patient_ids` does not have one entry per patient.
+        out of range, if `patient_ids` does not have one entry per patient, or
+        if the bridge correction is wide enough to close the hysteresis band.
 
     Notes
     -----
-    Three separate effects stand between a band calibrated potential and the
-    weekly record this returns, and a caller correcting the record back to the
-    calibration targets has to allow for all three.
-
-    The episodes of the path are already long before any rounding.
-    :func:`to_states` tests the two band thresholds at the grid points and
-    carries no bridge correction, unlike :func:`exit_times`, so it finds a
-    crossing a step late and starts the next episode past the threshold instead
-    of on it. At the default step of 0.02 weeks the mean episode measured about
-    13 percent above its target on the relapse side and about 11 percent above
-    it on the health side, over more than 60000 complete episodes of each side
-    with a standard error of about half a percent, and both shrink with the
-    step, to about 7 percent at a step of 0.005 weeks. Both figures were
-    measured on runs of 48000 weeks; a record of a few thousand weeks reports a
-    smaller bias on the health side, because a fixed window holds fewer of the
-    long episodes than of the short ones.
+    Two effects stand between a band calibrated potential and the weekly record
+    this returns, and a caller correcting the record back to the calibration
+    targets has to allow for both.
 
     The rounding rule of :func:`to_weekly` lengthens every relapse: a relapse
     of continuous length L is marked in every week it touches and so occupies
@@ -662,11 +742,25 @@ def simulate_weekly(  # noqa: PLR0917
     into a single weekly episode, which is why a weekly record holds fewer and
     longer episodes than the path it came from. The hysteresis band removes the
     chatter of a path wobbling across the barrier top, but it cannot remove a
-    genuine short return to health, and at the calibrated parameters about one
-    remission in eight is shorter than a week. The mean weekly episode duration
-    is inflated by that merging while the weekly relapse burden is not, so a
-    caller comparing durations with the paper should compare burdens rather
-    than per episode means.
+    genuine short return to health. On the potential
+    :func:`msrelapse.model.calibrate` returns for 100 and 4.3 weeks with
+    ``passage='band'`` and a band fraction of 0.3, the default here, about one
+    remission in six is shorter than a week: measured over 20 paths of 20000
+    weeks at a step of 0.02 weeks and the three seeds 3, 7 and 11, one in 6.1 to
+    6.6 of the complete remissions of the path. A wider band leaves fewer of
+    them, which is why :class:`msrelapse.cohort.CohortSpec` widens it; the table
+    is in the Notes of that class. The mean weekly episode duration is inflated
+    by that merging while the weekly relapse burden is not, so a caller
+    comparing durations with the paper should compare burdens rather than per
+    episode means.
+
+    A third effect used to sit beside them and no longer does. Read on the
+    integration grid alone the two band thresholds are crossed a step late, and
+    at the default step of 0.02 weeks that put the mean episode of the path
+    about 13 percent above its target on the relapse side and about 11 percent
+    above it on the health side. `bridge_correction` removes it before the
+    rounding rule is applied. Turning it off restores the older behaviour, for
+    a caller comparing with a record made before the correction existed.
 
     The whole integration grid is held in memory for the whole cohort, twice
     over: ``n_paths * n_weeks / dt`` samples as float64 and the same count again
@@ -695,7 +789,10 @@ def simulate_weekly(  # noqa: PLR0917
         rng=rng,
         use_numba=use_numba,
     )
-    states = to_states(paths.x, well, band_fraction)
+    level_shift = BRIDGE_CONSTANT * sigma * math.sqrt(dt) if bridge_correction else 0.0
+    # The private mapping, because simulate_paths has just scanned these samples
+    # for a value that is not finite and the public one would scan them again.
+    states = _to_states(_as_rows(paths.x, np.float64, "x"), well, band_fraction, None, level_shift)
     return _weekly_frame(to_weekly(states, dt), patient_ids)
 
 
@@ -721,6 +818,49 @@ def _check_step(dt: float) -> None:
             f"is not globally Lipschitz, so the Euler Maruyama path blows up to infinity at a "
             f"longer step instead of settling into a well"
         )
+
+
+def _shifted_thresholds(
+    threshold_health: float,
+    threshold_relapse: float,
+    level_shift: float,
+) -> tuple[float, float]:
+    """Return the two band thresholds with the bridge correction applied.
+
+    Parameters
+    ----------
+    threshold_health : float
+        Below this the path enters health, before the correction.
+    threshold_relapse : float
+        Above this the path enters no health, before the correction.
+    level_shift : float
+        How far to bring each threshold towards the walker that has to reach
+        it, in units of x.
+
+    Returns
+    -------
+    tuple of float
+        The corrected health and relapse thresholds, the first raised by
+        `level_shift` and the second lowered by it.
+
+    Raises
+    ------
+    ValueError
+        If `level_shift` is not a finite non-negative number, or if it is wide
+        enough to bring the two thresholds together.
+    """
+    if not math.isfinite(level_shift) or level_shift < 0.0:
+        raise ValueError(f"level_shift must be a non-negative finite number, got {level_shift!r}")
+    health = threshold_health + level_shift
+    relapse = threshold_relapse - level_shift
+    if health >= relapse:
+        raise ValueError(
+            f"a level_shift of {level_shift!r} moves the health threshold from "
+            f"{threshold_health:.6g} to {health:.6g} and the relapse threshold from "
+            f"{threshold_relapse:.6g} to {relapse:.6g}, which closes the hysteresis band and "
+            f"would let a single sample sit in both states; shorten dt or widen band_fraction"
+        )
+    return health, relapse
 
 
 def _snap(value: float) -> float:

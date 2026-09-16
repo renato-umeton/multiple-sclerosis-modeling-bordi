@@ -36,18 +36,21 @@ at all.
 What the correction does not cover
 ----------------------------------
 The rounding is not the only thing between a calibrated potential and a weekly
-record, and :func:`msrelapse.simulate.simulate_weekly` documents the other two
-for itself. An episode read off the integration grid runs long, by about a tenth
-at the default step of 0.02 weeks, and two relapses separated by less than a week
-merge into one longer weekly episode, which at the default band fraction of 0.3
-happens to about one remission in seven. Together they leave the weekly relapse
-mean of a stochastic cohort about a third above its target at the defaults. Both
-shrink with a shorter `dt` and a wider `band_fraction`: at a step of 0.01 weeks
-and a band fraction of 0.5 fewer than one remission in twenty falls inside a
-week, and a cohort of a hundred patients over a thousand weeks lands within
-about a seventh of its relapse target and a tenth of its remission target. The
-defaults are kept as they are because they are cheap, and a caller who wants the
-targets reproduced closely should pay for the finer grid.
+record. Two relapses separated by less than a week fall in the same week and
+merge into one longer weekly episode, and the hysteresis band cannot remove a
+genuine short return to health. How often that happens is set by the width of
+the band. On the potential calibrated to the rounding corrected 101 and 3.3
+weeks, which is what :func:`continuous_targets` makes of the printed pair and
+what the measured table of :class:`CohortSpec` was built on, about one complete
+remission of the path in five and a half is shorter than a week at a band
+fraction of 0.3, about one in ten at 0.4 and about one in sixteen at 0.5. All
+three figures are of that one calibration; :mod:`msrelapse.simulate` quotes the
+same quantity on the uncorrected printed pair, where it is about half as
+frequent. This merging is the whole of the residual gap between the two engines
+now that :func:`msrelapse.simulate.simulate_weekly` carries the Brownian bridge
+correction, and it is why the default band fraction of :class:`CohortSpec` is
+0.4. The measured table is in the Notes of that class, together with the reason
+the band is not widened further.
 
 A caution on naive means
 ------------------------
@@ -55,12 +58,15 @@ The mean of the recorded durations of a state is not the mean the cohort was
 generated from, and the gap is the end of follow up rather than anything in this
 module. A remission of about a hundred weeks rarely fits twice into a record of a
 few hundred, so a short window records the short remissions plus one that the end
-of follow up cut off, and the naive mean lands about a quarter below the target.
-The cohort of :func:`bordi2013_spec` shows this plainly, and so, for the same
-reason, does the 100 weeks the article prints, which is a naive mean over windows
-of the same lengths and understates its own cohort. Read
-:func:`msrelapse.fit.fit_durations` with censoring for the corrected estimate,
-and treat every naive mean, here and in the paper, as a lower bound.
+of follow up cut off, and the naive mean lands about a fifth below the target.
+The 100 weeks the article prints is such a naive mean, over exactly those
+windows, so a twin generated at 100 weeks does not reproduce it.
+:func:`naive_mean_targets` inverts the measurement: it returns the generative
+means whose naive means are the ones asked for, and
+:func:`bordi2013_spec` uses it by default. Read
+:func:`msrelapse.fit.fit_durations` with censoring for the corrected estimate of
+a recorded cohort, and treat every naive mean, here and in the paper, as a lower
+bound on the mean of the process behind it.
 
 References
 ----------
@@ -71,6 +77,7 @@ International Journal of Genomics, 2013, doi 10.1155/2013/910321.
 
 from __future__ import annotations
 
+import functools
 import math
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -79,6 +86,7 @@ from typing import Final, Literal
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+from scipy.optimize import brentq
 
 from msrelapse import _citation
 from msrelapse._params import PAPER
@@ -107,6 +115,7 @@ __all__ = [
     "from_histogram",
     "generate",
     "lognormal_around",
+    "naive_mean_targets",
     "paper_patients",
     "per_patient_params",
 ]
@@ -148,6 +157,37 @@ _MIN_FOLLOWUP_WEEKS: Final = 2
 # week the correction has taken away most of what it was given, and the
 # calibration would be asked for a potential whose relapse well barely exists.
 _MIN_CONTINUOUS_RELAPSE_WEEKS: Final = 0.5
+
+# How far the generative mean of naive_mean_targets is allowed to be searched
+# above the naive mean asked for. The naive mean of a state is always the
+# shorter of the two, because the end of follow up cuts the last run of it, so
+# the generative mean is bracketed from below by the naive one and from above by
+# this multiple of it.
+_NAIVE_SEARCH_FACTOR: Final = 50.0
+
+# Width of the bracket, on the logarithm of the generative mean, at which the
+# search of naive_mean_targets stops, which is a relative accuracy on the mean
+# itself. It is far tighter than the answer needs: the objective carries a few
+# tenths of a percent of Monte Carlo noise, so a hundredth of a percent would
+# already be a better answer than the cohort behind it. What the tight stop buys
+# is reproducibility rather than accuracy, and the Notes of _solve_naive_mean
+# say how it and the rounding below work together.
+_NAIVE_SEARCH_XTOL: Final = 1e-8
+
+# Relative half width of the same bracket, spelled out rather than left to the
+# default of scipy so that the stop is decided by _NAIVE_SEARCH_XTOL alone
+# whatever a later scipy defaults to. It is the smallest value brentq accepts,
+# and at a bracket near log(100) it contributes about 4e-15 of the stop.
+_NAIVE_SEARCH_RTOL: Final = 4.0 * float(np.finfo(np.float64).eps)
+
+# Significant figures the generative mean is rounded to before it is returned.
+# See the Notes of _solve_naive_mean: the number ends up seeding a shipped file,
+# so it must not move with the last bit of a library's exponential.
+_NAIVE_SEARCH_DIGITS: Final = 6
+
+# How far the naive mean of the second state may sit from its target before
+# naive_mean_targets solves for that state as well.
+_NAIVE_MEAN_TOLERANCE: Final = 0.01
 
 # The three worked examples of Section 3.4, page 6: the number the article
 # gives each patient, then its mean remission, its mean relapse, its printed
@@ -454,6 +494,130 @@ def continuous_targets(
     return float(tau_health + _WEEK), float(corrected)
 
 
+def naive_mean_targets(  # noqa: PLR0917
+    naive_tau_health: float,
+    naive_tau_relapse: float,
+    followup_weeks: Sampler,
+    start_state: StartState = "relapse",
+    n_calibration: int = 20000,
+    seed: int = 0,
+) -> tuple[float, float]:
+    """Return the generative means whose naive means are the ones asked for.
+
+    A naive mean is the total time a cohort spent in a state, over every
+    recorded run of it including the one the end of follow up cut short, divided
+    by the number of those runs. It is the mean the paper reports and the mean
+    :func:`msrelapse.fit.barrier_ratio` and :func:`per_patient_params` read, and
+    it is shorter than the mean of the process behind it whenever the follow up
+    windows are no longer than a few times that mean. This inverts the
+    measurement: it searches for the pair of generative means the weekly renewal
+    engine has to be given for its naive means to come out at
+    `naive_tau_health` and `naive_tau_relapse`.
+
+    The remission is solved first, by bisection on the logarithm of its
+    generative mean with the relapse held at its naive value, and the relapse is
+    then solved the same way only if its own naive mean is off by more than one
+    percent. Every evaluation draws its durations from a generator freshly
+    seeded from `seed` and reuses one set of follow up windows, so the objective
+    is a deterministic function of the generative mean and the bisection has
+    something to converge to.
+
+    Parameters
+    ----------
+    naive_tau_health : float
+        The naive mean remission duration wanted, in weeks. Must be at least one
+        week, which is the shortest duration a weekly record can hold.
+    naive_tau_relapse : float
+        The naive mean relapse duration wanted, in weeks. Must be at least one
+        week, which is what the weekly renewal engine can draw.
+    followup_weeks : float or callable
+        Length of each record of the calibration cohort, in weeks, in the shape
+        :class:`CohortSpec` takes it. These windows are what makes the two means
+        differ, so they have to be the windows of the cohort being aimed at.
+    start_state : {'relapse', 'health'}, optional
+        State every patient of the calibration cohort is in at week 0.
+    n_calibration : int, optional
+        Number of patients behind each evaluation. Must be at least one.
+    seed : int, optional
+        Seed of the follow up draw and of every duration draw, which are one
+        stream and not two; see the Notes.
+
+    Returns
+    -------
+    tuple of float
+        The generative remission and relapse means, in weeks, to hand to
+        :class:`CohortSpec`.
+
+    Raises
+    ------
+    ValueError
+        If either naive mean or `n_calibration` is out of range, if
+        `start_state` is not one of the two spellings, or if a naive mean is not
+        reachable at all, which the message reports as the range of naive means
+        the search bracket spans.
+
+    See Also
+    --------
+    bordi2013_spec : Uses this to aim the twin of the cohort of the paper.
+    msrelapse.fit.fit_durations : The censored estimate, the other way round.
+
+    Notes
+    -----
+    For the cohort of the paper, that is the relapsing-remitting phase lengths
+    of Figure 3 as the follow up windows and the printed 100 and 4.3 weeks as
+    the naive targets, the answer is a generative remission mean of 134.21 weeks
+    and a generative relapse mean of 4.34415 weeks. Generating at the printed
+    means instead gives naive means of about 79.7 and 4.27 weeks: the remission
+    lands a fifth low, which is the whole reason this exists, and the relapse
+    about one percent low, because a relapse still running at the end of follow
+    up is recorded truncated.
+
+    At `n_calibration` of 20000 the Monte Carlo accuracy is a few tenths of a
+    percent. Over ten cohorts of that size drawn with fresh windows and fresh
+    durations, the naive remission mean of the returned pair measured 100.25
+    weeks with a standard deviation of 0.24 weeks, and the naive relapse mean
+    4.3011 weeks with a standard deviation of 0.0139 weeks, against targets of
+    100 and 4.3.
+
+    `seed` starts one stream, not two: the follow up windows are drawn from a
+    generator seeded with it, and every duration draw restarts a generator from
+    the same number, so the windows and the durations come off the same bits.
+    Nothing here needs them independent, and the round trip above, measured on
+    fresh windows and fresh durations at seeds this call never saw, says the
+    coupling costs nothing measurable. It is written down because it is an
+    accident of one seed being passed twice rather than a choice, and because
+    splitting the two streams would move the solved pair and with it the cohort
+    the package ships as a file.
+
+    Examples
+    --------
+    >>> health, relapse = naive_mean_targets(50.0, 4.0, 300.0, n_calibration=2000)
+    >>> bool(health > 50.0 and relapse >= 4.0)
+    True
+    """
+    _check_naive_target("naive_tau_health", naive_tau_health, _WEEK)
+    _check_naive_target("naive_tau_relapse", naive_tau_relapse, _WEEK)
+    if start_state not in _START_STATES:
+        raise ValueError(f"start_state must be one of {_START_STATES}, got {start_state!r}")
+    if n_calibration < 1:
+        raise ValueError(f"n_calibration must be at least 1 patient, got {n_calibration!r}")
+    followup = _whole_weeks(draw(followup_weeks, _generator(seed), n_calibration))
+
+    def measure(tau_health: float, tau_relapse: float) -> tuple[float, float]:
+        return _naive_weekly_means(tau_health, tau_relapse, followup, start_state, seed)
+
+    tau_relapse = float(naive_tau_relapse)
+    tau_health = _solve_naive_mean(
+        lambda value: measure(value, tau_relapse)[0], naive_tau_health, "remission"
+    )
+    relapse_mean = measure(tau_health, tau_relapse)[1]
+    if abs(relapse_mean / naive_tau_relapse - 1.0) > _NAIVE_MEAN_TOLERANCE:
+        tau_relapse = _solve_naive_mean(
+            lambda value: measure(tau_health, value)[1], naive_tau_relapse, "relapse"
+        )
+    return tau_health, tau_relapse
+
+
 @dataclass(frozen=True)
 class CohortSpec:
     """Everything needed to generate one cohort.
@@ -484,26 +648,88 @@ class CohortSpec:
         Position of the two hysteresis thresholds that cut a simulated path into
         episodes, as a fraction of the distance from the saddle to each well
         bottom. Must lie strictly between 0 and 1. Used by the ``sde`` engine
-        alone.
+        alone. The default of 0.4 is wider than the 0.3 of
+        :mod:`msrelapse.simulate`, for the reason in the Notes.
     dt : float, optional
         Integration step, in weeks. Must be positive and no larger than
         :data:`msrelapse.simulate.MAX_DT`. Used by the ``sde`` engine alone.
     start_state : {'relapse', 'health'}, optional
         State every patient is in at week 0. The records of the paper start at
         the first relapse, which is the default.
+    naive_tau_health : float, optional
+        The naive mean remission duration `tau_health` was chosen to reproduce,
+        in weeks, when the spec came out of :func:`naive_mean_targets`. It is
+        carried so that the cohort can say what it was aimed at; nothing
+        generates from it. It is given together with `naive_tau_relapse` or not
+        at all, because :func:`naive_mean_targets` solves for the two together.
+    naive_tau_relapse : float, optional
+        The naive mean relapse duration `tau_relapse` was chosen to reproduce,
+        under the same rule and given under the same pairing.
 
     Raises
     ------
     ValueError
         If `n` is below one, if `alpha` is not positive, if `dt` is outside
-        ``(0, MAX_DT]``, if `band_fraction` is not strictly between 0 and 1, or
-        if `engine` or `start_state` is not one of the accepted spellings.
+        ``(0, MAX_DT]``, if `band_fraction` is not strictly between 0 and 1, if
+        either naive mean is given and is not a positive finite number, if one
+        naive mean is given without the other, or if `engine` or `start_state`
+        is not one of the accepted spellings.
 
     Notes
     -----
-    The defaults of `dt` and `band_fraction` are the cheap ones, not the
-    accurate ones. See the module docstring for what they cost a stochastic
-    cohort and for the values that buy the targets back.
+    The default `band_fraction` was chosen by measurement, and the default `dt`
+    was kept. A cohort of 120 patients over 1000 weeks at the printed means was
+    generated with both engines from the same spec, and the weekly naive mean of
+    the ``sde`` records was compared with the weekly naive mean of the
+    ``renewal`` records, which is the fair comparison because both see the same
+    censoring. Over the eight seeds 5 to 12, as a fraction of the renewal mean:
+
+    ========  =============  =================  =================
+    ``dt``    band fraction  remission gap      relapse gap
+    ========  =============  =================  =================
+    0.02      0.3            +0.181 to +0.321   +0.216 to +0.278
+    0.02      0.4            +0.094 to +0.198   +0.095 to +0.186
+    0.02      0.5            +0.028 to +0.142   +0.040 to +0.130
+    0.01      0.3            +0.203 to +0.259   +0.197 to +0.294
+    0.01      0.4            +0.104 to +0.147   +0.103 to +0.180
+    0.01      0.5            +0.058 to +0.101   +0.049 to +0.104
+    ========  =============  =================  =================
+
+    The band fraction decides the answer and the step no longer does, now that
+    :func:`msrelapse.simulate.simulate_weekly` carries the Brownian bridge
+    correction. What the gap is made of is the merging of two relapses on either
+    side of a remission shorter than a week, which the weekly record cannot
+    express. On the rounding corrected 101 and 3.3 weeks the spec of that table
+    calibrates to, about one complete remission of the path in five and a half is
+    that short at a band fraction of 0.3, one in ten at 0.4 and one in sixteen at
+    0.5, measured over 20 paths of 20000 weeks at a step of 0.02 weeks and the
+    three seeds 3, 7 and 11. The three figures :mod:`msrelapse.simulate` quotes
+    are about half as frequent, one in six, one in twelve and one in twenty-five,
+    because that module calibrates to the printed 100 and 4.3 weeks and applies
+    no rounding correction; both series are right about their own potential and
+    neither should be read on the other. The cheaper step is therefore kept and
+    the band widened.
+
+    It is widened to 0.4 and not further, because the band also decides whether
+    the calibration exists at all. A wider band is a longer crossing, which asks
+    for a larger asymmetry to keep the relapse as short as the targets want, and
+    the asymmetry runs into the saddle-node fold at
+    ``fold_beta(1) = 0.3849``. The cohort of :func:`bordi2013_spec` calibrates to
+    a beta of 0.317 at a band fraction of 0.3 and 0.359 at 0.4, and at 0.5 it has
+    no solution at all: :func:`msrelapse.model.calibrate` raises there rather
+    than returning a potential. The rows for 0.5 above were measured on the
+    unmatched spec, whose relapse target is a tenth of a week longer and which
+    still calibrates, by a margin of about a thousandth in beta.
+
+    The cost of the wider default is that a pair of durations whose ratio is more
+    extreme than the cohort of the paper may have no solution at 0.4 although it
+    had one at 0.3. ``CohortSpec(tau_health=200, tau_relapse=4.0,
+    engine="sde")`` is the worked example: it calibrates to a beta of 0.349 at a
+    band fraction of 0.3 and raises out of :func:`msrelapse.model.calibrate` at
+    the default of 0.4, because the asymmetry the wider band asks for is past the
+    fold. The message names the two target times and not the band, so a caller
+    who meets it on an extreme pair should pass ``band_fraction=0.3`` and accept
+    the larger gap to the ``renewal`` engine in the table above.
     """
 
     n: int
@@ -513,9 +739,11 @@ class CohortSpec:
     engine: Engine = "renewal"
     alpha: float = PAPER.alpha_reference.value
     weekly: bool = True
-    band_fraction: float = 0.3
+    band_fraction: float = 0.4
     dt: float = 0.02
     start_state: StartState = "relapse"
+    naive_tau_health: float | None = None
+    naive_tau_relapse: float | None = None
 
     def __post_init__(self) -> None:
         """Reject a description no cohort can be generated from.
@@ -527,6 +755,21 @@ class CohortSpec:
         """
         if self.n < 1:
             raise ValueError(f"n must be at least 1 patient, got {self.n!r}")
+        for name in ("naive_tau_health", "naive_tau_relapse"):
+            recorded = getattr(self, name)
+            if recorded is not None and (not math.isfinite(recorded) or recorded <= 0.0):
+                raise ValueError(
+                    f"{name} must be a positive finite number of weeks when it is given, "
+                    f"got {recorded!r}"
+                )
+        if (self.naive_tau_health is None) != (self.naive_tau_relapse is None):
+            raise ValueError(
+                f"naive_tau_health and naive_tau_relapse are recorded together or not at "
+                f"all, because naive_mean_targets solves for the two of them at once and "
+                f"the provenance sentence names both; got "
+                f"naive_tau_health={self.naive_tau_health!r} and "
+                f"naive_tau_relapse={self.naive_tau_relapse!r}"
+            )
         if not math.isfinite(self.alpha) or self.alpha <= 0.0:
             raise ValueError(f"alpha must be a positive finite number, got {self.alpha!r}")
         if not math.isfinite(self.dt) or not 0.0 < self.dt <= MAX_DT:
@@ -565,8 +808,11 @@ class Cohort:
     patients : pandas.DataFrame
         One row per patient, with the columns ``patient_id``, ``tau_health``,
         ``tau_relapse`` and ``followup_weeks`` that the patient was generated
-        from, and the ``beta`` and ``sigma`` the ``sde`` engine calibrated for
-        it, which are missing for the ``renewal`` engine.
+        from, the ``beta`` and ``sigma`` the ``sde`` engine calibrated for it,
+        which are missing for the ``renewal`` engine, and ``naive_tau_health``
+        and ``naive_tau_relapse``, the naive means the two generative means were
+        chosen to reproduce, which are missing unless the spec came from
+        :func:`naive_mean_targets`.
     provenance : str
         One sentence saying that the records are synthetic and are not the
         clinical series of the paper.
@@ -661,13 +907,13 @@ def generate(spec: CohortSpec, rng: Seed = None) -> Cohort:
         durations=durations,
         events=events,
         patients=_patients_frame(
-            identifiers, tau_health, tau_relapse, followup, beta=beta, sigma=sigma
+            identifiers, tau_health, tau_relapse, followup, beta=beta, sigma=sigma, spec=spec
         ),
         provenance=_provenance(spec),
     )
 
 
-def bordi2013_spec(engine: Engine = "renewal") -> CohortSpec:
+def bordi2013_spec(engine: Engine = "renewal", match_naive_means: bool = True) -> CohortSpec:
     """Return the description of the cohort the paper studied.
 
     Every number comes from :data:`msrelapse._params.PAPER`: the cohort size,
@@ -679,6 +925,13 @@ def bordi2013_spec(engine: Engine = "renewal") -> CohortSpec:
     ----------
     engine : {'renewal', 'sde'}, optional
         Which generator to describe the cohort for.
+    match_naive_means : bool, optional
+        With True, the default, the two mean durations of the spec are the
+        generative means :func:`naive_mean_targets` returns for the printed
+        means over these windows, and the printed means are recorded in the two
+        naive fields of the spec. With False the generative means are the
+        printed means themselves, which is the older behaviour and reproduces
+        the printed relapse but not the printed remission.
 
     Returns
     -------
@@ -690,18 +943,47 @@ def bordi2013_spec(engine: Engine = "renewal") -> CohortSpec:
     ValueError
         If `engine` is not one of the two spellings.
 
+    Notes
+    -----
+    The printed 100 weeks is a naive mean: the paper averaged every remission it
+    recorded, including the one the end of follow up cut short, over windows of
+    40 to 1311 weeks. A twin generated at 100 weeks is measured the same way and
+    comes back at about 80, so it does not reproduce the number it was built
+    from. Matching is therefore the default: the twin is generated at 134.21 and
+    4.34415 weeks, where the same measurement gives the printed 100 and 4.3. The
+    relapse moves by only one percent, because 4.3 weeks is short against every
+    one of those windows, and the remission by a third.
+
+    The ``sde`` engine applies the rounding correction of
+    :func:`continuous_targets` on top of the matched means, so a matched
+    stochastic spec calibrates its potential to 135.21 and 3.34415 weeks.
+
     Examples
     --------
     >>> bordi2013_spec().n == PAPER.n_patients.value
     True
     """
+    if not match_naive_means:
+        return CohortSpec(
+            n=PAPER.n_patients.value,
+            tau_health=PAPER.tau_health_cohort_weeks.value,
+            tau_relapse=PAPER.tau_no_health_cohort_weeks.value,
+            followup_weeks=from_histogram(
+                PAPER.fig3_bin_edges_weeks.value, PAPER.fig3_counts.value
+            ),
+            engine=engine,
+            weekly=True,
+        )
+    tau_health, tau_relapse = _paper_naive_targets()
     return CohortSpec(
         n=PAPER.n_patients.value,
-        tau_health=PAPER.tau_health_cohort_weeks.value,
-        tau_relapse=PAPER.tau_no_health_cohort_weeks.value,
+        tau_health=tau_health,
+        tau_relapse=tau_relapse,
         followup_weeks=from_histogram(PAPER.fig3_bin_edges_weeks.value, PAPER.fig3_counts.value),
         engine=engine,
         weekly=True,
+        naive_tau_health=PAPER.tau_health_cohort_weeks.value,
+        naive_tau_relapse=PAPER.tau_no_health_cohort_weeks.value,
     )
 
 
@@ -917,6 +1199,244 @@ def _whole_weeks(values: _Vector) -> npt.NDArray[np.int64]:
     return rounded.astype(np.int64)
 
 
+def _check_naive_target(name: str, value: float, floor: float) -> None:
+    """Raise if a wanted naive mean duration is not a number of weeks.
+
+    Parameters
+    ----------
+    name : str
+        Name of the argument, used in the error message.
+    value : float
+        The wanted naive mean, in weeks.
+    floor : float
+        Shortest duration the weekly renewal engine can draw, in weeks.
+
+    Raises
+    ------
+    ValueError
+        If `value` is not finite or is below `floor`.
+    """
+    if not math.isfinite(value) or value < floor:
+        raise ValueError(
+            f"{name} must be a finite number of at least {floor} week, which is the shortest "
+            f"duration a weekly record can hold, got {value!r}"
+        )
+
+
+def _naive_means_from_events(events: pd.DataFrame) -> tuple[float, float]:
+    """Return the pooled naive remission and relapse means of a weekly events table.
+
+    The runs are read off the events table arithmetically rather than through
+    :func:`msrelapse.io.events_to_weekly`, which would expand every patient-week
+    into a row of its own, because this is called once per step of a search. The
+    two are the same run lengths as long as every onset and end falls on a whole
+    week and no two relapses touch, which is what the weekly renewal engine
+    produces.
+
+    Parameters
+    ----------
+    events : pandas.DataFrame
+        An events frame of whole week onsets and ends, as
+        :func:`msrelapse.renewal.alternating_renewal` returns it with
+        ``discretise='week'``.
+
+    Returns
+    -------
+    tuple of float
+        The naive mean remission and the naive mean relapse duration, in weeks,
+        pooled over every run of the cohort including the censored final
+        remission of each record.
+
+    Raises
+    ------
+    ValueError
+        If the cohort holds no run of one of the two states, which leaves that
+        mean undefined.
+    """
+    patient = events["patient_id"].to_numpy()
+    origin = events["followup_start"].to_numpy(dtype=np.float64)
+    onset = events["relapse_onset"].to_numpy(dtype=np.float64) - origin
+    end = events["relapse_end"].to_numpy(dtype=np.float64) - origin
+    horizon = events["followup_end"].to_numpy(dtype=np.float64) - origin
+    first = np.concatenate(([True], patient[1:] != patient[:-1]))
+    last = np.concatenate((patient[1:] != patient[:-1], [True]))
+    recorded = ~np.isnan(onset)
+    relapses = (end - onset)[recorded]
+    remissions = np.concatenate(
+        [
+            onset[first & recorded],  # before the first relapse of a record
+            (onset[1:] - end[:-1])[~first[1:]],  # between two relapses of one record
+            (horizon - end)[last & recorded],  # after the last relapse, censored
+            horizon[first & ~recorded],  # a record with no relapse at all
+        ]
+    )
+    remissions = remissions[remissions > 0.0]
+    if relapses.size == 0 or remissions.size == 0:
+        raise ValueError(
+            f"the calibration cohort holds {relapses.size} relapse run(s) and "
+            f"{remissions.size} remission run(s), so one of the two naive means does not "
+            f"exist; lengthen the follow up windows or shorten the target durations"
+        )
+    return float(remissions.mean()), float(relapses.mean())
+
+
+def _naive_weekly_means(
+    tau_health: float,
+    tau_relapse: float,
+    followup: npt.NDArray[np.int64],
+    start_state: StartState,
+    seed: int,
+) -> tuple[float, float]:
+    """Return the naive means of one weekly renewal cohort at a pair of generative means.
+
+    Parameters
+    ----------
+    tau_health : float
+        Generative mean remission duration, in weeks.
+    tau_relapse : float
+        Generative mean relapse duration, in weeks.
+    followup : numpy.ndarray
+        Length of each record, in whole weeks, the same windows at every call.
+    start_state : {'relapse', 'health'}
+        State every patient is in at week 0.
+    seed : int
+        Seed of the generator the durations are drawn from, so that the naive
+        means are a deterministic function of the two generative means.
+
+    Returns
+    -------
+    tuple of float
+        The naive mean remission and the naive mean relapse duration, in weeks.
+    """
+    lam, mu = rates_from_means(tau_health, tau_relapse)
+    events = alternating_renewal(
+        lam,
+        mu,
+        followup.astype(np.float64),
+        n=int(followup.size),
+        rng=np.random.default_rng(seed),
+        discretise="week",
+        start_state=start_state,
+    )
+    return _naive_means_from_events(events)
+
+
+def _solve_naive_mean(
+    measure: Callable[[float], float],
+    target: float,
+    state: str,
+) -> float:
+    """Return the generative mean whose measured naive mean is `target`.
+
+    Parameters
+    ----------
+    measure : callable
+        The naive mean a given generative mean produces, in weeks.
+    target : float
+        The naive mean wanted, in weeks, which is also the lower end of the
+        search bracket: a naive mean never exceeds the generative mean it came
+        from, because the end of follow up cuts the last run short.
+    state : str
+        Name of the state being solved for, used in the error message.
+
+    Returns
+    -------
+    float
+        The generative mean, in weeks, rounded to
+        :data:`_NAIVE_SEARCH_DIGITS` significant figures.
+
+    Raises
+    ------
+    ValueError
+        If the bracket holds no sign change, that is if the wanted naive mean
+        lies outside the range the bracket can produce.
+
+    Notes
+    -----
+    The answer is handed to a generator whose cohort is shipped as a file, so it
+    has to be the same number on every platform. Two things together make it
+    one, and neither would do it alone.
+
+    The search runs through the exponential and the logarithm of the standard
+    library, which may differ in their last bit from one platform to another, so
+    the root is pinned no more tightly than the bracket the search stops at. The
+    rounding to :data:`_NAIVE_SEARCH_DIGITS` significant figures then snaps two
+    such roots to one number only when they differ by less than about five parts
+    in ten million, which is why :data:`_NAIVE_SEARCH_XTOL` stops the search at a
+    hundred millionth of the mean rather than at the hundredth of a percent the
+    accuracy of the answer would ask for. A wide stop under a fine rounding
+    preserves two different numbers instead of merging them.
+
+    How much room there is to lose is worth stating, because it is less than the
+    rounding suggests. The objective is a step function: a generative mean fixes
+    the rate of a geometric draw, and the naive mean it measures moves only when
+    a draw of the fixed calibration cohort flips to the next whole week. The
+    search therefore converges onto the edge of one step, and what protects the
+    shipped files is that a whole plateau of generative means draws the same
+    cohort. Measured on the twin of :func:`bordi2013_spec` at the seed the
+    shipped files carry, the records come out identical byte for byte at every
+    generative remission tried from 134.202 to 134.23 weeks and at every
+    generative relapse tried from 4.34405 to 4.3444 weeks, and differ just
+    outside both. The relapse plateau is about a ten thousandth of itself wide,
+    narrower than a stop of a hundredth of a percent would leave the root free to
+    wander, which is the measurement behind the two constants above.
+    """
+    lower = float(target)
+    upper = _NAIVE_SEARCH_FACTOR * lower
+    low_log = math.log(lower)
+    high_log = math.log(upper)
+
+    # One evaluation is a whole calibration cohort of renewal records, 20000 of
+    # them by default, and the probe for a sign change asks for the two bracket
+    # ends that brentq then asks for again. The search is therefore run on the
+    # logarithm throughout and its answers are kept, so that each end is
+    # simulated once: two cohorts saved per solved state, measured on the pair of
+    # the paper as 53 evaluations where the uncached search took 57. The cache
+    # lives as long as this call and no longer.
+    @functools.cache
+    def naive_mean(log_mean: float) -> float:
+        """Return the naive mean of the generative mean whose logarithm is given."""
+        return measure(math.exp(log_mean))
+
+    reachable = (naive_mean(low_log), naive_mean(high_log))
+    if not reachable[0] <= target <= reachable[1]:
+        raise ValueError(
+            f"a naive mean {state} duration of {target!r} weeks is not reachable with these "
+            f"follow up windows: a generative mean of {lower:.6g} to {upper:.6g} weeks gives "
+            f"naive means of {reachable[0]:.6g} to {reachable[1]:.6g} weeks"
+        )
+    root = brentq(
+        lambda log_mean: naive_mean(log_mean) - target,
+        low_log,
+        high_log,
+        xtol=_NAIVE_SEARCH_XTOL,
+        rtol=_NAIVE_SEARCH_RTOL,
+    )
+    return float(f"{math.exp(float(root)):.{_NAIVE_SEARCH_DIGITS}g}")
+
+
+@functools.lru_cache(maxsize=1)
+def _paper_naive_targets() -> tuple[float, float]:
+    """Return the generative means of the twin of the cohort of the paper.
+
+    The call behind this is a Monte Carlo calibration over 20000 records and
+    takes about half a second, and its answer is a fixed function of the numbers
+    of the paper, so it is computed once per process and kept.
+
+    Returns
+    -------
+    tuple of float
+        The generative remission and relapse means, in weeks, whose naive means
+        over the follow up windows of Figure 3 are the printed 100 and 4.3
+        weeks.
+    """
+    return naive_mean_targets(
+        PAPER.tau_health_cohort_weeks.value,
+        PAPER.tau_no_health_cohort_weeks.value,
+        from_histogram(PAPER.fig3_bin_edges_weeks.value, PAPER.fig3_counts.value),
+    )
+
+
 def _renewal_frames(
     spec: CohortSpec,
     tau_health: _Vector,
@@ -1077,6 +1597,7 @@ def _patients_frame(
     *,
     beta: _Vector,
     sigma: _Vector,
+    spec: CohortSpec,
 ) -> pd.DataFrame:
     """Return the per patient table of what the cohort was generated from.
 
@@ -1095,12 +1616,17 @@ def _patients_frame(
         engine, which has no potential behind it.
     sigma : numpy.ndarray
         Noise amplitude of each patient, missing under the same rule.
+    spec : CohortSpec
+        The description being generated from, read for the two naive means the
+        generative ones were matched to, which are missing when the spec was
+        not matched.
 
     Returns
     -------
     pandas.DataFrame
         One row per patient, in identifier order.
     """
+    n = len(identifiers)
     return pd.DataFrame(
         {
             "patient_id": pd.Series(list(identifiers), dtype=object),
@@ -1109,8 +1635,28 @@ def _patients_frame(
             "followup_weeks": followup,
             "beta": beta,
             "sigma": sigma,
+            "naive_tau_health": _recorded_naive(spec.naive_tau_health, n),
+            "naive_tau_relapse": _recorded_naive(spec.naive_tau_relapse, n),
         }
     )
+
+
+def _recorded_naive(value: float | None, n: int) -> _Vector:
+    """Return one column of a naive mean the spec recorded, or of missing values.
+
+    Parameters
+    ----------
+    value : float or None
+        The naive mean the spec was matched to, or None when it was not.
+    n : int
+        Number of patients.
+
+    Returns
+    -------
+    numpy.ndarray
+        `n` copies of `value`, or `n` missing values.
+    """
+    return np.full(n, math.nan if value is None else float(value), dtype=np.float64)
 
 
 def _validate_frames(
@@ -1159,11 +1705,19 @@ def _provenance(spec: CohortSpec) -> str:
     str
         One sentence naming the engine and saying plainly that the records are
         synthetic and are not the clinical series of the paper, which was never
-        released.
+        released, followed by a second sentence naming the naive means the
+        generative ones were matched to when the spec records them.
     """
-    return (
+    sentences = [
         f"Synthetic data: {spec.n} record(s) generated by msrelapse with the "
         f"{spec.engine} engine from the target durations of this cohort spec, and not the "
         f"{PAPER.n_patients.value} patient clinical series of Bordi et al. 2013, which the "
         f"article never released."
-    )
+    ]
+    if spec.naive_tau_health is not None and spec.naive_tau_relapse is not None:
+        sentences.append(
+            f"Its generative mean durations were chosen so that the naive means over these "
+            f"follow up windows come out at {spec.naive_tau_health} weeks in health and "
+            f"{spec.naive_tau_relapse} weeks in no health."
+        )
+    return " ".join(sentences)

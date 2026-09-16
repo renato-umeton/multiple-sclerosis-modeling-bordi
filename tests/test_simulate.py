@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import doctest
+import math
 
 import numpy as np
 import numpy.typing as npt
@@ -13,6 +14,7 @@ from msrelapse._params import PAPER
 from msrelapse.io import validate, weekly_to_durations
 from msrelapse.model import DoubleWell, calibrate, mfpt, passage_endpoints
 from msrelapse.simulate import (
+    BRIDGE_CONSTANT,
     HAS_NUMBA,
     durations,
     exit_times,
@@ -22,9 +24,17 @@ from msrelapse.simulate import (
     to_weekly,
 )
 
-# No test here carries pytest.mark.slow: the whole file runs in about two
-# seconds, and the heaviest of them, the 100 patient cohort over 1500 weeks,
-# takes under half a second even with the numba kernels turned off. Marking a
+# No test here carries pytest.mark.slow, because none of them is slow in any of
+# the three configurations this package runs in. The heaviest by far is the grid
+# bias fixture, 50 records of 12000 weeks integrated once and mapped to states
+# twice, and it measures about a second and a half with the compiled numba
+# kernels, about three and a half seconds with numba absent, where the
+# vectorised numpy kernels run instead, and about seven and a half seconds under
+# NUMBA_DISABLE_JIT=1, which the continuous integration workflow sets so that
+# the compiled kernels report as covered. That last configuration is the slow
+# one because numba is installed there, so HAS_NUMBA stays True and the scalar
+# loops written for compilation run as plain Python: to_states has no switch
+# away from them and its two passes are six of those seven seconds. Marking a
 # fast test slow would let "-m 'not slow'" drop the statistical checks that
 # matter most.
 
@@ -34,6 +44,22 @@ TAU_HEALTH = PAPER.tau_health_cohort_weeks.value
 TAU_RELAPSE = PAPER.tau_no_health_cohort_weeks.value
 WEEK = PAPER.time_resolution_weeks.value
 BAND_FRACTION = 0.3
+GRID_DT = 0.02
+
+# Shape of the run the grid bias is measured on: 50 records of 12000 weeks at a
+# step of 0.02 weeks, about 5700 complete episodes of each side. The plan asks
+# for 200 records of 3000 weeks, which is the same thirty million samples at the
+# same cost, and this file does not use that shape on purpose: the length of the
+# record matters as much as the number of episodes, because the pooled mean of
+# the complete episodes of a fixed window under-weights the long ones. Measured
+# over the seeds 0, 5 and 11, records of 3000 weeks put the corrected health
+# ratio at 0.9762, 0.9652 and 0.9611, so 2 to 4 percent below its target however
+# well the grid bias itself is corrected, leaving as little as a thousandth of
+# margin against the 4 percent asserted below. On records of 12000 weeks the
+# same two corrected ratios measure 0.988 in health and 1.005 in relapse.
+# Anyone restoring the shorter shape has to widen that bound with it.
+GRID_BIAS_PATHS = 50
+GRID_BIAS_WEEKS = 12000.0
 
 
 @pytest.fixture(scope="module")
@@ -495,6 +521,126 @@ def test_a_zero_noise_health_path_never_leaves_health(
     assert np.all(to_states(paths.x, well, BAND_FRACTION) == HEALTH)
 
 
+# The Brownian bridge correction of the two band thresholds.
+
+
+def test_the_level_shift_brings_the_relapse_threshold_down(
+    saddle_well: tuple[DoubleWell, float],
+) -> None:
+    # A sample between the shifted and the unshifted relapse threshold switches
+    # the state only once the shift has moved that threshold down to it.
+    well, _ = saddle_well
+    _, threshold_relapse = passage_endpoints(well, "health", "band", BAND_FRACTION)
+    series = np.full(5, threshold_relapse - 0.01)
+    assert np.all(to_states(series, well, BAND_FRACTION, initial=HEALTH) == HEALTH)
+    assert np.all(
+        to_states(series, well, BAND_FRACTION, initial=HEALTH, level_shift=0.02) == RELAPSE
+    )
+
+
+def test_the_level_shift_brings_the_health_threshold_up(
+    saddle_well: tuple[DoubleWell, float],
+) -> None:
+    well, _ = saddle_well
+    threshold_health, _ = passage_endpoints(well, "health", "band", BAND_FRACTION)
+    series = np.full(5, threshold_health + 0.01)
+    assert np.all(to_states(series, well, BAND_FRACTION, initial=RELAPSE) == RELAPSE)
+    assert np.all(
+        to_states(series, well, BAND_FRACTION, initial=RELAPSE, level_shift=0.02) == HEALTH
+    )
+
+
+@pytest.mark.parametrize("level_shift", [-0.01, math.nan, math.inf])
+def test_a_level_shift_that_is_not_a_distance_is_rejected(
+    saddle_well: tuple[DoubleWell, float],
+    level_shift: float,
+) -> None:
+    well, _ = saddle_well
+    with pytest.raises(ValueError, match="level_shift must be"):
+        to_states(np.zeros(5), well, BAND_FRACTION, level_shift=level_shift)
+
+
+def test_a_level_shift_that_closes_the_band_is_rejected(
+    saddle_well: tuple[DoubleWell, float],
+) -> None:
+    # Past half the width of the band the two thresholds cross, and a single
+    # sample would then sit above the relapse threshold and below the health
+    # one at the same time.
+    well, _ = saddle_well
+    low, high = passage_endpoints(well, "health", "band", BAND_FRACTION)
+    with pytest.raises(ValueError, match="closes the hysteresis band"):
+        to_states(np.zeros(5), well, BAND_FRACTION, level_shift=high - low)
+
+
+@pytest.fixture(scope="module")
+def grid_bias(band_well: tuple[DoubleWell, float]) -> dict[str, float]:
+    """Return each measured mean episode length over the exact first passage time.
+
+    The four entries are the uncorrected and the corrected mapping of the same
+    paths, on each side, as a ratio to ``mfpt`` over the endpoints of the same
+    band. A ratio of one means the mapping reproduces the passage the potential
+    was calibrated to.
+    """
+    well, sigma = band_well
+    # The numpy kernel by name, not by default: it is the vectorised one in
+    # every configuration, where the numba kernel is a scalar loop that is fast
+    # only once it is compiled. Asking for it costs about a second where numba
+    # compiles, 1.4 against 0.2, and saves about nine where numba is installed
+    # with NUMBA_DISABLE_JIT=1, 1.4 against 10.3, which is the configuration the
+    # continuous integration workflow runs. The paths are the same paths either
+    # way: the four ratios below measure the same to eight decimals under both.
+    paths = simulate_paths(
+        well,
+        sigma,
+        GRID_BIAS_WEEKS,
+        dt=GRID_DT,
+        n_paths=GRID_BIAS_PATHS,
+        rng=5,
+        use_numba=False,
+    )
+    targets = {
+        HEALTH: mfpt(
+            well, sigma, "health", *passage_endpoints(well, "health", "band", BAND_FRACTION)
+        ),
+        RELAPSE: mfpt(
+            well, sigma, "relapse", *passage_endpoints(well, "relapse", "band", BAND_FRACTION)
+        ),
+    }
+    shifts = {"uncorrected": 0.0, "corrected": BRIDGE_CONSTANT * sigma * math.sqrt(GRID_DT)}
+    ratios: dict[str, float] = {}
+    for label, level_shift in shifts.items():
+        states = to_states(paths.x, well, BAND_FRACTION, level_shift=level_shift)
+        for state, side in ((HEALTH, "health"), (RELAPSE, "relapse")):
+            measured = complete_episode_lengths(states, GRID_DT, state).mean()
+            ratios[f"{label}_{side}"] = float(measured) / targets[state]
+        del states
+    return ratios
+
+
+# The four bounds below were measured over the seeds 0 to 19 of the same run.
+# Uncorrected, the health ratio stayed between 1.07 and 1.14 and the relapse
+# ratio between 1.11 and 1.16, so both clear the 1.06 floor everywhere.
+# Corrected, the health ratio stayed between 0.95 and 1.01 and the relapse ratio
+# between 0.99 and 1.03; the seed is fixed at 5, where they measure 0.988 and
+# 1.005, so each sits about a fifth of the tolerance away from its bound.
+
+
+def test_uncorrected_health_episodes_run_long_on_the_grid(grid_bias: dict[str, float]) -> None:
+    assert grid_bias["uncorrected_health"] > 1.06
+
+
+def test_uncorrected_relapse_episodes_run_long_on_the_grid(grid_bias: dict[str, float]) -> None:
+    assert grid_bias["uncorrected_relapse"] > 1.06
+
+
+def test_the_bridge_shift_recovers_the_health_passage_time(grid_bias: dict[str, float]) -> None:
+    assert grid_bias["corrected_health"] == pytest.approx(1.0, rel=0.04)
+
+
+def test_the_bridge_shift_recovers_the_relapse_passage_time(grid_bias: dict[str, float]) -> None:
+    assert grid_bias["corrected_relapse"] == pytest.approx(1.0, rel=0.04)
+
+
 # Weekly rounding.
 
 
@@ -644,6 +790,33 @@ def test_the_simulated_cohort_obeys_the_weekly_schema(cohort: pd.DataFrame) -> N
     validate(cohort, "weekly")
 
 
+def test_the_cohort_engine_maps_its_paths_the_way_to_states_maps_them(
+    band_well: tuple[DoubleWell, float],
+) -> None:
+    # simulate_weekly maps its own paths without the scan for a sample that is
+    # not a finite number, because simulate_paths has just scanned the same grid
+    # and the scan costs a pass over the whole of it. This pins that the saving
+    # is the scan and nothing else: the record it builds is the record to_states
+    # and to_weekly build from the same paths and the same shift. The record is
+    # long enough for the shift to decide a week: mapping the same paths with no
+    # shift at all gives a different record.
+    well, sigma = band_well
+    weeks, paths_wanted, seed = 1000, 5, 17
+    frame = simulate_weekly(
+        well, sigma, weeks, n_paths=paths_wanted, dt=GRID_DT, rng=seed, band_fraction=BAND_FRACTION
+    )
+    paths = simulate_paths(
+        well, sigma, float(weeks) * WEEK, dt=GRID_DT, n_paths=paths_wanted, rng=seed
+    )
+    states = to_states(
+        paths.x,
+        well,
+        BAND_FRACTION,
+        level_shift=BRIDGE_CONSTANT * sigma * math.sqrt(GRID_DT),
+    )
+    assert frame["state"].tolist() == to_weekly(states, GRID_DT).reshape(-1).tolist()
+
+
 def test_every_patient_is_followed_for_the_whole_run(cohort: pd.DataFrame) -> None:
     assert cohort.groupby("patient_id")["week"].size().unique().tolist() == [1500]
 
@@ -664,38 +837,29 @@ def test_the_simulated_relapse_burden_matches_the_cohort(cohort: pd.DataFrame) -
 def rounding_pair(
     band_well: tuple[DoubleWell, float],
 ) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
-    """Return a cohort of state series and the weekly record rounded from it."""
+    """Return a cohort of state series and the weekly record rounded from it.
+
+    The series carry the same bridge shift that :func:`simulate_weekly` applies,
+    so what the two tests below measure is the rounding rule alone.
+    """
     well, sigma = band_well
-    paths = simulate_paths(well, sigma, 3000.0, dt=0.02, n_paths=20, rng=29)
-    states = to_states(paths.x, well, BAND_FRACTION)
-    return states, to_weekly(states, 0.02)
+    paths = simulate_paths(well, sigma, 3000.0, dt=GRID_DT, n_paths=20, rng=29)
+    states = to_states(
+        paths.x,
+        well,
+        BAND_FRACTION,
+        level_shift=BRIDGE_CONSTANT * sigma * math.sqrt(GRID_DT),
+    )
+    return states, to_weekly(states, GRID_DT)
 
 
 def test_the_rounding_rule_adds_about_one_week_to_every_relapse(
     rounding_pair: tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]],
 ) -> None:
     states, weekly = rounding_pair
-    continuous = float(np.count_nonzero(states == RELAPSE)) * 0.02
+    continuous = float(np.count_nonzero(states == RELAPSE)) * GRID_DT
     expected = continuous + WEEK * count_relapses(states)
     assert float(np.count_nonzero(weekly == RELAPSE)) == pytest.approx(expected, rel=0.05)
-
-
-def test_band_episodes_run_long_on_the_integration_grid(
-    rounding_pair: tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]],
-    band_well: tuple[DoubleWell, float],
-) -> None:
-    # to_states tests the two band thresholds at the grid points and carries no
-    # Brownian bridge correction, unlike exit_times, so it finds a crossing a
-    # step late and every episode of the path runs long before any rounding.
-    # At dt = 0.02 the mean relapse episode measured about 13 percent above the
-    # band target, over more than 60000 episodes with a standard error of half a
-    # percent, falling to about 7 percent at dt = 0.005.
-    states, _ = rounding_pair
-    well, sigma = band_well
-    endpoints = passage_endpoints(well, "relapse", "band", BAND_FRACTION)
-    target = mfpt(well, sigma, "relapse", *endpoints)
-    measured = complete_episode_lengths(states, 0.02, RELAPSE).mean()
-    assert target < measured < 1.5 * target
 
 
 def test_relapses_a_few_days_apart_merge_into_one_weekly_episode(
@@ -722,24 +886,51 @@ def test_merging_lengthens_the_weekly_remissions(cohort: pd.DataFrame) -> None:
 # The two assertions below pin the weekly episode means where they were
 # measured. A weekly record reproduces neither the continuous targets of the
 # calibration, 4.3 and 100 weeks, nor those targets shifted by the one week the
-# rounding rule adds, 5.3 and 99: the grid bias of to_states lengthens every
-# episode before the rounding, and the merging of the two tests above lengthens
-# the surviving ones again. Over seeds 7, 13, 21, 42 and 100 the mean weekly
-# relapse measured 6.64 to 6.96 weeks and the mean weekly remission 111 to 123,
+# rounding rule adds, 5.3 and 99: the merging of the two tests above lengthens
+# the episodes that survive it. Over seeds 7, 13, 21, 42 and 100 the mean weekly
+# relapse measured 6.38 to 6.68 weeks and the mean weekly remission 106 to 114,
 # so these bounds are two sided around the behaviour and a regression that moved
 # either duration by half would fail them.
 
 
-def test_the_weekly_relapses_run_about_seven_weeks(cohort: pd.DataFrame) -> None:
+def test_the_weekly_relapses_run_about_six_and_a_half_weeks(cohort: pd.DataFrame) -> None:
     runs = complete_runs(cohort)
     relapses = runs.loc[runs["state"] == RELAPSE, "duration_w"]
-    assert relapses.mean() == pytest.approx(6.9, rel=0.15)
+    assert relapses.mean() == pytest.approx(6.5, rel=0.15)
 
 
 def test_the_weekly_remissions_run_about_a_hundred_and_ten_weeks(cohort: pd.DataFrame) -> None:
     runs = complete_runs(cohort)
     remissions = runs.loc[runs["state"] == HEALTH, "duration_w"]
-    assert remissions.mean() == pytest.approx(112.0, rel=0.15)
+    assert remissions.mean() == pytest.approx(109.0, rel=0.15)
+
+
+def test_the_bridge_correction_shortens_the_weekly_relapses(
+    band_well: tuple[DoubleWell, float],
+    cohort: pd.DataFrame,
+) -> None:
+    # The correction is applied to the path before the rounding rule is, so the
+    # weekly relapses of the corrected record are the shorter ones. What is left
+    # over the 5.3 weeks the rounding rule allows a 4.3 week relapse is the
+    # merging of two relapses either side of a sub-week remission, which no
+    # threshold correction can remove.
+    well, sigma = band_well
+    uncorrected = simulate_weekly(
+        well,
+        sigma,
+        1500,
+        n_paths=100,
+        dt=GRID_DT,
+        rng=13,
+        band_fraction=BAND_FRACTION,
+        bridge_correction=False,
+    )
+    corrected_runs = complete_runs(cohort)
+    uncorrected_runs = complete_runs(uncorrected)
+    assert (
+        corrected_runs.loc[corrected_runs["state"] == RELAPSE, "duration_w"].mean()
+        < uncorrected_runs.loc[uncorrected_runs["state"] == RELAPSE, "duration_w"].mean()
+    )
 
 
 def complete_episode_lengths(
@@ -782,6 +973,12 @@ def test_the_seed_alias_is_exported() -> None:
     # annotating a wrapper needs it advertised, as model.Side and model.Passage
     # are.
     assert "Seed" in msrelapse.simulate.__all__
+
+
+def test_the_bridge_constant_is_exported() -> None:
+    # A caller mapping paths of their own with to_states has to build the level
+    # shift out of this constant, so it cannot stay private.
+    assert "BRIDGE_CONSTANT" in msrelapse.simulate.__all__
 
 
 def test_docstring_examples_run() -> None:

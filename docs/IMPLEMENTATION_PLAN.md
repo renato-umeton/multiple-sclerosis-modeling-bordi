@@ -71,7 +71,14 @@ compliance and then for code quality by separate agents before the wave is commi
 least 90 percent; mypy strict clean; ruff clean.
 **Tests**: tests/test_model.py, test_simulate.py, test_renewal.py, test_fit.py,
 test_stats.py, test_io.py, test_cohort.py, test_plots.py, test_cli.py.
-**Status**: In Progress
+**Status**: In Progress. Done: model, simulate, renewal, io, fit, stats, cohort,
+plots, datasets and the shipped synthetic twin. Remaining: cli, the public API
+with cite(), a doctest harness, and a fix to test_periodicity (it must test
+relapse onsets, whose spectrum is flat under the memoryless null, instead of the
+state series, whose spectrum is red). The closing table's barrier ratio
+tolerance is 0.2 absolute for the synthetic twin because seventy records carry
+sampling noise in the two naive means; 0.05 applies only to a deterministic
+recomputation from the printed means.
 
 ## Stage 4: Notebooks, documentation, metadata, data
 **Goal**: Four notebooks executed headlessly, synthetic data files with provenance,
