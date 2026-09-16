@@ -35,8 +35,8 @@ COHORT_LAMBDA, COHORT_MU = rates_from_means(
 MEMORYLESS_METHODS = ("hazard", "cv", "ks", "ad")
 PERIODICITY_METHODS = ("fisher_g", "lombscargle")
 
-# A cross reference role whose target is a private name, such as a :func: role
-# on a helper whose name starts with an underscore.
+# A cross reference role whose target is a private name, such as a role of any
+# kind pointing at a helper whose name starts with an underscore.
 PRIVATE_ROLE = re.compile(r":[a-z]+:`~?_[A-Za-z0-9_.]*`")
 
 # The result classes this module returns beside FitResult. Each of them carries
@@ -242,7 +242,7 @@ def yearly_cycle_weekly(
     """Return a weekly cohort whose relapses arrive once a year.
 
     Every patient gets a phase of its own, and every onset is moved by up to
-    :data:`ONSET_JITTER_WEEKS` weeks either way. The jitter is what makes the
+    ``ONSET_JITTER_WEEKS`` weeks either way. The jitter is what makes the
     record a noisy periodic process rather than a deterministic one, and both
     methods need it. A record whose gaps are all exactly 52 weeks is unchanged
     by a shuffle of those gaps, so the permutation p value of ``lombscargle``
@@ -1242,8 +1242,8 @@ def test_the_period_fisher_g_reports_can_be_a_harmonic_of_the_spacing() -> None:
 
 def test_no_published_docstring_of_this_module_links_to_a_private_name() -> None:
     # The API pages are built with the mkdocstrings filter ["!^_"], so a private
-    # helper is not rendered anywhere. A :func: role pointing at one is a
-    # reference a reader of the site cannot follow. Private names are still
+    # helper is not rendered anywhere. A cross reference role pointing at one is
+    # a reference a reader of the site cannot follow. Private names are still
     # named in these docstrings, as plain literals, which promises no link.
     stranded = [
         f"{where}: {role}"

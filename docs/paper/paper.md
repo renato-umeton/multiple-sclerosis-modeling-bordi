@@ -141,9 +141,12 @@ print(f"barrier ratio from the potential {well.barrier_ratio():.2f}")
 
 The clinical records of the 2013 study were never released, and the article
 carries no data availability statement and no supplementary material. The
-package therefore ships a synthetic twin: 70 generated records whose mean
-durations reproduce the printed ones, labelled as synthetic everywhere they are
-loaded or written, so that nothing clinical can be read off them. Running
+package therefore ships a synthetic twin: 70 generated records whose generative
+means are chosen so that the mean durations measured on them reproduce the
+printed ones to within the sampling noise of seventy records, which for the
+shipped twin lands 4.2 and 4.3 percent away. The records are labelled as
+synthetic everywhere they are loaded or written, so that nothing clinical can
+be read off them. Running
 `msrelapse reproduce` measures every published aggregate on a record and prints
 a table comparing each with the printed value under a stated tolerance,
 returning a non-zero exit code when a judged row falls outside. The same table

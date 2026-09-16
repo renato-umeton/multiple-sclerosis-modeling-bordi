@@ -7,15 +7,14 @@ edit_uri: edit/main/docs/
 
 docs_dir: docs
 
-# Files that live under docs/ but are not part of the published site: the two
-# planning documents, the journal draft, the pull request template GitHub reads
+# Files that live under docs/ but are not part of the published site: the local
+# planning notes, the journal draft, the pull request template GitHub reads
 # from the repository itself, and the copy of the article. That copy is a
 # download from the publisher, stamp and all, and no page links to it; a reader
 # reaches the article itself through the DOI on the citing page.
 # Gitignore syntax, one pattern per line.
 exclude_docs: |
   plan1.md
-  IMPLEMENTATION_PLAN.md
   paper/
   pull_request_template.md
   *.pdf
@@ -93,6 +92,7 @@ nav:
   - Reproducing the paper: reproducing.md
   - Data: data.md
   - Paper facts: paper_facts.md
+  - Design decisions: decisions.md
   - API:
       - model: api/model.md
       - simulate: api/simulate.md

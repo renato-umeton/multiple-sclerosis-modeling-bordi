@@ -90,14 +90,27 @@ jobs:
       - uses: astral-sh/setup-uv@v10.1.0
         with:
           python-version: "3.13"
-      - name: Install the project and the documentation group
-        run: uv sync --locked --group docs
+      - name: Install the project, the documentation group and the dev group
+        # The dev group as well as the docs one, because the step after the
+        # build runs pytest over tests/test_docs.py.
+        run: uv sync --locked --group docs --group dev
       - name: Build the site
         # Strict mode turns a broken cross reference or a page missing from the
         # navigation into a failure, which is why the build runs on every PR.
         # The step above is the install, so this one skips the sync that `uv
         # run` would otherwise perform and uses the environment as installed.
         run: uv run --no-sync mkdocs build --strict
+      - name: Read the built API pages back
+        # The one check on what a visitor is served rather than on what the
+        # sources say, so it is the one that catches a cross reference role the
+        # mkdocstrings handler passes through to the page. It carries the slow
+        # marker and every other job deselects it or lacks mkdocs and skips it,
+        # so without this step it would be skipped everywhere and guard nothing.
+        # MSRELAPSE_REQUIRE_DOCS turns that skip into a failure naming what is
+        # missing, which is what makes this job the one place it has to run.
+        run: uv run --no-sync pytest -m slow tests/test_docs.py
+        env:
+          MSRELAPSE_REQUIRE_DOCS: "1"
 
   notebooks:
     needs: lint

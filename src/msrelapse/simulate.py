@@ -1,11 +1,11 @@
 """Integration of the stochastic equation of motion and the records it produces.
 
-Equation (4) of the paper is the stochastic differential equation::
+Equation (4) of the paper is the stochastic differential equation:
 
     dx = [x (1 - alpha x^2) - beta] dt + sigma dW
 
 with the model time read as weeks. This module integrates it with the Euler
-Maruyama scheme::
+Maruyama scheme:
 
     x_{k+1} = x_k + force(x_k) dt + sigma sqrt(dt) z_k
 
@@ -21,45 +21,42 @@ length encoding of the weekly record.
 Three choices are made here that the paper leaves open, and none of them comes
 from the article.
 
-Time step
-    The cubic drift is not globally Lipschitz, so a step that is too long sends
-    the path to infinity instead of into a well. A convergence study at the
-    calibrated parameters found that a step of half a week blows paths up while
-    steps up to [`MAX_DT`][msrelapse.simulate.MAX_DT] produced no non finite
-    path, which is where the ceiling of this module comes from.
-Absorbing level
-    Looking for a crossing only at the grid points misses the excursions
-    between them, which overestimates an exit time by a term of order
-    ``sqrt(dt)``. Moving the absorbing level towards the walker by
-    [`BRIDGE_CONSTANT`][msrelapse.simulate.BRIDGE_CONSTANT] ``sigma sqrt(dt)``,
-    the Brownian bridge correction, cancels that term and lets a step of 0.02
-    weeks stand in for one of 0.001. Both
-    [`exit_times`][msrelapse.simulate.exit_times] and
-    [`to_states`][msrelapse.simulate.to_states] carry it, the first on its
-    single absorbing level and the second on both thresholds of the band, and
-    [`simulate_weekly`][msrelapse.simulate.simulate_weekly] turns it on by
-    default.
-Hysteresis band
-    A bare threshold at the saddle counts every wobble of the path across the
-    barrier top as a relapse. Two thresholds placed a fraction of the way from
-    the saddle towards each well bottom remove those spurious switches, and the
-    same fraction passed to
-    [`msrelapse.model.calibrate`][msrelapse.model.calibrate] with
-    ``passage='band'`` makes the simulated durations approach the calibration
-    targets as the step shrinks. Read on the grid alone, both thresholds sit
-    further from the walker than they are written, so an episode starts a step
-    deep inside one state and ends a step past the other threshold and runs
-    long at both ends. Measured on the band calibrated potential, over 50 paths
-    of 12000 weeks holding about 5700 complete episodes of each side, the mean
-    episode ran about 13 percent above its target on the relapse side and about
-    11 percent above it on the health side at a step of 0.02 weeks. Passing the
-    same Brownian bridge shift to [`to_states`][msrelapse.simulate.to_states]
-    removes them: over twenty seeds of that run the corrected relapse mean
-    stayed between 0.99 and 1.03 of its target and the corrected health mean
-    between 0.95 and 1.01, the remaining deficit being the fixed window rather
-    than the grid, since a window of a given length holds fewer of the long
-    episodes than of the short ones and the pooled mean of the complete ones
-    under-weights them.
+- Time step: the cubic drift is not globally Lipschitz, so a step that is too
+  long sends the path to infinity instead of into a well. A convergence study
+  at the calibrated parameters found that a step of half a week blows paths up
+  while steps up to [`MAX_DT`][msrelapse.simulate.MAX_DT] produced no non
+  finite path, which is where the ceiling of this module comes from.
+- Absorbing level: looking for a crossing only at the grid points misses the
+  excursions between them, which overestimates an exit time by a term of order
+  ``sqrt(dt)``. Moving the absorbing level towards the walker by
+  [`BRIDGE_CONSTANT`][msrelapse.simulate.BRIDGE_CONSTANT] ``sigma sqrt(dt)``,
+  the Brownian bridge correction, cancels that term and lets a step of 0.02
+  weeks stand in for one of 0.001. Both
+  [`exit_times`][msrelapse.simulate.exit_times] and
+  [`to_states`][msrelapse.simulate.to_states] carry it, the first on its single
+  absorbing level and the second on both thresholds of the band, and
+  [`simulate_weekly`][msrelapse.simulate.simulate_weekly] turns it on by
+  default.
+- Hysteresis band: a bare threshold at the saddle counts every wobble of the
+  path across the barrier top as a relapse. Two thresholds placed a fraction of
+  the way from the saddle towards each well bottom remove those spurious
+  switches, and the same fraction passed to
+  [`msrelapse.model.calibrate`][msrelapse.model.calibrate] with
+  ``passage='band'`` makes the simulated durations approach the calibration
+  targets as the step shrinks. Read on the grid alone, both thresholds sit
+  further from the walker than they are written, so an episode starts a step
+  deep inside one state and ends a step past the other threshold and runs long
+  at both ends. Measured on the band calibrated potential, over 50 paths of
+  12000 weeks holding about 5700 complete episodes of each side, the mean
+  episode ran about 13 percent above its target on the relapse side and about
+  11 percent above it on the health side at a step of 0.02 weeks. Passing the
+  same Brownian bridge shift to [`to_states`][msrelapse.simulate.to_states]
+  removes them: over twenty seeds of that run the corrected relapse mean stayed
+  between 0.99 and 1.03 of its target and the corrected health mean between
+  0.95 and 1.01, the remaining deficit being the fixed window rather than the
+  grid, since a window of a given length holds fewer of the long episodes than
+  of the short ones and the pooled mean of the complete ones under-weights
+  them.
 
 The optional numba kernels are exactly that, optional:
 [`HAS_NUMBA`][msrelapse.simulate.HAS_NUMBA] says whether they are available, a

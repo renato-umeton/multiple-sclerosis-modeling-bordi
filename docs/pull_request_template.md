@@ -2,8 +2,9 @@
 
 ## What this changes
 
-Say what the change does and why. Link the issue it closes, and the stage of
-`docs/IMPLEMENTATION_PLAN.md` it belongs to when there is one.
+Say what the change does and why. Link the issue it closes. If the change takes
+a deliberate deviation from the article or from the obvious implementation,
+record it in `docs/decisions.md` and say so here.
 
 ## How it was checked
 

@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
+from datetime import date
+from pathlib import Path
 from typing import Any, NamedTuple, cast
 
 import pytest
@@ -25,6 +27,10 @@ from msrelapse._params import PAPER
 REPOSITORY = "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi"
 DOCUMENTATION = "https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/"
 
+# The files this module reads. The sdist ships the suite, so every one of them
+# has to be on the sdist include list of pyproject.toml as well: the packaged
+# run of the build job reads them from the unpacked archive, where a file the
+# include list forgets fails here rather than passing.
 OWNED_FILES = (
     "README.md",
     "CITATION.cff",
@@ -38,6 +44,14 @@ OWNED_FILES = (
     "docs/paper/paper.md",
     "docs/paper/paper.bib",
 )
+
+# The files this module reads that a checkout has and an archive has not. The
+# pre commit configuration is a gate a contributor runs before a commit, so it
+# is of no use to somebody who unpacked the sdist to build the package, and the
+# include list of pyproject.toml leaves it out on purpose. The checks that read
+# it are therefore skipped in the packaged run and run everywhere else, which is
+# what ``unpacked_sdist`` below decides.
+CHECKOUT_ONLY_FILES = (".pre-commit-config.yaml",)
 
 # The nine authors of the article, in the order it prints them.
 PAPER_AUTHORS = (
@@ -86,6 +100,11 @@ COMMENT_WORD = re.compile(r"[A-Za-z][\w.-]*")
 # unnoticed.
 SETUP_COMMENT_PROSE = frozenset({"and", "the", "api", "reference", "build", "kernel"})
 
+# The hooks a commit has to pass before it is written. The three local ones are
+# the gates continuous integration runs again, and nbstripout is what keeps an
+# executed notebook out of the history.
+PRE_COMMIT_HOOKS = ("ruff-check", "ruff-format", "mypy", "nbstripout")
+
 # Every action the workflows are allowed to call, at the version the repository
 # standardised on. A new action, or a bumped version, is named here first.
 PINNED_ACTIONS = frozenset(
@@ -98,6 +117,70 @@ PINNED_ACTIONS = frozenset(
         "pypa/gh-action-pypi-publish@release/v1",
     }
 )
+
+
+def unpacked_sdist(root: Path = ROOT) -> bool:
+    """Return whether a directory is an unpacked sdist rather than a checkout.
+
+    hatchling writes PKG-INFO into the root of every archive it builds and no
+    checkout carries one, so the file is what tells the two apart. Reading the
+    absence of a development file instead would turn a deleted file into a
+    silent skip, which is how a guard stops guarding.
+
+    Parameters
+    ----------
+    root : pathlib.Path, optional
+        The directory to look at. Default the repository root; a test passes a
+        directory of its own instead.
+
+    Returns
+    -------
+    bool
+        True when the directory holds the metadata file of a built archive.
+    """
+    return (root / "PKG-INFO").is_file()
+
+
+def sdist_include() -> tuple[str, ...]:
+    """Return the entries of the sdist include list of pyproject.toml.
+
+    The file is read rather than parsed as TOML, for the reason
+    ``pyproject_table`` gives: ``tomllib`` arrived in Python 3.11 and this suite
+    runs from 3.10 on.
+
+    Returns
+    -------
+    tuple of str
+        One entry per line of the list, in the order it is written.
+    """
+    text = read("pyproject.toml")
+    marker = "\n[tool.hatch.build.targets.sdist]\n"
+    start = text.find(marker)
+    assert start >= 0, "pyproject.toml declares no sdist build target"
+    body = text[start + len(marker) :]
+    opening = body.find("include = [")
+    assert opening >= 0, "the sdist build target of pyproject.toml declares no include list"
+    body = body[opening:]
+    return tuple(re.findall(r'"([^"]+)"', body[: body.index("]")]))
+
+
+def shipped_in_the_sdist(relative: str, include: Iterable[str]) -> bool:
+    """Return whether an include list carries one file into the archive.
+
+    Parameters
+    ----------
+    relative : str
+        The path of the file, relative to the repository root, in POSIX form.
+    include : iterable of str
+        The entries of the include list. An entry is either the file itself or
+        a directory, in which case it carries the whole tree under it.
+
+    Returns
+    -------
+    bool
+        True when at least one entry carries the file.
+    """
+    return any(relative == entry or relative.startswith(f"{entry}/") for entry in include)
 
 
 def code_blocks(markdown: str, language: str) -> list[str]:
@@ -124,6 +207,59 @@ def section(markdown: str, heading: str) -> str:
 @pytest.mark.parametrize("relative", OWNED_FILES)
 def test_metadata_file_exists(relative: str) -> None:
     assert (ROOT / relative).is_file()
+
+
+@pytest.mark.skipif(
+    unpacked_sdist(), reason="an archive carries no development configuration to read"
+)
+@pytest.mark.parametrize("relative", CHECKOUT_ONLY_FILES)
+def test_checkout_only_file_exists(relative: str) -> None:
+    assert (ROOT / relative).is_file()
+
+
+def test_an_unpacked_sdist_is_told_apart_from_a_checkout(tmp_path: Path) -> None:
+    """The skip above has to reach the packaged run and nothing else."""
+    assert not unpacked_sdist(tmp_path)
+    (tmp_path / "PKG-INFO").write_text("Metadata-Version: 2.4\n", encoding="utf-8")
+    assert unpacked_sdist(tmp_path)
+
+
+def test_an_include_entry_carries_the_file_itself_and_the_tree_under_it() -> None:
+    assert shipped_in_the_sdist("CITATION.cff", ("CITATION.cff",))
+    assert shipped_in_the_sdist("docs/paper/paper.md", ("docs",))
+    assert not shipped_in_the_sdist("docs/paper/paper.md", ("doc",))
+    assert not shipped_in_the_sdist(".pre-commit-config.yaml", ("docs", "CITATION.cff"))
+
+
+def test_every_file_this_module_reads_is_shipped_in_the_sdist() -> None:
+    """The rule stated above OWNED_FILES, checked here rather than left to review.
+
+    The build job of ci.yml unpacks the archive and runs the suite from it, so a
+    name added to the list above without a matching entry in pyproject.toml
+    fails there, one job after this one and with nothing on the failure to say
+    what the cause was. This reads the include list and names it here instead.
+    """
+    include = sdist_include()
+    assert include, "pyproject.toml ships an empty sdist include list"
+    missing = [name for name in OWNED_FILES if not shipped_in_the_sdist(name, include)]
+    assert missing == [], (
+        "the packaged run of the suite reads these and the sdist include list of "
+        f"pyproject.toml carries none of them: {missing}"
+    )
+
+
+def test_a_file_the_archive_carries_is_not_left_among_the_checkout_only_ones() -> None:
+    """The two tuples above are held apart, so that neither quietly becomes the other.
+
+    A name that reaches the include list is read in the packaged run as well and
+    has no business being skipped there, so it belongs in OWNED_FILES instead.
+    """
+    include = sdist_include()
+    shipped = [name for name in CHECKOUT_ONLY_FILES if shipped_in_the_sdist(name, include)]
+    assert shipped == [], (
+        "the sdist carries these now, so the packaged run can read them and they "
+        f"belong in OWNED_FILES rather than being skipped there: {shipped}"
+    )
 
 
 def test_readme_title_is_the_package_name() -> None:
@@ -257,7 +393,7 @@ def packages_not_installed(words: Iterable[str], installed: Iterable[str]) -> li
 
     A word names a package when it is the name of one of them, or the prefix of
     a family of them as mkdocs is of mkdocs-material. The prose words of
-    :data:`SETUP_COMMENT_PROSE` claim no package and are passed over.
+    ``SETUP_COMMENT_PROSE`` claim no package and are passed over.
 
     Parameters
     ----------
@@ -493,6 +629,32 @@ def test_codemeta_defers_the_archive_doi_to_a_comment() -> None:
     meta = load_json("codemeta.json")
     assert "identifier" not in meta
     assert "zenodo" in meta["comment"].lower()
+
+
+def test_codemeta_dates_are_iso_and_the_last_change_is_not_before_the_release() -> None:
+    """An aggregator reads both dates, and neither is written by a tool that checks it.
+
+    The comment of codemeta.json says the release date is the one CITATION.cff
+    carries as ``date-released`` and that the two are set together, so the pair
+    is tied here rather than left to be remembered at the next release. PyYAML
+    reads an unquoted ISO date as a ``datetime.date``, which is why the one from
+    the citation file is compared as its string form.
+    """
+    meta = load_json("codemeta.json")
+    published = date.fromisoformat(meta["datePublished"])
+    modified = date.fromisoformat(meta["dateModified"])
+    assert modified >= published
+    assert meta["datePublished"] == str(load_yaml("CITATION.cff")["date-released"])
+
+
+@pytest.mark.skipif(
+    unpacked_sdist(), reason="an archive carries no development configuration to read"
+)
+def test_pre_commit_runs_the_gates_a_commit_has_to_pass() -> None:
+    """The hooks are what a contributor gets before continuous integration sees the change."""
+    config = load_yaml(".pre-commit-config.yaml")
+    ids = {hook["id"] for repo in config["repos"] for hook in repo["hooks"]}
+    assert set(PRE_COMMIT_HOOKS) <= ids, f".pre-commit-config.yaml declares only {sorted(ids)}"
 
 
 @pytest.mark.parametrize("name", ["bug_report", "feature_request"])

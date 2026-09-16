@@ -45,7 +45,10 @@ follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
 - `msrelapse._params`: every number the article reports, each with its unit and
   the sentence it comes from. No other module computes with one.
 - A command line with seven subcommands: `reproduce`, `simulate`, `fit`,
-  `test-memoryless`, `test-periodicity`, `cite` and `params`.
+  `test-memoryless`, `test-periodicity`, `cite` and `params`, and a `--version`
+  flag that prints the installed version. `reproduce` stamps that same version
+  into `numbers.json` under `msrelapse_version`, so a reproduction directory
+  says which release wrote it.
 - Four notebooks: the reproduction, the approach of the exit times to an
   exponential, the Poisson to negative binomial story, and a two arm virtual
   trial.

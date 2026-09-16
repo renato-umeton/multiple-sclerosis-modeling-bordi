@@ -71,7 +71,7 @@ API_PAGES = {
 }
 
 # Pages that live under docs/ but are not part of the published site.
-EXCLUDED = ("plan1.md", "IMPLEMENTATION_PLAN.md", "paper/", "pull_request_template.md")
+EXCLUDED = ("plan1.md", "paper/", "pull_request_template.md")
 
 # The Sphinx cross reference roles. mkdocstrings reads numpy docstrings and
 # interprets none of them, so one left in a docstring reaches the built page as
@@ -79,6 +79,28 @@ EXCLUDED = ("plan1.md", "IMPLEMENTATION_PLAN.md", "paper/", "pull_request_templa
 # than written out, so that this file keeps the rule it checks.
 ROLE_NAMES = ("func", "class", "meth", "attr", "mod", "data", "const", "obj", "ref")
 ROLE_MARKERS = tuple(f":{name}:" for name in ROLE_NAMES)
+
+# The two other pieces of reStructuredText a docstring picks up out of habit and
+# mkdocstrings renders as the characters themselves. Both are built rather than
+# written, as the markers above are, so that this file keeps the rules it checks.
+#
+# The first is the marker that opens a literal block at the end of a line. In
+# Markdown the two colons stay on the page and the block under them is run
+# together with the prose; a single colon and an indented block give the code
+# block the writer meant.
+LITERAL_BLOCK_MARKER = ":" * 2
+
+# The second is the rule of a table: the row of equals signs of a simple table
+# or the row of plus signs and hyphens of a grid one. A line of nothing but
+# those characters and spaces draws one, apart from the underline of a numpydoc
+# section, which is a run of hyphens as long as the title above it.
+TABLE_RULE = re.compile(r"[=+\- ]+")
+# Two characters draw neither table: the shortest rule either of them can hold
+# is the three character grid rule, a plus, a hyphen and a plus, and a simple
+# table needs two columns and so a longer one still. The floor is the one
+# ``_helpers.MINIMUM_HYPHENS`` sets for the same reason, so that a stray pair of
+# hyphens or equals signs is not reported as the table it is not.
+MINIMUM_RULE_CHARACTERS = 3
 
 # What mkdocs-autorefs logs for a cross reference whose target it cannot find.
 # Strict mode already turns it into a failed build; the phrase is held here so
@@ -202,6 +224,97 @@ def role_markers(text: str) -> list[str]:
     return [marker for marker in ROLE_MARKERS if marker in text]
 
 
+def package_sources() -> dict[str, str]:
+    """Return the text of every module of the package, by path relative to the root."""
+    return {path.relative_to(ROOT).as_posix(): read(path) for path in sorted(PACKAGE.glob("*.py"))}
+
+
+def python_sources() -> dict[str, str]:
+    """Return the text of every Python file of the repository.
+
+    The files come from the same walk the house style sweep uses, which prunes
+    version control, the virtual environment, the built site and the caches and
+    leaves out what .gitignore names. A module added under a new directory is
+    therefore read without anybody remembering to add it here.
+
+    Returns
+    -------
+    dict of str to str
+        The content of each file, by path relative to the repository.
+    """
+    return {
+        path.relative_to(ROOT).as_posix(): text
+        for path, text in text_files().items()
+        if path.suffix == ".py"
+    }
+
+
+def literal_block_lines(text: str) -> list[int]:
+    """Return the number of every line that ends in a literal block marker.
+
+    Parameters
+    ----------
+    text : str
+        The text to read, a module of the package.
+
+    Returns
+    -------
+    list of int
+        Line numbers, counted from one.
+    """
+    return [
+        number
+        for number, line in enumerate(text.splitlines(), 1)
+        if line.rstrip().endswith(LITERAL_BLOCK_MARKER)
+    ]
+
+
+def underlines_a_section(stripped: str, previous: str) -> bool:
+    """Return whether a line is the underline of a numpydoc section.
+
+    Parameters
+    ----------
+    stripped : str
+        The line to read, without its indentation.
+    previous : str
+        The line above it, without its indentation.
+
+    Returns
+    -------
+    bool
+        True when the line is a run of hyphens as long as the title above it.
+    """
+    return set(stripped) == {"-"} and len(stripped) == len(previous)
+
+
+def table_rule_lines(text: str) -> list[int]:
+    """Return the number of every line that draws the rule of a reStructuredText table.
+
+    Parameters
+    ----------
+    text : str
+        The text to read, a module of the package.
+
+    Returns
+    -------
+    list of int
+        Line numbers, counted from one. A numpydoc section underline is the one
+        line of that shape that is not a table, and it is left out.
+    """
+    found: list[int] = []
+    previous = ""
+    for number, line in enumerate(text.splitlines(), 1):
+        stripped = line.strip()
+        if (
+            len(stripped) >= MINIMUM_RULE_CHARACTERS
+            and TABLE_RULE.fullmatch(stripped)
+            and not underlines_a_section(stripped, previous)
+        ):
+            found.append(number)
+        previous = stripped
+    return found
+
+
 def missing_build_tools(mkdocs: bool, uv: bool) -> list[str]:
     """Return the names of the tools a site build needs that are not present.
 
@@ -298,20 +411,87 @@ def test_role_markers_reads_a_role_and_walks_past_a_plain_colon() -> None:
     assert role_markers("Returns: the mean duration in weeks") == []
 
 
-def test_no_module_of_the_package_holds_a_sphinx_role() -> None:
+def test_no_python_file_of_the_repository_holds_a_sphinx_role() -> None:
     """The docstrings are read by mkdocstrings, which renders a role as literal text.
 
     A cross reference is written ``[`name`][msrelapse.module.name]`` instead,
     which mkdocs-autorefs turns into a link, and anything that is not an object
-    of this package is written as a code span. The whole module is read rather
-    than its docstrings alone, so that the comments keep the same rule.
+    of this package is written as a code span. The whole file is read rather
+    than its docstrings alone, so that the comments keep the same rule, and
+    every Python file is read rather than the package alone, so that a role has
+    nowhere left to sit and be copied from.
     """
     found = {
-        path.name: markers
-        for path in sorted(PACKAGE.glob("*.py"))
-        if (markers := role_markers(read(path)))
+        path: markers for path, text in python_sources().items() if (markers := role_markers(text))
     }
-    assert found == {}, f"a Sphinx role reaches the site as literal text: {found}"
+    assert found == {}, f"a Sphinx role is rendered by nothing here and reads as itself: {found}"
+
+
+def test_the_role_guard_reads_the_package_the_tests_and_the_notebook_builder() -> None:
+    """The guard is worth nothing if it walks past the files that matter."""
+    reached = set(python_sources())
+    for relative in (
+        "src/msrelapse/fit.py",
+        "tests/_helpers.py",
+        "tests/test_fit.py",
+        "tests/test_metadata.py",
+        "notebooks/build_notebooks.py",
+    ):
+        assert relative in reached, f"the role guard never reads {relative}"
+
+
+def test_a_literal_block_marker_is_read_and_a_plain_colon_is_not() -> None:
+    assert literal_block_lines(f"the scheme is{LITERAL_BLOCK_MARKER}\n\n    x = 1") == [1]
+    assert literal_block_lines("Returns: the mean duration in weeks") == []
+
+
+# This guard and the table one below it read the modules of the package, while
+# the role guard above reads every Python file of the repository. The package is
+# what mkdocstrings renders, so it is where either piece of reStructuredText
+# does its damage, and it is also the only part of the repository that keeps
+# these two rules today: the module docstring of notebooks/build_notebooks.py
+# still opens two literal blocks of its own. Widening the two waits on that file
+# being reworded.
+def test_no_module_of_the_package_opens_a_literal_block() -> None:
+    """Two colons at the end of a line are reStructuredText, which nothing here renders.
+
+    mkdocstrings reads the docstrings as Markdown, where the marker stays on the
+    page and the block under it runs together with the prose. A single colon
+    with an indented block under it is the code block the writer meant.
+    """
+    found = offenders({path: literal_block_lines(text) for path, text in package_sources().items()})
+    assert found == [], f"a line ends in the reStructuredText literal block marker: {found}"
+
+
+def test_a_numpydoc_underline_is_not_read_as_the_rule_of_a_table() -> None:
+    title = "Parameters"
+    assert table_rule_lines(f"{title}\n{'-' * len(title)}\nseed : int") == []
+
+
+def test_a_pair_of_rule_characters_is_too_short_to_draw_a_table() -> None:
+    """Below the floor the guard would name a stray pair of hyphens a table."""
+    for pair in ("-" * 2, "=" * 2):
+        assert table_rule_lines(f"a first line\n{pair}\nthe next one") == []
+
+
+def test_the_rule_of_a_simple_and_of_a_grid_table_are_both_read() -> None:
+    simple = "=" * 5 + "  " + "=" * 5
+    grid = "+" + "-" * 6 + "+" + "-" * 6 + "+"
+    assert table_rule_lines(f"Quantity  Value\n{simple}\nrelapse   4.3") == [2]
+    assert table_rule_lines(f"{grid}\n| a      | b      |\n{grid}") == [1, 3]
+
+
+def test_no_module_of_the_package_draws_a_restructuredtext_table() -> None:
+    """Neither table shape survives the trip through Markdown.
+
+    A simple table and a grid table both reach the built page as the rule
+    characters themselves, one long line of them, so a table written in a
+    docstring is written as a Markdown table or as a bulleted list instead.
+    """
+    found = offenders({path: table_rule_lines(text) for path, text in package_sources().items()})
+    assert found == [], (
+        f"a reStructuredText table reaches the site as its own rule characters: {found}"
+    )
 
 
 def test_missing_build_tools_names_only_what_is_absent() -> None:
@@ -496,13 +676,19 @@ def test_the_walk_skips_a_file_that_does_not_decode_as_text(tmp_path: Path) -> N
     assert reached == {"page.md"}
 
 
-@pytest.mark.skipif(
-    not (ROOT / "docs" / "IMPLEMENTATION_PLAN.md").is_file(),
-    reason="the plan is finished and its page has been removed",
-)
-def test_the_tracked_plan_page_is_held_to_the_house_style() -> None:
-    """Only what git ignores is left out, and the plan page is in the repository."""
-    assert "docs/IMPLEMENTATION_PLAN.md" in swept()
+def test_the_decisions_page_is_held_to_the_house_style() -> None:
+    """Only what git ignores is left out, and the decisions page is in the repository.
+
+    The other page under docs/ that a reader of the nav reaches is swept as a
+    matter of course; this one is named because it is the newest, and a page
+    that is written but never committed is the way it goes missing.
+    """
+    reached = swept()
+    assert "docs/theory.md" in reached
+    assert "docs/decisions.md" in reached, (
+        "docs/decisions.md is not in the working tree, so a fresh checkout has no "
+        "page to sweep; mkdocs.yml navigates to it, so it belongs in the repository"
+    )
 
 
 def test_no_file_holds_an_em_dash() -> None:

@@ -6,17 +6,15 @@ each of the two clinical states on average.
 [`generate`][msrelapse.cohort.generate] turns such a description into the
 frames of [`msrelapse.io`][msrelapse.io], through either of two engines.
 
-``renewal``
-    The phenomenological engine of [`msrelapse.renewal`][msrelapse.renewal].
-    Durations are drawn directly from the target means, geometric on whole
-    weeks or exponential in continuous time. It is fast and it has no potential
-    behind it.
-``sde``
-    The mechanistic engine. Each pair of target durations is turned into a
-    potential and a noise amplitude by
-    [`msrelapse.model.calibrate`][msrelapse.model.calibrate], and the record is
-    then integrated with
-    [`msrelapse.simulate.simulate_weekly`][msrelapse.simulate.simulate_weekly].
+- ``renewal``: the phenomenological engine of
+  [`msrelapse.renewal`][msrelapse.renewal]. Durations are drawn directly from
+  the target means, geometric on whole weeks or exponential in continuous time.
+  It is fast and it has no potential behind it.
+- ``sde``: the mechanistic engine. Each pair of target durations is turned into
+  a potential and a noise amplitude by
+  [`msrelapse.model.calibrate`][msrelapse.model.calibrate], and the record is
+  then integrated with
+  [`msrelapse.simulate.simulate_weekly`][msrelapse.simulate.simulate_weekly].
 
 Beside the records, the module reports the per patient parameters of equation
 (7) with [`per_patient_params`][msrelapse.cohort.per_patient_params], and the

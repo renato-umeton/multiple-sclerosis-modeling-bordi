@@ -1,9 +1,11 @@
 """Every number reported by Bordi et al. 2013, with its unit and its provenance.
 
 This module is the single place in the package where a number taken from the
-paper may be written down. No other module may hard-code a paper number:
-import ``PAPER`` from here instead, so that every value keeps the citation
-that justifies it and a reader can check the package against the article.
+paper is written down. Every other module of the package takes its paper
+numbers from ``PAPER`` rather than repeating them, so that each value keeps the
+citation that justifies it and a reader can check the package against the
+article. A test may quote a paper number, but only as the expected value beside
+the ``PAPER`` field it checks, which is what makes the field worth checking.
 
 References
 ----------

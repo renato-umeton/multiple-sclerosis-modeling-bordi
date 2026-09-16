@@ -59,7 +59,7 @@ Two data files, one record of the numbers, and nine figures.
 | `fig3_rr_phase_histogram.png` | Record lengths, Figure 3 |
 | `fig4_duration_histograms.png` | The two duration histograms, Figure 4 |
 | `fig5_symmetric_potentials.png` | The symmetric potential at two values of alpha, Figure 5 |
-| `fig6_asymmetric_potential.png` | The asymmetric potential and its two barriers, Figure 6 |
+| `fig6_asymmetric_potential.png` | Both panels of the asymmetric potential and its two barriers, at the reference value of alpha and at the lower illustrative one, Figure 6 |
 | `fig7_simulated_paths.png` | Two simulated paths of equation (4), Figure 7 |
 | `fig8_patient_potentials.png` | The three sample patients, Figure 8 |
 | `fig_survival_vs_exponential.png` | Observed survival against the fitted exponential, not in the article |
@@ -81,6 +81,7 @@ One JSON object, with these keys.
 | `seed`, `effective_seed` | The seed as given and the seed actually used |
 | `engine` | `renewal`, `sde`, or null for a record read from a file |
 | `citation` | The one line citation of the article |
+| `msrelapse_version` | The version of the package that wrote the directory, the one `msrelapse --version` prints |
 | `closing_table` | One object per row of the table below, with `quantity`, `paper`, `reproduced`, `tolerance` and `within_tolerance` |
 | `all_within_tolerance` | Whether every judged row is inside its tolerance, the value the exit status reports |
 | `fits` | Six duration fits: naive, censored and geometric, for each of the two states |

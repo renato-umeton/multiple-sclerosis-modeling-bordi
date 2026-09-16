@@ -7,27 +7,23 @@ no test and no interval of any kind, which section 7 of ``docs/paper_facts.md``
 records in full. This module supplies the statistics the paper leaves out, so
 that its claims can be checked rather than repeated:
 
-durations
-    [`fit_durations`][msrelapse.fit.fit_durations] fits an exponential or a
-    geometric duration with or without the right censoring of a final
-    remission, [`test_memoryless`][msrelapse.fit.test_memoryless] asks in four
-    different ways whether the durations of one state really are memoryless,
-    and [`discrete_hazard`][msrelapse.fit.discrete_hazard] is the weekly hazard
-    that test and the survival figure of [`msrelapse.plots`][msrelapse.plots]
-    both read.
-counts
-    [`fit_nb_counts`][msrelapse.fit.fit_nb_counts] fits the negative binomial
-    counts of a cohort and tests them against the Poisson counts of a single
-    shared rate, and [`fit_gamma_rates`][msrelapse.fit.fit_gamma_rates] fits a
-    gamma distribution to the per patient onset rates themselves, read per week
-    spent in remission.
-rhythm
-    [`test_periodicity`][msrelapse.fit.test_periodicity] looks for a period in
-    the relapse onsets of each weekly record and combines the per patient
-    evidence.
-barrier
-    [`barrier_ratio`][msrelapse.fit.barrier_ratio] applies equation (7) to the
-    observed durations.
+- durations: [`fit_durations`][msrelapse.fit.fit_durations] fits an exponential
+  or a geometric duration with or without the right censoring of a final
+  remission, [`test_memoryless`][msrelapse.fit.test_memoryless] asks in four
+  different ways whether the durations of one state really are memoryless, and
+  [`discrete_hazard`][msrelapse.fit.discrete_hazard] is the weekly hazard that
+  test and the survival figure of [`msrelapse.plots`][msrelapse.plots] both
+  read.
+- counts: [`fit_nb_counts`][msrelapse.fit.fit_nb_counts] fits the negative
+  binomial counts of a cohort and tests them against the Poisson counts of a
+  single shared rate, and [`fit_gamma_rates`][msrelapse.fit.fit_gamma_rates]
+  fits a gamma distribution to the per patient onset rates themselves, read per
+  week spent in remission.
+- rhythm: [`test_periodicity`][msrelapse.fit.test_periodicity] looks for a
+  period in the relapse onsets of each weekly record and combines the per
+  patient evidence.
+- barrier: [`barrier_ratio`][msrelapse.fit.barrier_ratio] applies equation (7)
+  to the observed durations.
 
 Every number of the paper is imported from
 [`msrelapse._params`][msrelapse._params], never written here. Each of the five

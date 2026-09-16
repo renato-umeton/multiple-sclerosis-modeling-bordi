@@ -400,8 +400,11 @@ remission whose true mean is 100 weeks rarely fits twice, so that naive average
 lands near 80 weeks rather than 100. Reproducing the printed means therefore
 takes a generative mean above them: `msrelapse.cohort.naive_mean_targets`
 inverts the measurement, and the shipped twin is generated from 134.21 and
-4.34415 weeks so that the naive means of the result land on the printed 100 and
-4.3.
+4.34415 weeks, chosen so that the naive means of the result reproduce the
+printed 100 and 4.3 to within the sampling noise of seventy records. The
+inversion holds in expectation and a single cohort of that size does not: the
+shipped twin measures 104.3 and 4.12 weeks, 4.3 and 4.2 percent away from the
+printed pair.
 
 ## Calibration, and whether it is unique
 
