@@ -1229,10 +1229,10 @@ def _fit_negative_binomial(
     rather than taken for a collapse because its likelihood is poor.
 
     ``msrelapse.fit.fit_nb_counts`` fits the same NB2 model on bare counts and
-    reads a collapsed search off its own numerical floor alone, so the two
-    modules do not answer the question the same way: a search this one reports as
-    a Poisson can reach a dispersion there. Neither reading is wrong for what its
-    own caller reports, but a change to either belongs in both.
+    reads a collapsed search by the same two rules, the dispersion threshold and
+    the likelihood gain, with the thresholds imported from this module, so the
+    two modules answer the question the same way on every platform. A change to
+    either rule belongs in both.
     """
     start_dispersion = _moment_dispersion(design, counts, exposure, poisson)
     if start_dispersion <= _DISPERSION_FLOOR:
