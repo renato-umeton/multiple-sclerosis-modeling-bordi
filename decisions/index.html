@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/data/">
+        <link rel="canonical" href="https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/decisions/">
       
       
-        <link rel="prev" href="../reproducing/">
+        <link rel="prev" href="../paper_facts/">
       
       
-        <link rel="next" href="../paper_facts/">
+        <link rel="next" href="../api/model/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Data - msrelapse</title>
+        <title>Design decisions - msrelapse</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#data" class="md-skip">
+        <a href="#design-decisions" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Data
+              Design decisions
             
           </span>
         </div>
@@ -342,37 +342,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Data
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../data/" class="md-nav__link">
         
   
   
@@ -388,148 +361,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#the-decision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The decision
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-is-shipped" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What is shipped
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="What is shipped">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#how-they-were-made" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How they were made
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#what-seventy-records-can-pin-down" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What seventy records can pin down
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-three-schemas" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The three schemas
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="The three schemas">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#weekly" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        weekly
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#durations" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        durations
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#events" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        events
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#asking-for-the-original-series" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Asking for the original series
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#licence-and-reuse" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Licence and reuse
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -565,10 +396,37 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../decisions/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design decisions
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -584,6 +442,164 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#paper-and-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Paper and model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-and-provenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data and provenance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#simulation-and-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simulation and calibration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#statistics-and-tolerances" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistics and tolerances
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#packaging-and-tooling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Packaging and tooling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#documentation-and-repository-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation and repository rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-outcomes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage outcomes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage outcomes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#stage-1-the-article-and-the-ecosystem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 1: the article and the ecosystem
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-2-the-scaffold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 2: the scaffold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-3-the-modules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 3: the modules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-4-notebooks-documentation-metadata-and-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 4: notebooks, documentation, metadata and data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-5-reviews-and-release-preparation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 5: reviews and release preparation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1063,10 +1079,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-decision" class="md-nav__link">
+  <a href="#paper-and-model" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The decision
+        Paper and model
       
     </span>
   </a>
@@ -1074,22 +1090,77 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-is-shipped" class="md-nav__link">
+  <a href="#data-and-provenance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What is shipped
+        Data and provenance
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="What is shipped">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#simulation-and-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simulation and calibration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#statistics-and-tolerances" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistics and tolerances
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#packaging-and-tooling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Packaging and tooling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#documentation-and-repository-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation and repository rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-outcomes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage outcomes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage outcomes">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#how-they-were-made" class="md-nav__link">
+  <a href="#stage-1-the-article-and-the-ecosystem" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How they were made
+        Stage 1: the article and the ecosystem
       
     </span>
   </a>
@@ -1097,10 +1168,43 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#what-seventy-records-can-pin-down" class="md-nav__link">
+  <a href="#stage-2-the-scaffold" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What seventy records can pin down
+        Stage 2: the scaffold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-3-the-modules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 3: the modules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-4-notebooks-documentation-metadata-and-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 4: notebooks, documentation, metadata and data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stage-5-reviews-and-release-preparation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 5: reviews and release preparation
       
     </span>
   </a>
@@ -1109,78 +1213,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-three-schemas" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The three schemas
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="The three schemas">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#weekly" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        weekly
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#durations" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        durations
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#events" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        events
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#asking-for-the-original-series" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Asking for the original series
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#licence-and-reuse" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Licence and reuse
-      
-    </span>
-  </a>
   
 </li>
       
@@ -1204,277 +1236,183 @@
   
 
 
-<h1 id="data">Data<a class="headerlink" href="#data" title="Permanent link">&para;</a></h1>
-<h2 id="the-decision">The decision<a class="headerlink" href="#the-decision" title="Permanent link">&para;</a></h2>
-<p>The article released no data. It carries no data availability statement, no
-supplementary material and no deposited series, and the per patient records
-behind its Figures 2, 3 and 4 were never published. Releasing the de-identified
-weekly series is not this package's to decide, so the package ships a
-<strong>synthetic twin</strong> instead: seventy simulated records generated from the
-numbers the article prints, with the provenance attached everywhere, plus
-instructions for asking the authors for the original.</p>
-<div class="admonition danger">
-<p class="admonition-title">Never present these records, or a plot of them, as clinical data</p>
-<p>The twin reproduces the aggregates the article reports. It is not the
-cohort of the study, it contains no patient, and no clinical claim can be
-read off it. Every frame the loader returns carries a provenance sentence
-in <code>frame.attrs['provenance']</code>, every run of <code>msrelapse reproduce</code> prints
-it, and the file it writes records it. If you publish a figure drawn from
-these files, say in the caption that the data are synthetic.</p>
-</div>
-<h2 id="what-is-shipped">What is shipped<a class="headerlink" href="#what-is-shipped" title="Permanent link">&para;</a></h2>
-<p>Three files, inside the installed package at <code>msrelapse/data/</code>, holding the
-same seventy records in the three schemas below, plus the full provenance note.</p>
-<table>
-<thead>
-<tr>
-<th>File</th>
-<th>Schema</th>
-<th>Rows</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>synthetic_bordi2013_weekly.csv</code></td>
-<td>weekly</td>
-<td>28302, one per patient-week</td>
-</tr>
-<tr>
-<td><code>synthetic_bordi2013_durations.csv</code></td>
-<td>durations</td>
-<td>522, one per run of a state</td>
-</tr>
-<tr>
-<td><code>synthetic_bordi2013_events.csv</code></td>
-<td>events</td>
-<td>261, one per relapse</td>
-</tr>
-<tr>
-<td><code>PROVENANCE.txt</code></td>
-<td>plain text</td>
-<td>the note <code>msrelapse.datasets.provenance()</code> returns</td>
-</tr>
-</tbody>
-</table>
-<p>They are read with the loader rather than by path, so that they work from an
-installed wheel as well as from a checkout:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">msrelapse</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ms</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">weekly</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">load_synthetic_bordi2013</span><span class="p">()</span>               <span class="c1"># or "durations", or "events"</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">weekly</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"provenance"</span><span class="p">])</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">ms</span><span class="o">.</span><span class="n">provenance</span><span class="p">())</span>                               <span class="c1"># the whole note</span>
-</code></pre></div>
-<p><code>ms.regenerate_synthetic_bordi2013("regenerated/")</code> writes the three files again
-from the same seed, which is how they were made in the first place. Called with
-no directory it writes them back into the data directory of the installed
-package, which is how the shipped copies were produced and which needs an
-install that can be written to: from a zip archive or a read-only install, name
-a directory of your own. Any seed but 20130910 is refused unless a directory is
-named, since a cohort under another seed is not the twin that the provenance
-note and the closing table describe.</p>
-<h3 id="how-they-were-made">How they were made<a class="headerlink" href="#how-they-were-made" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Choice</th>
-<th>Value</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Generator</td>
-<td><code>msrelapse.cohort.generate(bordi2013_spec("renewal"), rng=20130910)</code></td>
-</tr>
-<tr>
-<td>Engine</td>
-<td><code>renewal</code>, the alternating renewal process, not the stochastic equation</td>
-</tr>
-<tr>
-<td>Seed</td>
-<td>20130910, which opens with the year of the volume and closes with four arbitrary digits</td>
-</tr>
-<tr>
-<td>Cohort size</td>
-<td>70 patients, because the study followed 70</td>
-</tr>
-<tr>
-<td>Follow up length</td>
-<td>One draw per patient from the Figure 3 histogram of relapsing-remitting phase lengths, which spans 40 to 1312 weeks in eight bins of 159 weeks, one week above the printed 1311 week maximum</td>
-</tr>
-<tr>
-<td>Generative mean remission</td>
-<td>134.21 weeks</td>
-</tr>
-<tr>
-<td>Generative mean relapse</td>
-<td>4.34415 weeks</td>
-</tr>
-<tr>
-<td>Start state</td>
-<td>Relapse, because the records of the study start at the first relapse</td>
-</tr>
-</tbody>
-</table>
-<p>The two generative means are deliberately not the printed 100 and 4.3 weeks.
-The article computed naive means, averaging every recorded run including the
-last remission of each record, which the end of follow up cut short. Measured
-that way over the Figure 3 windows, a cohort generated at a true mean of 100
-weeks reports about 80. <code>msrelapse.cohort.naive_mean_targets</code> inverts that
-measurement, so the naive means of this twin land on the printed pair: on these
-seventy records they measure 104.3 and 4.12 weeks.</p>
-<h3 id="what-seventy-records-can-pin-down">What seventy records can pin down<a class="headerlink" href="#what-seventy-records-can-pin-down" title="Permanent link">&para;</a></h3>
-<p>Seventy records of these lengths hold about 260 relapses and about 260
-remissions, so a mean duration measured on them carries a standard error near
-six percent, and everything built on those means inherits it. The barrier ratio
-of equation (7) moves by about 0.13 under one standard error of the two means,
-which is why the closing table compares it under a tolerance of 0.2 rather than
-a tighter one. Nothing about the size of the twin is a choice: it is seventy
-records because the study followed seventy patients. A reader who wants tighter
-comparisons should generate a larger cohort with
-<code>msrelapse.cohort.generate</code>, not reach for a friendlier seed.</p>
-<h2 id="the-three-schemas">The three schemas<a class="headerlink" href="#the-three-schemas" title="Permanent link">&para;</a></h2>
-<p>All three are plain <code>pandas.DataFrame</code> objects with fixed columns and fixed
-dtypes, validated by <code>msrelapse.validate(frame, schema)</code>, which names the first
-thing that is wrong rather than failing later inside an analysis.</p>
-<h3 id="weekly">weekly<a class="headerlink" href="#weekly" title="Permanent link">&para;</a></h3>
-<p>One row per patient-week. This is the shape the article's Figure 2 plots and
-the shape every measurement starts from.</p>
-<table>
-<thead>
-<tr>
-<th>Column</th>
-<th>Type</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>patient_id</code></td>
-<td>str</td>
-<td>Patient identifier; rows of one patient are contiguous</td>
-</tr>
-<tr>
-<td><code>week</code></td>
-<td>int64</td>
-<td>Week number, starting at 0 and contiguous within a patient</td>
-</tr>
-<tr>
-<td><code>state</code></td>
-<td>int64</td>
-<td><span class="arithmatex">\(+1\)</span> no health (relapse), <span class="arithmatex">\(-1\)</span> health (remission)</td>
-</tr>
-</tbody>
-</table>
-<h3 id="durations">durations<a class="headerlink" href="#durations" title="Permanent link">&para;</a></h3>
-<p>The run length encoding of <code>weekly</code>. The two convert losslessly in both
-directions, with <code>weekly_to_durations</code> and <code>durations_to_weekly</code>.</p>
-<table>
-<thead>
-<tr>
-<th>Column</th>
-<th>Type</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>patient_id</code></td>
-<td>str</td>
-<td>Patient identifier</td>
-</tr>
-<tr>
-<td><code>run_index</code></td>
-<td>int64</td>
-<td>Position of the run within the patient, from 0, states alternating</td>
-</tr>
-<tr>
-<td><code>state</code></td>
-<td>int64</td>
-<td><span class="arithmatex">\(+1\)</span> or <span class="arithmatex">\(-1\)</span>, as above</td>
-</tr>
-<tr>
-<td><code>duration_w</code></td>
-<td>int64</td>
-<td>Length of the run in whole weeks, at least 1</td>
-</tr>
-<tr>
-<td><code>censored</code></td>
-<td>bool</td>
-<td>True for a final remission cut short by the end of follow up</td>
-</tr>
-</tbody>
-</table>
-<p>The censoring flag is the one piece of information the article did not use: it
-averaged censored and complete runs alike. <code>fit_durations</code> uses it by default
-and takes <code>censoring=False</code> to reproduce the article's arithmetic.</p>
-<h3 id="events">events<a class="headerlink" href="#events" title="Permanent link">&para;</a></h3>
-<p>The registry shape, one row per relapse, in weeks since the start of that
-patient's follow up. A patient with no relapse keeps one row with a missing
-onset and end, so that the follow up window survives.</p>
-<table>
-<thead>
-<tr>
-<th>Column</th>
-<th>Type</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>patient_id</code></td>
-<td>str</td>
-<td>Patient identifier</td>
-</tr>
-<tr>
-<td><code>followup_start</code></td>
-<td>float64</td>
-<td>Start of the observation window, in weeks</td>
-</tr>
-<tr>
-<td><code>followup_end</code></td>
-<td>float64</td>
-<td>End of the observation window, in weeks</td>
-</tr>
-<tr>
-<td><code>relapse_onset</code></td>
-<td>float64</td>
-<td>Onset of one relapse, or missing</td>
-</tr>
-<tr>
-<td><code>relapse_end</code></td>
-<td>float64</td>
-<td>End of the same relapse, or missing</td>
-</tr>
-</tbody>
-</table>
-<p><code>read_events</code> also reads a registry export that carries calendar dates, through
-its <code>date_cols</code> argument, and converts them to weeks since each patient's first
-follow up date. <code>weekly_to_events</code> and <code>events_to_weekly</code> convert in both
-directions, but only the first is lossless: going from events to weeks applies
-the weekly rounding rule of the study, under which any week a relapse touches
-counts as a whole relapse week.</p>
-<h2 id="asking-for-the-original-series">Asking for the original series<a class="headerlink" href="#asking-for-the-original-series" title="Permanent link">&para;</a></h2>
-<p>Write to the corresponding authors of the article, Marco Salvetti
-(marco.salvetti@uniroma1.it) and Alfonso Sutera
-(alfonso.sutera@roma1.infn.it). The series are neither deposited nor
-referenced anywhere, so there is no repository to try first, and this package
-makes no claim on them. The data were collected before 1993 at the MS Clinic of
-Sapienza University of Rome and the article records the ethics position that
-applied to them.</p>
-<p>A record obtained that way runs through the same pipeline with no change:
-<a href="../reproducing/">Reproducing the paper</a> has the two commands.</p>
-<h2 id="licence-and-reuse">Licence and reuse<a class="headerlink" href="#licence-and-reuse" title="Permanent link">&para;</a></h2>
-<p>The article is open access under the Creative Commons Attribution licence
-(CC BY): "Copyright (c) 2013 Isabella Bordi et al. This is an open access
-article distributed under the Creative Commons Attribution License, which
-permits unrestricted use, distribution, and reproduction in any medium,
-provided the original work is properly cited." Its equations, figures and
-numbers may therefore be reused in a derived package, with citation, which is
-what this package does: every number it takes is held in <code>PAPER</code> together with
-the sentence it came from, and <a href="../citing/">Citing</a> has the reference.</p>
-<p>The package itself is MIT licensed. The synthetic files carry no separate
-licence and no restriction beyond the one above them on this page: they are
-synthetic, and they must be described as synthetic.</p>
+<h1 id="design-decisions">Design decisions<a class="headerlink" href="#design-decisions" title="Permanent link">&para;</a></h1>
+<p>This page records the decisions taken while building version 0.1 of msrelapse
+and the reason for each, so that a reader who wonders why the package does
+something one way rather than another finds the answer here. It carries over
+the record kept by the stage tracking document the repository used while the
+work was in progress. That document was removed once every stage was complete,
+because the decisions it held are permanent and the progress it tracked is not.</p>
+<h2 id="paper-and-model">Paper and model<a class="headerlink" href="#paper-and-model" title="Permanent link">&para;</a></h2>
+<p><strong>The printed mean durations are naive means.</strong> The article averaged every
+recorded run of a state over its own follow up windows, the censored final
+remission of each record included. A cohort generated at a true mean of 100
+weeks shows a naive mean near 80 weeks over the Figure 3 windows, 79.7 measured
+over 20000 windows, so the shipped twin is generated from generative means
+chosen so that its naive means reproduce the printed 100 and 4.3 weeks.
+<code>msrelapse.cohort.naive_mean_targets</code> inverts the measurement, and
+<code>msrelapse.cohort.bordi2013_spec</code> applies it when <code>match_naive_means</code> is true.</p>
+<p><strong>Time varying parameters are out of scope for version 0.1</strong> and are recorded
+as future work. The asymmetry and the noise of the article are constants of a
+patient. A slowly varying asymmetry or noise, which would let a barrier drift
+over a follow up, would need a calibration procedure and a validation the
+article gives no material for. Nothing in the equations forbids it, so it is a
+later version rather than a closed question.</p>
+<h2 id="data-and-provenance">Data and provenance<a class="headerlink" href="#data-and-provenance" title="Permanent link">&para;</a></h2>
+<p><strong>The package ships a synthetic twin rather than the clinical series.</strong> The
+de-identified weekly series cannot be released without a decision from the
+co-authors, so the package ships a twin generated by the renewal engine from
+mean durations solved so that the naive means reproduce the printed pair, with
+loud provenance, and <a href="../data/">Data</a> says how to request the original. The twin
+uses no potential and no fitted asymmetry or noise; those belong to the <code>sde</code>
+engine, which the shipped files were not generated with.</p>
+<p><strong>The data files ship inside the package</strong>, under <code>src/msrelapse/data</code>, with a
+loader in <code>msrelapse.datasets</code>, so they are available after a <code>pip install</code>.
+The separate top level data directory of the original specification is not
+used.</p>
+<p><strong>Provenance travels beside the records rather than inside them.</strong> The shipped
+files have a sidecar <code>PROVENANCE.txt</code>, which <code>msrelapse.datasets.provenance</code>
+returns whole, and <code>msrelapse.datasets.load_synthetic_bordi2013</code> copies its
+first line onto the frame it returns, as <code>frame.attrs["provenance"]</code>. It is not
+a column, because the three schemas of <code>msrelapse.io</code> reject an extra column as
+firmly as a missing one, and it is not a comment row at the head of each CSV,
+because that would change the reader contract: every reader of those files,
+this package and any other, would have to be told about a comment character
+before it could read a shipped file at all.</p>
+<p><strong>Two signatures of the original specification were changed.</strong>
+<code>msrelapse.renewal.alternating_renewal</code> returns one events frame keyed by
+<code>patient_id</code> rather than the list of frames the specification declares, because
+that single frame is the events schema <code>msrelapse.io</code> validates and converts.
+<code>week_length_days</code> lives on <code>msrelapse.io.read_events</code>, where the calendar
+dates are parsed, rather than on <code>msrelapse.io.events_to_weekly</code>, because by
+then the frame holds weeks and there is no day left to divide.</p>
+<h2 id="simulation-and-calibration">Simulation and calibration<a class="headerlink" href="#simulation-and-calibration" title="Permanent link">&para;</a></h2>
+<p><strong>The weekly rounding rule marks every week a relapse touches</strong>, so the
+continuous time engines are aimed one week below the relapse target and one
+week above the health target. <code>msrelapse.cohort.continuous_targets</code> returns
+that pair, 101 and 3.3 weeks for the published durations. Remissions shorter
+than a week merge the relapses on either side of them; that residual is
+documented rather than hidden.</p>
+<p><strong>Crossings read off the integration grid overestimate episode lengths</strong> by
+about a constant times the square root of the step.
+<code>msrelapse.simulate.exit_times</code> and the state machine both move the thresholds
+by the Brownian bridge shift <code>BRIDGE_CONSTANT * sigma * sqrt(dt)</code>, with
+<code>msrelapse.simulate.BRIDGE_CONSTANT</code> of 0.5826.</p>
+<p><strong>The hysteresis band fraction has two defaults on purpose:</strong>
+<code>msrelapse.model.DEFAULT_BAND_FRACTION</code> of 0.3, which every band taking
+function of <code>msrelapse.model</code> and <code>msrelapse.simulate</code> uses, and
+<code>msrelapse.cohort.SDE_ENGINE_BAND_FRACTION</code> of 0.4, which the <code>sde</code> engine of
+<code>CohortSpec</code> uses. The reason is measured rather than stylistic. A band decides
+how many complete remissions of a path are shorter than a week, and a remission
+shorter than a week merges the two relapses around it once the path is written
+as weeks. On the rounding corrected 101 and 3.3 weeks that the measured table
+of <code>CohortSpec</code> was built on, about one complete remission in five and a half
+is shorter than a week at 0.3 and about one in ten at 0.4, which puts the naive
+means of an <code>sde</code> cohort about a fifth to a third above the renewal ones at 0.3
+and about a tenth to a fifth above them at 0.4. It is not widened further: at
+0.5 the cohort of the article has no calibration at all, because the asymmetry
+a wider band asks for passes the saddle-node fold at <code>fold_beta(1) = 0.3849</code>.
+The table of measurements is in the Notes of
+<a href="../api/cohort/"><code>msrelapse.cohort.CohortSpec</code></a>, and the cost of the wider
+default, a pair of durations that calibrates at 0.3 and raises at 0.4, is the
+worked example beside it.</p>
+<h2 id="statistics-and-tolerances">Statistics and tolerances<a class="headerlink" href="#statistics-and-tolerances" title="Permanent link">&para;</a></h2>
+<p><strong>The closing table carries one barrier ratio row, the cohort one.</strong> The per
+patient ratios of patients 23, 32 and 53 are deliberately not rows of
+<code>msrelapse.datasets.reproduction_table</code>, because they are read off the
+durations the article prints rather than off any record, while the table
+measures a weekly frame. They live in <code>msrelapse.cohort.paper_patients</code>
+instead, one row per patient, with each printed value beside the value
+recomputed from its neighbours.</p>
+<h2 id="packaging-and-tooling">Packaging and tooling<a class="headerlink" href="#packaging-and-tooling" title="Permanent link">&para;</a></h2>
+<p><strong>Python 3.10 through 3.14 are supported</strong>, with local development on 3.14.</p>
+<p><strong>The command line uses argparse</strong>, which keeps the dependency set minimal.</p>
+<p><strong>The package is named msrelapse</strong>, a name checked as free on PyPI before the
+scaffold was written.</p>
+<p><strong>The reproduce command performs the analysis itself</strong> rather than executing
+notebook 01, so that the command carries no notebook dependency. The command
+and the notebook build the closing table through the one
+<code>msrelapse.datasets.reproduction_table</code>, so the two agree by construction
+rather than by copying. The notebooks are executed with nbclient in
+<code>tests/test_notebooks.py</code> rather than with papermill, which is why papermill is
+not a dependency.</p>
+<p><strong>The first release is 0.1.0 and not the 1.0.0 the original specification names
+throughout.</strong> The package is a first public reference implementation with the
+interface still open to change, which is what the
+<code>Development Status :: 3 - Alpha</code> classifier says, and semantic versioning
+reserves 1.0.0 for an interface the project undertakes to keep.</p>
+<p><strong>Publishing is left to the maintainer</strong>, because PyPI and Zenodo need account
+credentials. The repository prepares the release workflow and the steps in
+<a href="../CONTRIBUTING/">Contributing</a> and stops there.</p>
+<p><strong>The ORCID and the archive DOI are left out of <code>CITATION.cff</code> and
+<code>codemeta.json</code></strong> rather than filled with a placeholder, because an invalid
+ORCID fails citation file validation and an empty identifier misleads a
+harvester; each file carries a comment saying where the value goes. The one
+literal placeholder that ships is the Zenodo DOI in the software BibTeX entry
+of <code>src/msrelapse/_citation.py</code>, with a matching commented out badge in
+<code>README.md</code>, both named by the release steps of
+<a href="../CONTRIBUTING/">Contributing</a>.</p>
+<p><strong><code>date-released</code> in <code>CITATION.cff</code> is the planned first release date</strong> rather
+than a date anything was released on, and it moves with the release if that
+date moves. The <code>comment</code> key of <code>codemeta.json</code> is kept as the maintainer note
+it is, saying which identifier fields Zenodo fills in at that release and where
+the ORCID belongs.</p>
+<h2 id="documentation-and-repository-rules">Documentation and repository rules<a class="headerlink" href="#documentation-and-repository-rules" title="Permanent link">&para;</a></h2>
+<p><strong>Markdown lives under <code>docs/</code></strong>, with <code>README.md</code> at the repository root the
+one exception, so the changelog, the contributing guide, the data provenance
+note and the journal draft are all pages of this site or files beside them.</p>
+<p><strong>The stage tracking document is removed once every stage is complete</strong>, which
+is why this page exists. The specification the work was built from is a local
+file that the repository does not track, so a decision recorded only there
+would be lost to a fresh checkout.</p>
+<p><strong>Two items of the closing checklist are deferred to the maintainer</strong>, because
+they need people rather than code: a read of <a href="../theory/">Theory</a> by one
+co-author before the tag, and sending the repository link to the co-authors and
+the three outreach targets once the archive DOI resolves.</p>
+<h2 id="stage-outcomes">Stage outcomes<a class="headerlink" href="#stage-outcomes" title="Permanent link">&para;</a></h2>
+<p>The work ran in five stages. What each of them settled is below.</p>
+<h3 id="stage-1-the-article-and-the-ecosystem">Stage 1: the article and the ecosystem<a class="headerlink" href="#stage-1-the-article-and-the-ecosystem" title="Permanent link">&para;</a></h3>
+<p>The potential of the article is <span class="arithmatex">\(V(x) = -x^2/2 + \alpha x^4/4 + \beta x\)</span>,
+equations (2) and (3), with drift <span class="arithmatex">\(x - \alpha x^3 - \beta\)</span>, noise variance
+<span class="arithmatex">\(\epsilon\)</span>, a symmetric barrier of <span class="arithmatex">\(1/(4\alpha)\)</span> that grows as <span class="arithmatex">\(\alpha\)</span> falls,
+and the health well at negative <span class="arithmatex">\(x\)</span>. The provisional form the original
+specification carried was the other parameterisation and was dropped. The
+verified transcription of the article is <a href="../paper_facts/">Paper facts</a>.
+Calibrating at <span class="arithmatex">\(\alpha = 1\)</span> to 100 and 4.3 weeks, read as mean first passage
+times to the saddle, gives <span class="arithmatex">\(\beta = 0.210435\)</span> and <span class="arithmatex">\(\sigma = 0.507768\)</span>. The
+Kramers form cannot reach 4.3 weeks at all, because its prefactor floor is 4.44
+weeks.</p>
+<h3 id="stage-2-the-scaffold">Stage 2: the scaffold<a class="headerlink" href="#stage-2-the-scaffold" title="Permanent link">&para;</a></h3>
+<p>mypy targets Python 3.12, because the numpy stubs use the <code>type</code> statement,
+which mypy parses only from that version on; the 3.10 floor of the package is
+held by the ruff target version instead. ruff is pointed away from <code>docs/</code>,
+which holds prose and no Python module, so that a script added there later is
+left out on purpose rather than by oversight. The MIT classifier is omitted
+from <code>pyproject.toml</code>, because PyPI rejects an upload that carries both a
+license expression and the legacy classifier.</p>
+<h3 id="stage-3-the-modules">Stage 3: the modules<a class="headerlink" href="#stage-3-the-modules" title="Permanent link">&para;</a></h3>
+<p>All modules, the command line, the public API with <code>cite()</code>, a doctest harness
+over every module, and the shipped synthetic twin are in place. The periodicity
+test reads the relapse onsets, whose spectrum is flat under the memoryless
+null, rather than the state series, whose spectrum is red. The barrier ratio
+row of the closing table is judged at an absolute tolerance of 0.2, because
+seventy records carry sampling noise in the two naive means the ratio is built
+from; the 0.05 the original specification asked for could be met on a cohort of
+that size only by choosing a seed. The deterministic recomputation from the
+printed durations is pinned far more tightly than that, to nine decimals, in
+<code>tests/test_model.py</code>.</p>
+<h3 id="stage-4-notebooks-documentation-metadata-and-data">Stage 4: notebooks, documentation, metadata and data<a class="headerlink" href="#stage-4-notebooks-documentation-metadata-and-data" title="Permanent link">&para;</a></h3>
+<p>Four notebooks built by <code>notebooks/build_notebooks.py</code> and executed in the
+tests; this site, with the theory, reproducing, data, citing, API and paper
+facts pages; <code>CITATION.cff</code>, <code>codemeta.json</code>, the issue forms, the release
+workflow, the documentation deploy workflow, and the journal draft under
+<code>docs/paper</code>.</p>
+<h3 id="stage-5-reviews-and-release-preparation">Stage 5: reviews and release preparation<a class="headerlink" href="#stage-5-reviews-and-release-preparation" title="Permanent link">&para;</a></h3>
+<p>Three independent review rounds over the whole implementation, each followed by
+fixes and re-verification. Round one raised 117 findings, 24 of them confirmed
+as blocking; round two raised 83, 22 of them confirmed as blocking; round three
+was a sign off, which raised 62 findings and no critical one. Every confirmed
+blocking finding was fixed before the round closed.</p>
 
 
 

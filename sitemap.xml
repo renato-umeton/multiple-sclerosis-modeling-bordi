@@ -1,79 +1,83 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/CHANGELOG/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/CHANGELOG/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/CONTRIBUTING/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/CONTRIBUTING/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/citing/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/citing/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/data/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/data/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/paper_facts/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/decisions/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/reproducing/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/paper_facts/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/theory/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/reproducing/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/api/cli/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/theory/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/api/cohort/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/api/cli/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/api/datasets/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/api/cohort/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/api/fit/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/api/datasets/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/api/io/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/api/fit/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/api/model/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/api/io/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/api/params/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/api/model/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/api/plots/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/api/params/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/api/renewal/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/api/plots/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/api/simulate/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/api/renewal/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
     <url>
-         <loc>https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/api/stats/</loc>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/api/simulate/</loc>
+         <lastmod>2026-09-16</lastmod>
+    </url>
+    <url>
+         <loc>https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/api/stats/</loc>
          <lastmod>2026-09-16</lastmod>
     </url>
 </urlset>
