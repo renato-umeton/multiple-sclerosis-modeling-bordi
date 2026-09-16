@@ -1,0 +1,17 @@
+# Line endings are normalised on checkin and checked out with a line feed, so
+# that every file of the repository is byte identical on every platform. The
+# shipped CSV records matter most: the test that regenerates them compares them
+# byte for byte with the files on disk, and a checkout that turned their line
+# feeds into carriage return line feeds would fail it on Windows alone.
+* text=auto
+
+*.csv text eol=lf
+*.ipynb text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.cff text eol=lf
+*.json text eol=lf
+*.txt text eol=lf

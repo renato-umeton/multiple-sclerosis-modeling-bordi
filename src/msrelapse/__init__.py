@@ -14,13 +14,14 @@ heights, about 3.1.
 Every number the article reports is collected in ``PAPER`` together with the
 sentence it comes from, and the code reads them from there rather than writing
 them down again. :func:`cite` prints the citation of the article and of this
-package, and the duration fits, the cohorts and the annualised rate results
-carry a one line citation of their own. What is re-exported here are the
-functions and the result classes; the type aliases they are annotated with,
-among them ``Side`` and ``Passage`` in :mod:`msrelapse.model`, ``Seed`` in
-:mod:`msrelapse.simulate` and ``Schema`` in :mod:`msrelapse.io`, stay on their
-own modules. Drawing lives in :mod:`msrelapse.plots`, which is imported
-explicitly, so that importing this package needs no matplotlib.
+package, and every result object, from a duration fit to a cohort to a rate
+ratio, carries a one line citation of its own and repeats it in its repr. What
+is re-exported here are the functions, the result classes and the type aliases
+they are annotated with, among them ``Side`` and ``Passage`` from
+:mod:`msrelapse.model`, ``Seed`` from :mod:`msrelapse.simulate`, which every
+module spells the same way, and ``Schema`` from :mod:`msrelapse.io`. Drawing
+lives in :mod:`msrelapse.plots`, which is imported explicitly, so that importing
+this package needs no matplotlib.
 
 Examples
 --------
@@ -46,6 +47,9 @@ from msrelapse._params import PAPER
 from msrelapse.cohort import (
     Cohort,
     CohortSpec,
+    Engine,
+    Sampler,
+    StartState,
     bordi2013_spec,
     constant,
     empirical,
@@ -63,9 +67,12 @@ from msrelapse.datasets import (
     reproduction_table,
 )
 from msrelapse.fit import (
+    Family,
     FitResult,
     GammaFit,
+    MemorylessMethod,
     NBFit,
+    PeriodicityMethod,
     PeriodicityResult,
     TestResult,
     barrier_ratio,
@@ -76,6 +83,7 @@ from msrelapse.fit import (
     test_periodicity,
 )
 from msrelapse.io import (
+    Schema,
     durations_to_weekly,
     events_to_weekly,
     read_durations,
@@ -89,7 +97,10 @@ from msrelapse.io import (
 from msrelapse.model import (
     Barriers,
     CriticalPoints,
+    Curvatures,
     DoubleWell,
+    Passage,
+    Side,
     barrier_ratio_from_durations,
     beta_from_barrier_ratio,
     calibrate,
@@ -112,6 +123,7 @@ from msrelapse.renewal import (
 from msrelapse.simulate import (
     HAS_NUMBA,
     Paths,
+    Seed,
     durations,
     exit_times,
     simulate_paths,
@@ -122,6 +134,8 @@ from msrelapse.simulate import (
 from msrelapse.stats import (
     WEEKS_PER_YEAR,
     ARRResult,
+    CIMethod,
+    ModelName,
     RateRatioResult,
     arr,
     compare_arr,
@@ -138,16 +152,29 @@ __all__ = [
     "WEEKS_PER_YEAR",
     "ARRResult",
     "Barriers",
+    "CIMethod",
     "Cohort",
     "CohortSpec",
     "CriticalPoints",
+    "Curvatures",
     "DoubleWell",
+    "Engine",
+    "Family",
     "FitResult",
     "GammaFit",
+    "MemorylessMethod",
+    "ModelName",
     "NBFit",
+    "Passage",
     "Paths",
+    "PeriodicityMethod",
     "PeriodicityResult",
     "RateRatioResult",
+    "Sampler",
+    "Schema",
+    "Seed",
+    "Side",
+    "StartState",
     "TestResult",
     "__version__",
     "alternating_renewal",

@@ -1,0 +1,57 @@
+# GitHub issue form for a feature request.
+name: Feature request
+description: Ask for something msrelapse cannot do yet
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The package reproduces one article and the statistics that go with it.
+        A request that keeps it close to that article, or that makes an
+        existing result easier to obtain, is the easiest kind to accept.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and where does the package stop you?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like it to do
+      description: >-
+        If you have a function signature or a command line in mind, write it
+        out. Say what the result should be, and how a reader would know it is
+        right.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you have tried instead
+      description: >-
+        Another package, a workaround in your own code, or a reason why neither
+        works.
+    validations:
+      required: false
+  - type: dropdown
+    id: audience
+    attributes:
+      label: Who would use this
+      options:
+        - Modellers working on the potential and the dynamics
+        - Trial statisticians working on relapse rates and durations
+        - In silico trial groups generating virtual cohorts
+        - Teachers and students reading the article
+        - Someone else
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else
+      description: Links to the literature, a figure of the article, a worked example.
+    validations:
+      required: false

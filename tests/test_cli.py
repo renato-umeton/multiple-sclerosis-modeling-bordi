@@ -6,6 +6,7 @@ import inspect
 import io
 import json
 import re
+import sys
 from importlib import metadata
 from pathlib import Path
 from typing import Any, NamedTuple
@@ -518,6 +519,17 @@ def test_a_pooled_test_that_counts_no_patients_still_prints(
     pooled = PooledResult(method="fisher_g", statistic=0.0, p_value=1.0, n=2, details={})
     msrelapse.cli._print_periodicity(PeriodicityResult(per_patient=pd.DataFrame(), pooled=pooled))
     assert "in_record=-" in capsys.readouterr().out
+
+
+def test_reproduce_refuses_a_figure_run_without_matplotlib(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The check comes before the analysis, so an install without the plot extra
+    # is told which extra to install rather than after a whole reproduction.
+    monkeypatch.setitem(sys.modules, "matplotlib", None)
+
+    with pytest.raises(ImportError, match=r"msrelapse\[plot\]"):
+        main(["reproduce", "--out", str(tmp_path)])
 
 
 def test_reproduce_writes_the_paper_figures(tmp_path: Path) -> None:

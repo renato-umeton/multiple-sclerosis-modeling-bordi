@@ -87,8 +87,10 @@ CHANGELOG, CONTRIBUTING, issue templates, release workflow, JOSS draft.
 CI; mkdocs build passes strict mode; CITATION.cff validates with cffconvert;
 test_reproduce_paper.py green.
 **Tests**: tests/test_reproduce_paper.py, notebook execution job, cffconvert.
-**Status**: In Progress. Done: synthetic data files, msrelapse.datasets and
-tests/test_reproduce_paper.py.
+**Status**: Complete. Four notebooks built by notebooks/build_notebooks.py and
+executed in tests; mkdocs site with theory, reproducing, data, citing, API and
+paper facts pages; CITATION.cff, codemeta.json, issue forms, release workflow,
+docs deploy workflow, JOSS draft under docs/paper.
 
 ## Stage 5: Reviews and release preparation
 **Goal**: Three independent review rounds over the whole implementation, each
@@ -97,4 +99,4 @@ followed by fixes and re-verification, then release checklist for v1.0.0.
 quality gates green; definition of done checklist in plan section 11 addressed
 or explicitly deferred to the maintainer.
 **Tests**: Full suite on three operating systems in CI.
-**Status**: Not Started
+**Status**: In Progress

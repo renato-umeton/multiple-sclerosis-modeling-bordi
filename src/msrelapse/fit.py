@@ -24,8 +24,11 @@ barrier
     :func:`barrier_ratio` applies equation (7) to the observed durations.
 
 Every number of the paper is imported from :mod:`msrelapse._params`, never
-written here. Every result object carries the citation of the article it belongs
-to, from :mod:`msrelapse._citation`.
+written here. Each of the five result types of this module, :class:`FitResult`,
+:class:`TestResult`, :class:`PeriodicityResult`, :class:`NBFit` and
+:class:`GammaFit`, carries the citation of the article it belongs to on a
+``citation`` property, from :mod:`msrelapse._citation`, and repeats it once in
+its repr.
 
 References
 ----------
@@ -57,10 +60,14 @@ from msrelapse.io import validate
 from msrelapse.model import barrier_ratio_from_durations
 
 __all__ = [
+    "Family",
     "FitResult",
     "GammaFit",
+    "MemorylessMethod",
     "NBFit",
+    "PeriodicityMethod",
     "PeriodicityResult",
+    "Seed",
     "TestResult",
     "barrier_ratio",
     "fit_durations",
@@ -243,7 +250,7 @@ class FitResult:
         )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class TestResult:
     """One hypothesis test, with the pieces it was built from.
 
@@ -268,6 +275,26 @@ class TestResult:
     n: int
     details: dict[str, float]
 
+    @property
+    def citation(self) -> str:
+        """str: One line naming the article this test belongs to."""
+        return _citation.short_citation()
+
+    def __repr__(self) -> str:
+        """Return the test, its p value and the citation, on one line.
+
+        Returns
+        -------
+        str
+            The method, the sample size, the statistic, the p value and the
+            short citation. The intermediate quantities of ``details`` are left
+            out, and are read off that attribute itself.
+        """
+        return (
+            f"{type(self).__name__}(method={self.method!r}, n={self.n}, "
+            f"statistic={self.statistic:.6g}, p_value={self.p_value:.6g}; {self.citation})"
+        )
+
     def reject(self, alpha: float = 0.05) -> bool:
         """Return whether the null hypothesis is rejected at a given level.
 
@@ -291,7 +318,7 @@ class TestResult:
         return self.p_value <= alpha
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class PeriodicityResult:
     """The search for a period, patient by patient and over the cohort.
 
@@ -311,8 +338,30 @@ class PeriodicityResult:
     per_patient: pd.DataFrame
     pooled: TestResult
 
+    @property
+    def citation(self) -> str:
+        """str: One line naming the article this search belongs to."""
+        return _citation.short_citation()
 
-@dataclass(frozen=True)
+    def __repr__(self) -> str:
+        """Return how many patients were read, the pooled p value and the citation.
+
+        Returns
+        -------
+        str
+            The number of patients in the table, the number the pooled test
+            could read, its p value and the short citation. The per patient
+            table and the pooled result are read off the attributes themselves,
+            so that the line stays a line and carries the citation once.
+        """
+        return (
+            f"{type(self).__name__}(n_patients={len(self.per_patient)}, "
+            f"n_tested={self.pooled.n}, method={self.pooled.method!r}, "
+            f"pooled_p_value={self.pooled.p_value:.6g}; {self.citation})"
+        )
+
+
+@dataclass(frozen=True, repr=False)
 class NBFit:
     """A negative binomial fit of relapse counts, against its Poisson null.
 
@@ -351,8 +400,29 @@ class NBFit:
     p_value: float
     n: int
 
+    @property
+    def citation(self) -> str:
+        """str: One line naming the article this fit belongs to."""
+        return _citation.short_citation()
 
-@dataclass(frozen=True)
+    def __repr__(self) -> str:
+        """Return the fit, its test against the Poisson null and the citation.
+
+        Returns
+        -------
+        str
+            The sample size, the mean, the dispersion with its interval, the p
+            value against the Poisson null and the short citation.
+        """
+        low, high = self.dispersion_ci
+        return (
+            f"{type(self).__name__}(n={self.n}, mean={self.mean:.6g}, "
+            f"dispersion={self.dispersion:.6g}, {_DEFAULT_CI:.0%} CI {low:.6g} to "
+            f"{high:.6g}, p_value={self.p_value:.6g}; {self.citation})"
+        )
+
+
+@dataclass(frozen=True, repr=False)
 class GammaFit:
     """A gamma fit of the onset rates of a cohort.
 
@@ -372,6 +442,26 @@ class GammaFit:
     theta: float
     per_patient_rates: pd.Series[float]
     n: int
+
+    @property
+    def citation(self) -> str:
+        """str: One line naming the article this fit belongs to."""
+        return _citation.short_citation()
+
+    def __repr__(self) -> str:
+        """Return the fitted gamma, the cohort it was fitted to and the citation.
+
+        Returns
+        -------
+        str
+            The number of patients, the shape, the scale, the mean rate the two
+            imply and the short citation. The per patient rates are read off the
+            attribute itself.
+        """
+        return (
+            f"{type(self).__name__}(n={self.n}, k={self.k:.6g}, theta={self.theta:.6g}, "
+            f"mean_rate={self.k * self.theta:.6g} per week; {self.citation})"
+        )
 
 
 # The eight parameters are the fit itself, the two options that reproduce the

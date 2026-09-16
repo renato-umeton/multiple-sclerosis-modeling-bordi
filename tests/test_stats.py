@@ -437,7 +437,35 @@ def test_arr_rejects_a_cohort_with_no_patients() -> None:
 
 def test_the_result_carries_a_citation() -> None:
     result = arr(ten_relapses_in_twenty_patient_years())
-    assert "Bordi" in result.citation
+    assert PAPER.paper_doi.value in result.citation
+
+
+def test_the_rate_ratio_carries_a_citation(two_arms: tuple[pd.DataFrame, pd.DataFrame]) -> None:
+    result = compare_arr(two_arms[0], None, two_arms[1], None, model="poisson")
+    assert PAPER.paper_doi.value in result.citation
+
+
+def test_the_arr_repr_cites_the_paper_once() -> None:
+    text = repr(arr(ten_relapses_in_twenty_patient_years()))
+    assert text.count(PAPER.paper_doi.value) == 1
+
+
+def test_the_arr_repr_names_the_rate_it_reports() -> None:
+    assert "arr=" in repr(arr(ten_relapses_in_twenty_patient_years()))
+
+
+def test_the_rate_ratio_repr_cites_the_paper_once(
+    two_arms: tuple[pd.DataFrame, pd.DataFrame],
+) -> None:
+    text = repr(compare_arr(two_arms[0], None, two_arms[1], None, model="poisson"))
+    assert text.count(PAPER.paper_doi.value) == 1
+
+
+def test_the_rate_ratio_repr_names_the_ratio_it_reports(
+    two_arms: tuple[pd.DataFrame, pd.DataFrame],
+) -> None:
+    text = repr(compare_arr(two_arms[0], None, two_arms[1], None, model="poisson"))
+    assert "rate_ratio=" in text
 
 
 def test_the_citation_falls_back_when_the_citation_module_is_missing(

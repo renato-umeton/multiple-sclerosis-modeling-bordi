@@ -6,7 +6,7 @@ import io
 import math
 import subprocess
 import sys
-from importlib import metadata
+from importlib import import_module, metadata
 
 import numpy as np
 import pandas as pd
@@ -17,6 +17,27 @@ import msrelapse
 DOI = msrelapse.PAPER.paper_doi.value
 
 _Result = msrelapse.Cohort | msrelapse.FitResult | msrelapse.ARRResult
+
+RESULT_NAMES = ("Cohort", "FitResult", "ARRResult")
+
+# Every type alias the package re-exports, beside the module that defines it.
+# A caller annotating their own code reaches for these through the package, so
+# each one has to resolve to the very object its module holds.
+TYPE_ALIASES = (
+    ("Side", "model"),
+    ("Passage", "model"),
+    ("Curvatures", "model"),
+    ("Seed", "simulate"),
+    ("Engine", "cohort"),
+    ("StartState", "cohort"),
+    ("Sampler", "cohort"),
+    ("Schema", "io"),
+    ("Family", "fit"),
+    ("MemorylessMethod", "fit"),
+    ("PeriodicityMethod", "fit"),
+    ("CIMethod", "stats"),
+    ("ModelName", "stats"),
+)
 
 
 def _is_positive_number(value: float) -> bool:
@@ -114,31 +135,24 @@ def test_version_matches_the_installed_distribution() -> None:
     assert msrelapse.__version__ == metadata.version("msrelapse")
 
 
-@pytest.mark.parametrize("name", ["Cohort", "FitResult", "ARRResult"])
+@pytest.mark.parametrize("name", RESULT_NAMES)
 def test_a_result_object_carries_the_citation(results: dict[str, _Result], name: str) -> None:
     assert DOI in results[name].citation
 
 
-@pytest.mark.parametrize(
-    "name",
-    [
-        "Cohort",
-        "FitResult",
-        pytest.param(
-            "ARRResult",
-            marks=pytest.mark.xfail(
-                strict=True,
-                reason=(
-                    "msrelapse.stats.ARRResult keeps the citation on a property and takes the "
-                    "repr the dataclass writes, which names the fields alone. Give it a "
-                    "__repr__ in the manner of msrelapse.fit.FitResult and drop this marker"
-                ),
-            ),
-        ),
-    ],
-)
+@pytest.mark.parametrize("name", RESULT_NAMES)
 def test_a_result_repr_names_the_article_once(results: dict[str, _Result], name: str) -> None:
     assert repr(results[name]).count(DOI) == 1
+
+
+@pytest.mark.parametrize(("name", "module"), TYPE_ALIASES)
+def test_a_type_alias_is_the_one_its_own_module_defines(name: str, module: str) -> None:
+    assert getattr(msrelapse, name) is getattr(import_module(f"msrelapse.{module}"), name)
+
+
+@pytest.mark.parametrize("name", [name for name, _module in TYPE_ALIASES])
+def test_a_type_alias_is_named_in_the_export_list(name: str) -> None:
+    assert name in msrelapse.__all__
 
 
 def test_a_short_analysis_runs_through_the_public_api(

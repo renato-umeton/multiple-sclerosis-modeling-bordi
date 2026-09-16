@@ -4,6 +4,9 @@ matplotlib is an optional dependency, the ``plot`` extra, so it is imported
 inside the functions that draw rather than at the top of the module. Importing
 :mod:`msrelapse.plots` therefore works in an install without it, and only a call
 that has to create a figure raises, naming the extra to install.
+:func:`require_matplotlib` is that check on its own, and hands back the pyplot
+module, for a caller that would rather learn of a missing matplotlib before it
+starts work than at the figure.
 
 Every function takes the axes to draw on and gives them back, so that a caller
 can compose the panels into a figure of their own; passing None instead creates
@@ -69,6 +72,7 @@ __all__ = [
     "fig8_patient_potentials",
     "fig_poisson_to_nb",
     "fig_survival_vs_exponential",
+    "require_matplotlib",
     "save_all_paper_figures",
 ]
 
@@ -820,8 +824,13 @@ def save_all_paper_figures(
     return written
 
 
-def _pyplot() -> ModuleType:
+def require_matplotlib() -> ModuleType:
     """Return the pyplot module, or explain which extra to install.
+
+    This is the hook a caller reaches for before a piece of work that ends in a
+    figure, so that an install without the optional dependency is told so at the
+    start rather than after the work. :mod:`msrelapse.cli` calls it before a
+    reproduction that draws.
 
     Returns
     -------
@@ -831,7 +840,13 @@ def _pyplot() -> ModuleType:
     Raises
     ------
     ImportError
-        If matplotlib is not installed.
+        If matplotlib is not installed. The message names the extra to install,
+        which is ``msrelapse[plot]``.
+
+    Examples
+    --------
+    >>> require_matplotlib().__name__
+    'matplotlib.pyplot'
     """
     try:
         import matplotlib.pyplot as plt  # noqa: PLC0415
@@ -841,6 +856,22 @@ def _pyplot() -> ModuleType:
             "extra of this package, that is msrelapse[plot]"
         ) from error
     return plt
+
+
+def _pyplot() -> ModuleType:
+    """Return the pyplot module, the spelling the drawing helpers below use.
+
+    Returns
+    -------
+    types.ModuleType
+        The ``matplotlib.pyplot`` module, from :func:`require_matplotlib`.
+
+    Raises
+    ------
+    ImportError
+        If matplotlib is not installed.
+    """
+    return require_matplotlib()
 
 
 def _single_axes(ax: Axes | None) -> Axes:

@@ -1,0 +1,60 @@
+# Citation metadata for msrelapse, in the Citation File Format 1.2.0.
+# Validate a change to this file with: uvx cffconvert --validate -i CITATION.cff
+#
+# Two fields are deliberately absent and are filled in by the maintainer:
+#   * the author's orcid, which belongs on the entry below as
+#     "orcid: https://orcid.org/0000-0000-0000-0000" once it is to hand;
+#   * the top level "doi", the archive DOI of the software, which Zenodo mints
+#     at the first release. Add it beside "version" when the release is made.
+cff-version: "1.2.0"
+message: "If you use this software, please cite both the software itself and the article it reproduces, given below as the preferred citation."
+type: software
+title: "msrelapse: a reference implementation of the Bordi et al. 2013 double well model of multiple sclerosis"
+abstract: "A Python package that reproduces the stochastic double well model of relapsing-remitting multiple sclerosis of Bordi et al. 2013: the asymmetric potential, the stochastic equation of motion, the mean exit time estimators, the duration fits, the relapse rate statistics and a virtual cohort generator."
+authors:
+  - family-names: Umeton
+    given-names: Renato
+    # orcid: add the author's ORCID here, as
+    # "https://orcid.org/0000-0000-0000-0000". The key is left out rather than
+    # filled with a placeholder, because an invalid ORCID fails validation.
+version: "0.1.0"
+# doi: the archive DOI of this software, minted by Zenodo at the first release.
+# Add it here then, as "10.5281/zenodo.NNNNNNN".
+date-released: 2026-09-15
+license: MIT
+repository-code: "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi"
+url: "https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/"
+keywords:
+  - multiple sclerosis
+  - relapsing-remitting
+  - double well potential
+  - stochastic differential equation
+  - mean first passage time
+  - reproducible research
+preferred-citation:
+  type: article
+  title: "A mechanistic, stochastic model helps understand multiple sclerosis course and pathogenesis"
+  authors:
+    - family-names: Bordi
+      given-names: Isabella
+    - family-names: Umeton
+      given-names: Renato
+    - family-names: Ricigliano
+      given-names: "Vito A. G."
+    - family-names: Annibali
+      given-names: Viviana
+    - family-names: Mechelli
+      given-names: Rosella
+    - family-names: Ristori
+      given-names: Giovanni
+    - family-names: Grassi
+      given-names: Francesca
+    - family-names: Salvetti
+      given-names: Marco
+    - family-names: Sutera
+      given-names: Alfonso
+  journal: "International Journal of Genomics"
+  volume: 2013
+  start: 910321
+  year: 2013
+  doi: "10.1155/2013/910321"

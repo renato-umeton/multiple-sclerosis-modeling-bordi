@@ -1,0 +1,112 @@
+# Tag driven release: build the distribution, publish it to PyPI by trusted
+# publishing, and attach it to a GitHub release.
+#
+# ONE TIME SETUP, to be done by the maintainer before the first tag is pushed:
+#
+#   1. Create the project on PyPI with a trusted publisher for this repository.
+#      On PyPI, under Your projects then Publishing (or "Add a pending
+#      publisher" while the name is still unclaimed), register: owner
+#      renato-umeton, repository multiple-sclerosiss-modeling-bordi, workflow
+#      file release.yml, environment name pypi. All four have to match this
+#      file exactly or PyPI rejects the identity token. No API token is
+#      created and no secret is stored.
+#   2. Create the environment named pypi in the repository settings, under
+#      Settings then Environments, and add a protection rule that requires a
+#      review from the maintainer. An accidental tag push then waits for an
+#      approval instead of publishing on its own.
+#   3. Enable the Zenodo GitHub integration for this repository, at
+#      https://zenodo.org/account/settings/github/, before tagging v1.0.0.
+#      Zenodo archives the release and mints the DOI only for releases created
+#      after the switch is turned on. Once the DOI exists, add it to
+#      CITATION.cff and codemeta.json and enable the DOI badge in README.md.
+#
+# Publishing to TestPyPI first is worth doing once: register a second trusted
+# publisher there and add "repository-url: https://test.pypi.org/legacy/" to
+# the publish step below.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+env:
+  FORCE_COLOR: "1"
+
+# The default for every job. The two that need more say so themselves. The build
+# job is the one that runs project code, and it needs nothing but reading.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build the distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          python-version: "3.13"
+      - name: Build the wheel and the sdist
+        run: uv build
+      # The version is the static one in pyproject.toml and nothing derives it
+      # from the tag, so a tag pushed before the version bump would publish the
+      # previous release again under a new name. Stop before that happens.
+      - name: Refuse a tag that does not match the packaged version
+        run: |
+          version="$(ls dist/*.whl | head -1 | cut -d- -f2)"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "tag $GITHUB_REF_NAME does not match the built version $version" >&2
+            echo "bump version in pyproject.toml, or delete and move the tag" >&2
+            exit 1
+          fi
+          echo "tag $GITHUB_REF_NAME matches the built version $version"
+      - name: Check the metadata
+        run: uvx twine check --strict dist/*
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/msrelapse
+    permissions:
+      # The only permission trusted publishing needs. It is granted here, on
+      # the one job that publishes and runs no project code of its own.
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    name: Create the GitHub release
+    # After the publish, not beside it. A GitHub release is what Zenodo archives
+    # and mints the citation DOI from, so it must never stand for a version that
+    # failed to reach PyPI.
+    needs: [build, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - name: Create the release with the distribution attached
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" dist/*
+          --title "$GITHUB_REF_NAME"
+          --generate-notes
+          --verify-tag

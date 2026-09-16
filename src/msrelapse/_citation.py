@@ -1,8 +1,10 @@
 """The citation of the article and of this package, in plain text and in BibTeX.
 
-Every result object of the package carries the article it reproduces, so that a
-number copied out of a session can be traced back to its source. The strings are
-built here once and read from everywhere else.
+Every result object of the package carries the article it reproduces on a
+``citation`` property and repeats it in its repr, so that a number copied out of
+a session can be traced back to its source. A raw simulation output, such as the
+paths of :mod:`msrelapse.simulate`, is not a result object and carries none. The
+strings are built here once and read from everywhere else.
 
 The DOI of the article is never written down here: it is read from
 ``PAPER.paper_doi`` in :mod:`msrelapse._params`, which is the single place in

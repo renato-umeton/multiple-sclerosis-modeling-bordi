@@ -18,6 +18,10 @@ relapsing-remitting record, and they are what a simulated cohort has to
 reproduce before the model is taken seriously. Numbers reported by the paper
 are never written here; import ``PAPER`` from :mod:`msrelapse._params` instead.
 
+Both result types, :class:`ARRResult` and :class:`RateRatioResult`, carry the
+citation of the article on a ``citation`` property and repeat it once in their
+repr, so that a number copied out of a session names its source.
+
 References
 ----------
 I. Bordi, R. Umeton, V. A. G. Ricigliano, et al., "A mechanistic, stochastic
@@ -54,7 +58,10 @@ from msrelapse.renewal import relapse_counts, relapse_free
 __all__ = [
     "WEEKS_PER_YEAR",
     "ARRResult",
+    "CIMethod",
+    "ModelName",
     "RateRatioResult",
+    "Seed",
     "arr",
     "compare_arr",
     "patient_followup",
@@ -114,7 +121,24 @@ _Matrix = npt.NDArray[np.float64]
 """A design matrix, one row per patient, or the Hessian of a fitted model."""
 
 
-@dataclass(frozen=True)
+def _short_citation() -> str:
+    """Return the one line citation the result objects of this module carry.
+
+    Returns
+    -------
+    str
+        The short citation of :mod:`msrelapse._citation`, or the paper and its
+        DOI when that module cannot be imported.
+    """
+    try:
+        module = importlib.import_module("msrelapse._citation")
+    except ImportError:
+        return _FALLBACK_CITATION
+    short: str = module.short_citation()
+    return short
+
+
+@dataclass(frozen=True, repr=False)
 class ARRResult:
     """An annualised relapse rate with its interval estimate.
 
@@ -157,15 +181,26 @@ class ARRResult:
             The short citation of :mod:`msrelapse._citation`, or the paper and
             its DOI when that module is not installed.
         """
-        try:
-            module = importlib.import_module("msrelapse._citation")
-        except ImportError:
-            return _FALLBACK_CITATION
-        short: str = module.short_citation()
-        return short
+        return _short_citation()
+
+    def __repr__(self) -> str:
+        """Return the rate, its interval and the citation, on one line.
+
+        Returns
+        -------
+        str
+            The cohort it was measured on, the rate with its interval and the
+            short citation.
+        """
+        return (
+            f"{type(self).__name__}(n_patients={self.n_patients}, "
+            f"n_relapses={self.n_relapses}, patient_years={self.patient_years:.6g}, "
+            f"arr={self.arr:.6g} per year, {self.ci_level:.0%} {self.ci_method} CI "
+            f"{self.ci_low:.6g} to {self.ci_high:.6g}; {self.citation})"
+        )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class RateRatioResult:
     """The relapse rate of one arm relative to another.
 
@@ -201,6 +236,34 @@ class RateRatioResult:
     dispersion: float
     model: str
     converged: bool
+
+    @property
+    def citation(self) -> str:
+        """Return the citation of the paper this package reproduces.
+
+        Returns
+        -------
+        str
+            The short citation of :mod:`msrelapse._citation`, or the paper and
+            its DOI when that module is not installed.
+        """
+        return _short_citation()
+
+    def __repr__(self) -> str:
+        """Return the rate ratio, the fit behind it and the citation, on one line.
+
+        Returns
+        -------
+        str
+            The model, the rate ratio with its interval and p value, the fitted
+            rate of each arm, the dispersion and the short citation.
+        """
+        return (
+            f"{type(self).__name__}(model={self.model!r}, rate_ratio={self.rate_ratio:.6g}, "
+            f"CI {self.ci_low:.6g} to {self.ci_high:.6g}, p_value={self.p_value:.6g}, "
+            f"arr_a={self.arr_a:.6g}, arr_b={self.arr_b:.6g}, "
+            f"dispersion={self.dispersion:.6g}, converged={self.converged}; {self.citation})"
+        )
 
 
 @dataclass(frozen=True)

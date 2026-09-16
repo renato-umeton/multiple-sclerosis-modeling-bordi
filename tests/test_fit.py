@@ -31,6 +31,20 @@ COHORT_LAMBDA, COHORT_MU = rates_from_means(
 MEMORYLESS_METHODS = ("hazard", "cv", "ks", "ad")
 PERIODICITY_METHODS = ("fisher_g", "lombscargle")
 
+# The result classes this module returns beside FitResult. Each of them carries
+# the citation of the article and repeats it in its repr, once.
+_Result = fit.TestResult | fit.PeriodicityResult | fit.NBFit | fit.GammaFit
+RESULT_NAMES = ("TestResult", "PeriodicityResult", "NBFit", "GammaFit")
+
+# A field of each result that its repr has to name beside the citation, so that
+# a repr cut down to the citation alone fails here.
+RESULT_FIELDS = {
+    "TestResult": "method=",
+    "PeriodicityResult": "n_patients=",
+    "NBFit": "dispersion=",
+    "GammaFit": "k=",
+}
+
 # The three methods whose p value comes from replicates drawn under the rounded
 # exponential null, rather than off a regression.
 BOOTSTRAP_METHODS = ("cv", "ks", "ad")
@@ -335,6 +349,18 @@ def memoryless_frame() -> pd.DataFrame:
 @pytest.fixture(scope="module")
 def cohort_frame() -> pd.DataFrame:
     return cohort_durations()
+
+
+@pytest.fixture(scope="module")
+def result_objects(cohort_frame: pd.DataFrame) -> dict[str, _Result]:
+    # One of every result class of this module, each built by the estimator that
+    # returns it, so that what is read below is the object a caller gets.
+    return {
+        "TestResult": fit.test_memoryless(cohort_frame, RELAPSE, method="hazard"),
+        "PeriodicityResult": fit.test_periodicity(renewal_weekly(10, 1000.0, SEED)),
+        "NBFit": fit.fit_nb_counts(negative_binomial_counts(n=50)),
+        "GammaFit": fit.fit_gamma_rates(cohort_frame),
+    }
 
 
 @pytest.fixture(scope="module")
@@ -1193,6 +1219,27 @@ def test_short_citation_carries_the_doi() -> None:
 def test_fit_result_citation_is_the_short_citation() -> None:
     frame = one_run_per_patient(np.array([1, 2, 3, 4], dtype=np.int64), RELAPSE)
     assert fit.fit_durations(frame, RELAPSE).citation == _citation.short_citation()
+
+
+@pytest.mark.parametrize("name", RESULT_NAMES)
+def test_a_result_carries_the_citation(result_objects: dict[str, _Result], name: str) -> None:
+    assert DOI in result_objects[name].citation
+
+
+@pytest.mark.parametrize("name", RESULT_NAMES)
+def test_a_result_repr_cites_the_paper_once(
+    result_objects: dict[str, _Result],
+    name: str,
+) -> None:
+    assert repr(result_objects[name]).count(DOI) == 1
+
+
+@pytest.mark.parametrize("name", RESULT_NAMES)
+def test_a_result_repr_names_its_own_fields(
+    result_objects: dict[str, _Result],
+    name: str,
+) -> None:
+    assert RESULT_FIELDS[name] in repr(result_objects[name])
 
 
 def test_software_bibtex_marks_the_doi_as_a_placeholder() -> None:

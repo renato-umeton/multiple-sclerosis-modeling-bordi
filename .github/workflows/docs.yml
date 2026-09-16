@@ -1,0 +1,51 @@
+name: Docs
+
+# Publishes the documentation site to GitHub Pages on every push to main.
+#
+# One manual step is needed once, and only once, before the first deploy works:
+# the maintainer has to open Settings, Pages in the repository and set the
+# source to "Deploy from a branch", branch gh-pages, folder /(root). The branch
+# itself is created by the first run of this workflow, so enable Pages after
+# that run rather than before it.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# mkdocs gh-deploy commits the built site onto the gh-pages branch, which needs
+# write access to the repository contents and nothing else.
+permissions:
+  contents: write
+
+# Deploys queue rather than race: cancelling a run in the middle of gh-deploy
+# would leave gh-pages on the previous commit with nothing to say so.
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # gh-deploy writes to another branch, so the full history is needed.
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          python-version: "3.13"
+      - name: Name the committer of the deploy commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Install the project and the documentation group
+        run: uv sync --locked --group docs
+      - name: Build and publish the site
+        # The step above is the install, so this one skips the sync that `uv
+        # run` would otherwise perform and uses the environment as installed.
+        # --strict is the same bar the docs job of ci.yml holds the build to.
+        # Without it a push whose site carries a broken cross reference would
+        # be published at the same moment CI reported it as a failure, and the
+        # published branch would keep it until the next good push.
+        run: uv run --no-sync mkdocs gh-deploy --strict --force

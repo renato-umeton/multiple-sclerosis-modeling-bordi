@@ -1,0 +1,110 @@
+site_name: msrelapse
+site_description: Stochastic double-well model of relapsing-remitting multiple sclerosis (Bordi et al. 2013)
+site_url: https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/
+repo_url: https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi
+repo_name: renato-umeton/multiple-sclerosiss-modeling-bordi
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+
+# Files that live under docs/ but are not part of the published site: the two
+# planning documents, the journal draft, the pull request template GitHub reads
+# from the repository itself, and the copy of the article. That copy is a
+# download from the publisher, stamp and all, and no page links to it; a reader
+# reaches the article itself through the DOI on the citing page.
+# Gitignore syntax, one pattern per line.
+exclude_docs: |
+  plan1.md
+  IMPLEMENTATION_PLAN.md
+  paper/
+  pull_request_template.md
+  *.pdf
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - content.code.copy
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - toc:
+      permalink: true
+
+# MathJax renders the equations of the theory page. The configuration in
+# docs/javascripts/mathjax.js has to be loaded before the library itself. The
+# documentation of mkdocs-material also lists a polyfill from polyfill.io; that
+# domain changed hands and served malicious code in 2024, so it is left out
+# here and MathJax 3 is loaded on its own.
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: numpy
+            docstring_section_style: table
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_signature_annotations: true
+            separate_signature: true
+            signature_crossrefs: true
+            merge_init_into_class: true
+            members_order: source
+            filters: ["!^_"]
+
+nav:
+  - Home: index.md
+  - Theory: theory.md
+  - Reproducing the paper: reproducing.md
+  - Data: data.md
+  - Paper facts: paper_facts.md
+  - API:
+      - model: api/model.md
+      - simulate: api/simulate.md
+      - renewal: api/renewal.md
+      - cohort: api/cohort.md
+      - fit: api/fit.md
+      - stats: api/stats.md
+      - io: api/io.md
+      - plots: api/plots.md
+      - datasets: api/datasets.md
+      - cli: api/cli.md
+      - params: api/params.md
+  - Citing: citing.md
+  - Changelog: CHANGELOG.md
+  - Contributing: CONTRIBUTING.md

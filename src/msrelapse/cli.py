@@ -759,10 +759,10 @@ def _require_matplotlib() -> None:
         If matplotlib is not installed. matplotlib is the ``plot`` extra of this
         package and the figures are the last thing a reproduction writes, so an
         install without the extra would otherwise run the whole analysis before
-        failing. The check calls the same helper :mod:`msrelapse.plots` calls, so
-        that the message a caller reads is the one message that module carries.
+        failing. The check is :func:`msrelapse.plots.require_matplotlib`, so that
+        the message a caller reads is the one message that module carries.
     """
-    plots._pyplot()
+    plots.require_matplotlib()
 
 
 def _load_record(

@@ -724,3 +724,20 @@ def test_drawing_without_matplotlib_names_the_extra(monkeypatch: pytest.MonkeyPa
 
     with pytest.raises(ImportError, match=r"msrelapse\[plot\]"):
         plots.fig5_symmetric_potentials()
+
+
+def test_require_matplotlib_hands_back_pyplot() -> None:
+    assert plots.require_matplotlib() is plt
+
+
+def test_require_matplotlib_names_the_extra_when_matplotlib_is_absent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(sys.modules, "matplotlib", None)
+
+    with pytest.raises(ImportError, match=r"msrelapse\[plot\]"):
+        plots.require_matplotlib()
+
+
+def test_require_matplotlib_is_part_of_the_public_surface() -> None:
+    assert "require_matplotlib" in plots.__all__

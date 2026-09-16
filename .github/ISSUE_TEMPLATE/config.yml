@@ -1,0 +1,10 @@
+# Issue chooser configuration. Blank issues are off, so that every report
+# arrives through one of the two forms beside this file.
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: "https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/"
+    about: The user guide, the theory notes, the reproduction walkthrough and the API reference.
+  - name: Questions and discussion
+    url: "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi/discussions"
+    about: Ask how to use the package, or how a result relates to the article it reproduces.

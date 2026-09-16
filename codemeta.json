@@ -1,0 +1,49 @@
+{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "@type": "SoftwareSourceCode",
+  "name": "msrelapse",
+  "description": "A reference implementation of the Bordi et al. 2013 stochastic double well model of relapsing-remitting multiple sclerosis: the asymmetric potential, the stochastic equation of motion, the mean exit time estimators, the duration fits, the relapse rate statistics and a virtual cohort generator.",
+  "version": "0.1.0",
+  "license": "https://spdx.org/licenses/MIT",
+  "codeRepository": "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi",
+  "url": "https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/",
+  "issueTracker": "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi/issues",
+  "programmingLanguage": "Python",
+  "runtimePlatform": [
+    "Python 3.10",
+    "Python 3.11",
+    "Python 3.12",
+    "Python 3.13",
+    "Python 3.14"
+  ],
+  "author": [
+    {
+      "@type": "Person",
+      "givenName": "Renato",
+      "familyName": "Umeton"
+    }
+  ],
+  "keywords": [
+    "multiple sclerosis",
+    "relapsing-remitting",
+    "double well potential",
+    "stochastic differential equation",
+    "mean first passage time",
+    "annualised relapse rate",
+    "reproducible research"
+  ],
+  "dateCreated": "2026-09-15",
+  "developmentStatus": "active",
+  "softwareRequirements": [
+    "numpy",
+    "scipy",
+    "pandas"
+  ],
+  "referencePublication": {
+    "@type": "ScholarlyArticle",
+    "name": "A mechanistic, stochastic model helps understand multiple sclerosis course and pathogenesis",
+    "identifier": "https://doi.org/10.1155/2013/910321",
+    "url": "https://doi.org/10.1155/2013/910321"
+  },
+  "comment": "The software has no identifier yet, which is why the identifier field is absent rather than empty. The archive DOI is minted by Zenodo when the first release is tagged; add it then as \"identifier\", in the form https://doi.org/10.5281/zenodo.NNNNNNN, and add the same DOI to CITATION.cff. The author's ORCID belongs on the author entry above as \"@id\" once it is to hand."
+}
