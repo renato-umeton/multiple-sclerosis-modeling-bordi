@@ -46,7 +46,10 @@ HEALTH = PAPER.state_health.value
 TAU_HEALTH = PAPER.tau_health_cohort_weeks.value
 TAU_RELAPSE = PAPER.tau_no_health_cohort_weeks.value
 WEEK = PAPER.time_resolution_weeks.value
-BAND_FRACTION = 0.3
+# The band tests cut their paths at the shipped default on purpose, so that a
+# change to the constant moves them with it rather than leaving them passing
+# against a band the package no longer uses.
+BAND_FRACTION = DEFAULT_BAND_FRACTION
 GRID_DT = 0.02
 
 # Shape of the run the grid bias is measured on: 50 records of 12000 weeks at a
@@ -169,12 +172,15 @@ def test_simulate_paths_rejects_out_of_range_arguments(
         simulate_paths(well, sigma, t_end, dt=dt, n_paths=n_paths, record_every=record_every)
 
 
+@pytest.mark.filterwarnings("error::RuntimeWarning")
 def test_paths_that_leave_the_finite_range_are_rejected(
     saddle_well: tuple[DoubleWell, float],
 ) -> None:
     # MAX_DT was measured at the calibrated noise alone, so a step inside it
     # still blows the cubic drift up at a larger sigma. The count belongs in the
-    # message, because a run where only some paths blew up looks ordinary.
+    # message, because a run where only some paths blew up looks ordinary. The
+    # marker pins that the overflow on the way out is silenced where it is
+    # raised, so that a full run carries no warnings summary to hide a new one.
     well, _ = saddle_well
     with pytest.raises(ValueError, match="4 of 4 paths left the finite range"):
         simulate_paths(well, 2.0, 20.0, dt=0.3, n_paths=4, rng=0)
@@ -198,6 +204,21 @@ def test_record_every_thins_the_records(saddle_well: tuple[DoubleWell, float]) -
     well, sigma = saddle_well
     paths = simulate_paths(well, sigma, 2.0, dt=0.25, n_paths=3, rng=0, record_every=2)
     assert paths.x.shape == (3, 5)
+
+
+@pytest.mark.parametrize(("record_every", "last"), [(1, 1.0), (2, 1.0), (3, 0.9), (7, 0.7)])
+def test_the_last_record_sits_on_the_last_recording_boundary(
+    saddle_well: tuple[DoubleWell, float],
+    record_every: int,
+    last: float,
+) -> None:
+    # The steps of the unfinished last block are taken but not kept, so the run
+    # ends short of t_end whenever record_every does not divide the step count.
+    # The default of one always divides it, which is why the rest of the file
+    # never sees this.
+    well, sigma = saddle_well
+    paths = simulate_paths(well, sigma, 1.0, dt=0.1, rng=0, record_every=record_every)
+    assert paths.t[-1] == pytest.approx(last)
 
 
 def test_thinned_records_are_the_full_records_sampled(
@@ -345,6 +366,16 @@ def test_health_exit_times_have_the_spread_of_an_exponential(
 def test_health_exit_times_pass_an_exponential_goodness_of_fit(
     health_exit_times: npt.NDArray[np.float64],
 ) -> None:
+    # The scale is fitted from the same sample, so the null distribution of the
+    # statistic is the Lilliefors one and not the Kolmogorov one scipy reads the
+    # p value from. The number below is therefore conservative and 0.01 is a
+    # floor rather than a level: fit.test_memoryless is where the package reads
+    # a calibrated p value, out of a parametric bootstrap, and it wants the
+    # durations frame of whole weeks rather than these continuous exit times.
+    # The floor still refuses a real departure at this sample size. Over 200
+    # gamma samples of 2000 draws the assertion held 200 times out of 200 at
+    # shape 1.0, which is the null, 176 at shape 1.1, 21 at shape 1.2 and none
+    # at shape 1.3 or above.
     fitted = stats.expon(scale=float(health_exit_times.mean()))
     assert stats.kstest(health_exit_times, fitted.cdf).pvalue > 0.01
 
@@ -896,6 +927,7 @@ def test_a_record_of_no_whole_weeks_is_rejected(
         simulate_weekly(well, sigma, 0)
 
 
+@pytest.mark.filterwarnings("error::RuntimeWarning")
 def test_a_cohort_that_blows_up_is_refused_rather_than_recorded(
     saddle_well: tuple[DoubleWell, float],
 ) -> None:

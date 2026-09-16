@@ -54,6 +54,12 @@ all = ["msrelapse[plot,fast]"]
 msrelapse = "msrelapse.cli:main"
 
 [project.urls]
+# The doubled s of "sclerosiss" is how the GitHub repository itself is spelled,
+# so these three URLs, and the ones in CITATION.cff, codemeta.json, mkdocs.yml,
+# the README and the issue chooser, point at a name that resolves. It is also
+# the repository name registered with the PyPI trusted publisher, which matches
+# it exactly, so the spelling changes only by renaming the repository and
+# registering the publisher again.
 Homepage = "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi"
 Repository = "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi"
 Issues = "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi/issues"
@@ -116,9 +122,12 @@ exclude = [
 line-length = 100
 target-version = "py310"
 src = ["src", "tests"]
-# Ruff also lints and formats the Python blocks embedded in Markdown files. The
-# documents under docs/ quote the paper and contrast conventions, so they are
-# prose and are kept exactly as written; the gate covers package sources only.
+# docs/ holds prose and no Python module, and ruff reads neither the Python
+# blocks quoted inside a Markdown page nor anything else that is not a .py or
+# .pyi file, so this excludes nothing today. It is kept so that a script added
+# under docs/ later is left out on purpose rather than by an oversight, and so
+# that the scope of the lint gate, the package sources, is stated here rather
+# than inferred.
 extend-exclude = ["docs"]
 
 [tool.ruff.lint]
@@ -163,7 +172,17 @@ markers = [
     "slow: long running test, deselect with -m 'not slow'",
     "notebook: executes a notebook end to end",
 ]
-filterwarnings = ["error::DeprecationWarning:msrelapse"]
+# A warning a library raises about the way this package calls it is a failure,
+# whichever of the three categories the library announces it in: pandas and
+# numpy use FutureWarning for a coming break as often as DeprecationWarning.
+# The module field is the module the warning is raised from, so the package is
+# held to all three while a warning a dependency raises about its own internals
+# stays a warning and does not turn a matrix leg red on its own.
+filterwarnings = [
+    "error::DeprecationWarning:msrelapse",
+    "error::FutureWarning:msrelapse",
+    "error::PendingDeprecationWarning:msrelapse",
+]
 
 [tool.coverage.run]
 source = ["msrelapse"]

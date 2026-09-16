@@ -35,6 +35,14 @@ on:
   push:
     tags: ["v*"]
 
+# Two tags pushed close together, or a tag deleted and pushed again, would
+# otherwise build, publish and release in parallel against the same PyPI project
+# and the same Zenodo integration. A release cancelled halfway is worse than one
+# that waits, so runs queue rather than replace one another, as in docs.yml.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 env:
   FORCE_COLOR: "1"
 

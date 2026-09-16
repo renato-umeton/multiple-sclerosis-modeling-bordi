@@ -105,6 +105,17 @@ def test_the_provenance_note_says_where_the_real_series_may_be_asked_for() -> No
     assert "corresponding authors" in provenance()
 
 
+def test_the_provenance_note_gives_the_span_the_records_are_drawn_from() -> None:
+    # The records are drawn from the bin edges of Figure 3, whose top edge sits
+    # one week above the maximum the article prints, so the note has to give the
+    # span of the edges and say where the extra week comes from. The page and
+    # the closing table give the same two numbers.
+    edges = PAPER.fig3_bin_edges_weeks.value
+    text = provenance()
+    assert f"{edges[0]:.0f} to {edges[-1]:.0f} weeks" in text
+    assert f"{PAPER.rr_phase_max_weeks.value:.0f} week maximum" in text
+
+
 def test_the_weekly_and_the_durations_file_hold_the_same_records(
     weekly: pd.DataFrame, durations: pd.DataFrame
 ) -> None:

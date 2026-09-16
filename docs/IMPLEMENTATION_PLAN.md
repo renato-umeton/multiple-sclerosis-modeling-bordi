@@ -63,6 +63,26 @@ and records the decisions taken where the specification left a choice open.
   anything was released on, and it is updated with the release if that date moves. The
   "comment" key of codemeta.json is kept as the maintainer note it is, saying which
   identifier fields Zenodo fills in at that release and where the ORCID belongs.
+- Two signatures of plan section 4 were changed. renewal.alternating_renewal returns
+  one events frame keyed by patient_id rather than the list of frames section 4.3
+  declares, because that single frame is the events schema msrelapse.io validates and
+  converts. week_length_days lives on io.read_events, where the calendar dates are
+  parsed, rather than on io.events_to_weekly as section 4.7 declares, because by then
+  the frame holds weeks and there is no day left to divide.
+- The reproduce command performs the analysis itself rather than executing notebook 01
+  the way plan section 4.9 describes, so that the command carries no notebook
+  dependency. The command and the notebook build the closing table through the one
+  datasets.reproduction_table, so the two agree by construction rather than by copying.
+  The notebooks are executed with nbclient in tests/test_notebooks.py rather than with
+  papermill as plan section 5 describes, which is why papermill is not a dependency.
+- The first release is 0.1.0 and not the 1.0.0 the plan names throughout. The package
+  is a first public reference implementation with the interface still open to change,
+  which is what the Development Status :: 3 - Alpha classifier says, and semantic
+  versioning reserves 1.0.0 for an interface the project undertakes to keep.
+- Two items of the plan section 11 checklist are deferred to the maintainer, because
+  they need people rather than code: a read of docs/theory.md by one co-author before
+  the tag, and sending the repository link to the co-authors and the three outreach
+  targets after the archive DOI resolves.
 
 ## Stage 1: Pin down the paper and the ecosystem
 **Goal**: Authoritative facts document from the PDF (equations, sign conventions,
@@ -124,7 +144,7 @@ docs deploy workflow, JOSS draft under docs/paper.
 
 ## Stage 5: Reviews and release preparation
 **Goal**: Three independent review rounds over the whole implementation, each
-followed by fixes and re-verification, then release checklist for v1.0.0.
+followed by fixes and re-verification, then release checklist for 0.1.0.
 **Success Criteria**: Round three finds no critical or important issues; all
 quality gates green; definition of done checklist in plan section 11 addressed
 or explicitly deferred to the maintainer.

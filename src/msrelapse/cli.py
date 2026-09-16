@@ -424,12 +424,16 @@ def _add_test_periodicity(subcommands: argparse._SubParsersAction[argparse.Argum
     """Register the subcommand that looks for a period in a weekly record."""
     parser = subcommands.add_parser(
         "test-periodicity",
-        help="look for a period in a weekly record and pool the evidence",
+        help="look for a period in the relapse onsets of a weekly record and pool the evidence",
         description=(
-            "Build a periodogram of each patient's record, test its largest ordinate and "
-            "combine the per patient p values by Fisher's method. The null of both "
-            "methods is white noise, which a record of relapses lasting more than a week "
-            "is not, so read a small p value as evidence of that and not of a rhythm."
+            "Build a periodogram of each patient's relapse onsets, test its largest "
+            "ordinate and combine the per patient p values by Fisher's method. The series "
+            "read is one impulse in every week a relapse starts, not the +1 and -1 state "
+            "series: under the memoryless hypothesis of the paper the onsets have a flat "
+            "spectrum, so a small p value is evidence of a rhythm in them. The test has "
+            "little power at the handful of onsets one record holds, so read a large p "
+            "value as no rhythm being visible in these few onsets rather than as evidence "
+            "that there is none."
         ),
     )
     parser.add_argument("weekly", type=Path, metavar="WEEKLY_CSV", help="weekly CSV")

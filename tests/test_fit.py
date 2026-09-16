@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import ast
 import math
+import re
+import types
 from importlib import metadata
 from inspect import signature
+from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
@@ -30,6 +34,10 @@ COHORT_LAMBDA, COHORT_MU = rates_from_means(
 
 MEMORYLESS_METHODS = ("hazard", "cv", "ks", "ad")
 PERIODICITY_METHODS = ("fisher_g", "lombscargle")
+
+# A cross reference role whose target is a private name, such as a :func: role
+# on a helper whose name starts with an underscore.
+PRIVATE_ROLE = re.compile(r":[a-z]+:`~?_[A-Za-z0-9_.]*`")
 
 # The result classes this module returns beside FitResult. Each of them carries
 # the citation of the article and repeats it in its repr, once.
@@ -277,6 +285,48 @@ def record_with_onsets(onsets: list[int], n_weeks: int) -> npt.NDArray[np.int64]
     series = np.full(n_weeks, REMISSION, dtype=np.int64)
     series[onsets] = RELAPSE
     return series
+
+
+def published_docstrings(module: types.ModuleType) -> dict[str, str]:
+    """Return the docstrings of `module` the API pages render, by where each sits."""
+    tree = ast.parse(Path(str(module.__file__)).read_text(encoding="utf-8"))
+    found = {"module": ast.get_docstring(tree) or ""}
+    attribute: str | None = None
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef | ast.ClassDef):
+            attribute = None
+            if node.name.startswith("_"):
+                continue
+            found[node.name] = ast.get_docstring(node) or ""
+            if isinstance(node, ast.ClassDef):
+                for member in node.body:
+                    if isinstance(member, ast.FunctionDef) and not member.name.startswith("_"):
+                        found[f"{node.name}.{member.name}"] = ast.get_docstring(member) or ""
+            continue
+        if (
+            attribute is not None
+            and isinstance(node, ast.Expr)
+            and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, str)
+        ):
+            found[attribute] = node.value.value
+        attribute = _public_assignment(node)
+    return found
+
+
+def _public_assignment(node: ast.stmt) -> str | None:
+    """Return the public module level name this statement binds, if it binds one."""
+    if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+        name = node.target.id
+    elif (
+        isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+    ):
+        name = node.targets[0].id
+    else:
+        return None
+    return None if name.startswith("_") else name
 
 
 @pytest.fixture(scope="module")
@@ -1136,6 +1186,39 @@ def test_white_noise_series_of_even_length_are_not_over_rejected(weeks: int) -> 
         assert read is not None
         rejected += int(read[1] <= 0.05)
     assert rejected / trials <= 0.065
+
+
+def test_the_period_fisher_g_reports_can_be_a_harmonic_of_the_spacing() -> None:
+    # A train of onsets at a fixed spacing carries power at every harmonic of
+    # that spacing. Over 40 weeks, which is not a whole number of seven week
+    # spacings, the leakage between neighbouring frequencies lifts the third
+    # harmonic above the fundamental, so the period reported beside a small p
+    # value is 2.35 weeks and not the 7 the onsets were placed at. Over 42
+    # weeks, six whole spacings, the fundamental is the largest ordinate and the
+    # 7 weeks come back. The Notes of test_periodicity carry both numbers, so a
+    # reader is told to read a significant row against the whole periodogram.
+    onsets = [0, 7, 14, 21, 28, 35]
+    leaky = fit.test_periodicity(weekly_frame({"p0001": record_with_onsets(onsets, 40)}))
+    whole = fit.test_periodicity(weekly_frame({"p0001": record_with_onsets(onsets, 42)}))
+
+    assert float(leaky.per_patient["p_value"].iloc[0]) == pytest.approx(0.0147, abs=5e-5)
+    assert float(leaky.per_patient["period_weeks"].iloc[0]) == pytest.approx(40.0 / 17.0, rel=1e-12)
+    assert float(whole.per_patient["p_value"].iloc[0]) == pytest.approx(0.0090, abs=5e-5)
+    assert float(whole.per_patient["period_weeks"].iloc[0]) == pytest.approx(7.0, rel=1e-12)
+
+
+def test_no_published_docstring_of_this_module_links_to_a_private_name() -> None:
+    # The API pages are built with the mkdocstrings filter ["!^_"], so a private
+    # helper is not rendered anywhere. A :func: role pointing at one is a
+    # reference a reader of the site cannot follow. Private names are still
+    # named in these docstrings, as plain literals, which promises no link.
+    stranded = [
+        f"{where}: {role}"
+        for where, text in published_docstrings(fit).items()
+        for role in PRIVATE_ROLE.findall(text)
+    ]
+
+    assert stranded == []
 
 
 def test_a_record_that_relapses_every_other_week_is_skipped_by_fisher_g() -> None:

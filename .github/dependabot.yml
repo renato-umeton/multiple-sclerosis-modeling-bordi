@@ -1,0 +1,14 @@
+# Every action used by the workflows is pinned to an exact version, and
+# tests/test_metadata.py asserts three of those strings word for word, so a bump
+# is a deliberate, gated edit rather than something that drifts. This file is
+# what says when one is due: it opens a pull request when a pinned action
+# publishes a new release, and the usual gates decide whether it lands.
+#
+# Only the actions are watched. The Python dependencies are locked in uv.lock,
+# which uv writes and nothing else should.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"

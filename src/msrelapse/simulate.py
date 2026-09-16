@@ -184,8 +184,11 @@ def simulate_paths(  # noqa: PLR0917
     """Integrate equation (4) with the Euler Maruyama scheme.
 
     The path is advanced by ``ceil(t_end / dt)`` steps and recorded at time
-    zero and then every `record_every` steps, so the last record sits at or
-    just past `t_end`.
+    zero and then every `record_every` steps, so the last record sits at
+    ``(ceil(t_end / dt) // record_every) * record_every * dt``. That is at or
+    just past `t_end` when `record_every` divides the step count, which is
+    always so at the default of one, and short of it otherwise: the steps of
+    the unfinished last block are taken but not recorded.
 
     Parameters
     ----------
@@ -270,11 +273,18 @@ def simulate_paths(  # noqa: PLR0917
     generator = _generator(rng)
     noise_step = sigma * math.sqrt(dt)
     step = 0
-    while step < n_steps:
-        chunk = min(_chunk_steps(n_paths), n_steps - step)
-        noise = generator.standard_normal((chunk, n_paths))
-        advance(x, noise, recorded, well.alpha, well.beta, dt, noise_step, step, record_every)
-        step += chunk
+    # A step too coarse for the noise sends the cubic drift to infinity, and
+    # numpy reports that on the way as an overflow warning and then, once the
+    # path is no longer a number, an invalid value one. Both outcomes are
+    # expected here rather than exceptional, and _check_paths_finite below is
+    # what turns them into an error, so they are silenced at the one place they
+    # are raised rather than through a filter over the whole run.
+    with np.errstate(over="ignore", invalid="ignore"):
+        while step < n_steps:
+            chunk = min(_chunk_steps(n_paths), n_steps - step)
+            noise = generator.standard_normal((chunk, n_paths))
+            advance(x, noise, recorded, well.alpha, well.beta, dt, noise_step, step, record_every)
+            step += chunk
     _check_paths_finite(recorded, well, sigma, dt)
     times = np.arange(n_records, dtype=np.float64) * (record_every * dt)
     return Paths(t=times, x=recorded)

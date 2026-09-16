@@ -3,6 +3,10 @@
 The house style rules these files once carried of their own, no em dash and no
 line of hyphens, are kept by the sweep in ``tests/test_docs.py``, which reads
 every text file of the repository rather than the list below.
+
+The Python examples written into the prose are run here as well, the README one
+and the JOSS one and those of the site pages, because mkdocs renders a block
+without ever running it and ruff is pointed away from docs/.
 """
 
 from __future__ import annotations
@@ -14,7 +18,7 @@ import pytest
 import yaml  # type: ignore[import-untyped]
 
 import msrelapse
-from _helpers import ROOT, flatten, load_json, load_workflow, load_yaml, read
+from _helpers import ROOT, WORKFLOWS, flatten, load_json, load_workflow, load_yaml, read, text_files
 from msrelapse._params import PAPER
 
 REPOSITORY = "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi"
@@ -48,6 +52,34 @@ PAPER_AUTHORS = (
 
 # The keys the JOSS draft cites and the bibliography has to define.
 BIB_KEYS = ("bordi2013", "benzi1983", "kramers1940", "day1983", "zhu2014", "keene2007")
+
+# The site pages whose Python blocks are run, below, the way the README block
+# is. Without that, a renamed argument or a dropped export would leave a page
+# example broken with every gate green: mkdocs renders a block without running
+# it, and ruff is pointed away from docs/ so that the prose keeps its own
+# spelling.
+RUNNABLE_DOCS_PAGES = ("docs/index.md", "docs/citing.md", "docs/data.md")
+
+# The pages holding a Python block that is deliberately not run, with the
+# reason each one is left out, so that the omission is a decision on the page.
+UNRUN_DOCS_PAGES = {
+    "docs/paper/paper.md": "run by test_paper_example_usage_runs, which reads its numbers",
+    "docs/reproducing.md": "reads a registry export the reader supplies",
+    "docs/paper_facts.md": "two formulas quoted from the article, calling nothing",
+}
+
+# Every action the workflows are allowed to call, at the version the repository
+# standardised on. A new action, or a bumped version, is named here first.
+PINNED_ACTIONS = frozenset(
+    {
+        "actions/checkout@v7",
+        "astral-sh/setup-uv@v10.1.0",
+        "actions/upload-artifact@v7",
+        "actions/download-artifact@v8",
+        "codecov/codecov-action@v7",
+        "pypa/gh-action-pypi-publish@release/v1",
+    }
+)
 
 
 def code_blocks(markdown: str, language: str) -> list[str]:
@@ -423,6 +455,27 @@ def test_release_workflow_pins_the_actions(action: str) -> None:
     assert action in read(".github/workflows/release.yml")
 
 
+def workflow_actions() -> dict[str, list[str]]:
+    """Return the action every ``uses:`` line names, workflow file by workflow file."""
+    paths = sorted(path for path in WORKFLOWS.iterdir() if path.suffix in {".yml", ".yaml"})
+    pattern = re.compile(r"^\s*(?:-\s*)?uses:\s*(\S+)", re.MULTILINE)
+    return {path.name: pattern.findall(read(path)) for path in paths}
+
+
+def test_every_workflow_calls_only_the_pinned_actions() -> None:
+    """release.yml is pinned above; most of the ``uses:`` lines live in the other two."""
+    called = workflow_actions()
+    assert called
+    assert all(actions for actions in called.values()), called
+    unpinned = sorted(
+        f"{name} {action}"
+        for name, actions in called.items()
+        for action in actions
+        if action not in PINNED_ACTIONS
+    )
+    assert unpinned == []
+
+
 def test_release_workflow_opens_with_the_one_time_setup() -> None:
     lines = read(".github/workflows/release.yml").splitlines()
     header = " ".join(line for line in lines[: lines.index("name: Release")]).lower()
@@ -530,3 +583,24 @@ def test_paper_example_usage_runs(capsys: pytest.CaptureFixture[str]) -> None:
     assert len(blocks) == 1
     exec(compile(blocks[0], "paper.md example", "exec"), {"__name__": "__main__"})
     assert capsys.readouterr().out
+
+
+@pytest.mark.parametrize("page", RUNNABLE_DOCS_PAGES)
+def test_documentation_page_examples_run(page: str, capsys: pytest.CaptureFixture[str]) -> None:
+    """Every Python block of these pages runs in a fresh namespace and prints something."""
+    blocks = code_blocks(read(page), "python")
+    assert blocks, page
+    for index, block in enumerate(blocks):
+        exec(compile(block, f"{page} block {index}", "exec"), {"__name__": "__main__"})
+        assert capsys.readouterr().out, f"{page} block {index} printed nothing"
+
+
+def test_every_documentation_page_with_an_example_is_run_or_named() -> None:
+    """A page that grows a Python block cannot slip past the test above unnoticed."""
+    docs = ROOT / "docs"
+    pages = {
+        path.relative_to(ROOT).as_posix()
+        for path, text in text_files().items()
+        if path.suffix == ".md" and path.is_relative_to(docs) and code_blocks(text, "python")
+    }
+    assert pages == set(RUNNABLE_DOCS_PAGES) | set(UNRUN_DOCS_PAGES)

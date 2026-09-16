@@ -574,8 +574,9 @@ def fig_survival_vs_exponential(
     The step is the Kaplan Meier estimate over the runs of `state`, in which a
     censored final remission contributes its time at risk but no event, and the
     smooth curve is the survival of the exponential
-    :func:`msrelapse.fit.fit_durations` fits to the same runs. The figure is not
-    in the paper, which reports no fit at all.
+    :func:`msrelapse.fit.fit_durations` fits to the same runs, read on the whole
+    weeks the durations are recorded in. The figure is not in the paper, which
+    reports no fit at all.
 
     Parameters
     ----------
@@ -614,6 +615,19 @@ def fig_survival_vs_exponential(
     the fitted law however the law is read, since a duration rounded up to whole
     weeks is geometric with that success probability.
 
+    The main curve reads the same fit the same way. It is ``(1 - rate) ** t``,
+    whose weekly hazard is the rate the dashed guide sits at and whose survival
+    at every whole week is that of the geometric of the fitted mean. As a
+    continuous exponential it is the one of scale ``-1 / log(1 - rate)``, about
+    half a week shorter than the fitted mean and the scale
+    :func:`msrelapse.fit.test_memoryless` draws its null at. Drawing
+    ``exp(-t / mean)`` instead rounds the law a second time: it lifts the curve
+    above the step where runs last only a few weeks, so the panel would show a
+    record falling away from its own fit, and the main panel and the inset would
+    describe two different laws. A state whose runs all lasted a single week
+    puts the rate at one, and the curve is then the drop to zero after time zero
+    that such a law gives.
+
     The panel runs to the longest time any run of the state was at risk for,
     which is past the last event whenever a censored run outlived every one of
     them. Ending it at the last event instead would hide that run altogether,
@@ -650,9 +664,9 @@ def fig_survival_vs_exponential(
     grid = np.linspace(0.0, right, _SURVIVAL_POINTS, dtype=np.float64)
     panel.plot(
         grid,
-        np.exp(-grid / fitted.mean),
+        _fitted_survival(grid, fitted.rate),
         color="tab:red",
-        label=f"exponential, mean {fitted.mean:.3g} weeks",
+        label=f"exponential on whole weeks, mean {fitted.mean:.3g} weeks",
     )
     panel.set_xlim(0.0, right)
     panel.set_ylim(0.0, 1.05)
@@ -1548,6 +1562,34 @@ def _kaplan_meier(values: _Vector, censored: npt.NDArray[np.bool_]) -> tuple[_Ve
         times.append(float(time))
         survival.append(current)
     return np.array(times, dtype=np.float64), np.array(survival, dtype=np.float64)
+
+
+def _fitted_survival(grid: _Vector, rate: float) -> _Vector:
+    """Return the survival of a fitted duration law over a grid of weeks.
+
+    Parameters
+    ----------
+    grid : numpy.ndarray
+        The times to read the survival at, in weeks.
+    rate : float
+        The weekly rate :func:`msrelapse.fit.fit_durations` returned, which is
+        the number of complete runs over the weeks they were all at risk for.
+
+    Returns
+    -------
+    numpy.ndarray
+        ``(1 - rate) ** t`` at each time, the fit read on the whole weeks the
+        durations are recorded in.
+
+    Notes
+    -----
+    A rate of one, which only a state whose runs all lasted a single week gives,
+    is kept out of the logarithm: the law then ends every run in its first week,
+    so the survival is one at time zero and zero after it.
+    """
+    if rate >= 1.0:
+        return np.where(grid > 0.0, 0.0, 1.0).astype(np.float64)
+    return np.exp(grid * math.log1p(-rate))
 
 
 def _draw_hazard_inset(ax: Axes, complete: _Vector, fitted_hazard: float) -> None:

@@ -165,6 +165,15 @@ def four_relapses() -> pd.DataFrame:
     return durations_frame([(f"p000{index}", 0, NO_HEALTH, index, False) for index in range(1, 5)])
 
 
+def one_week_relapses() -> pd.DataFrame:
+    """Return five complete relapses, one per patient, of a single week each.
+
+    Every week at risk ends in an event, so the fitted rate is one and the law
+    the survival panel draws is the degenerate one.
+    """
+    return durations_frame([(f"p000{index}", 0, NO_HEALTH, 1, False) for index in range(1, 6)])
+
+
 def censored_remissions() -> pd.DataFrame:
     """Return five remissions of 1, 2, 2, 3 and 5 weeks, the 2nd and 5th censored.
 
@@ -543,10 +552,44 @@ def test_survival_overlays_the_fitted_exponential(runs: pd.DataFrame) -> None:
     assert survival[0] == pytest.approx(1.0)
     assert np.all(np.diff(survival) <= 0.0)
     # The curve is read at the points it was drawn at rather than interpolated
-    # between them, so the comparison is with the fitted mean itself and carries
-    # no tolerance beyond the arithmetic.
+    # between them, so the comparison is with the fitted rate itself and carries
+    # no tolerance beyond the arithmetic. The durations are whole weeks, so the
+    # fit is read on whole weeks: the survival is (1 - rate) ** t rather than
+    # exp(-t / mean), which is the same law rounded a second time.
     fitted = fit.fit_durations(runs, NO_HEALTH)
-    assert ydata(fitted_line) == pytest.approx(np.exp(-xdata(fitted_line) / fitted.mean))
+    assert ydata(fitted_line) == pytest.approx((1.0 - fitted.rate) ** xdata(fitted_line))
+
+
+def test_survival_curve_stays_closer_to_the_step_than_the_twice_rounded_law(
+    runs: pd.DataFrame,
+) -> None:
+    ax = plots.fig_survival_vs_exponential(runs, NO_HEALTH, inset=False)
+
+    step = step_line(ax)
+    curve = next(line for line in ax.lines if line.get_drawstyle() == "default")
+    # The step carries information at the whole weeks the events fall on, and
+    # holds its level in between, so the two readings are compared there. A post
+    # step is read at the last jump at or before the week.
+    weeks = np.arange(1.0, 9.0)
+    times = xdata(step)
+    observed = ydata(step)[np.searchsorted(times, weeks, side="right") - 1]
+    drawn = np.interp(weeks, xdata(curve), ydata(curve))
+    fitted = fit.fit_durations(runs, NO_HEALTH)
+    rounded_twice = np.exp(-weeks / fitted.mean)
+    assert np.max(np.abs(drawn - observed)) < np.max(np.abs(rounded_twice - observed))
+
+
+def test_survival_curve_ends_every_run_in_its_first_week_when_they_all_did() -> None:
+    frame = one_week_relapses()
+    assert fit.fit_durations(frame, NO_HEALTH).rate == pytest.approx(1.0)
+
+    ax = plots.fig_survival_vs_exponential(frame, NO_HEALTH, inset=False)
+
+    curve = next(line for line in ax.lines if line.get_drawstyle() == "default")
+    # A rate of one is the degenerate law, and the survival is one at time zero
+    # and zero after it rather than the log(0) the general form would take.
+    assert ydata(curve)[0] == pytest.approx(1.0)
+    assert ydata(curve)[1:] == pytest.approx(0.0)
 
 
 def test_survival_step_counts_a_censored_remission_as_at_risk_but_not_as_an_event() -> None:

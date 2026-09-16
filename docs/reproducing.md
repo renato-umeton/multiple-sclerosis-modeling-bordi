@@ -14,25 +14,29 @@ article reports. The options change the record, not the measurement.
 | Option | Effect |
 |---|---|
 | `--data FILE` | Measure a weekly CSV of your own instead of the shipped twin |
-| `--engine {renewal,sde}` | Generate a fresh cohort with the named engine, not to be given with `--data` |
-| `--seed N` | Generate a fresh cohort under that seed, and draw from it every bootstrap of the run but the two of the closing table |
+| `--engine {renewal,sde}` | Generate a fresh cohort with the named engine, not to be given with `--data`; an `sde` cohort does not meet the closing table, and the note below says why |
+| `--seed N` | Generate a fresh cohort under that seed, and draw every bootstrap of the run from it, the two of the closing table included |
 | `--out DIR` | Where to write, created if absent, `reproduction` by default |
 | `--no-figures` | Skip the figures, which need the `plot` extra |
 
-The run repeats itself exactly. Every random draw it makes, the cohort
-included, comes from the one seed it reports, so two runs with the same
-arguments write the same files. The two goodness of fit rows of the closing
-table are the one exception: `msrelapse.datasets.reproduction_table` draws
-their parametric bootstrap from a seed fixed inside that module, so that one
-record always gives one table however the run around it was seeded. With
-`--seed` given, those two p values therefore sit a little apart from the ones
-the `memorylessness` block of `numbers.json` reports on the same durations.
-They are two draws of five hundred replicates each from one bootstrap of an
-identical statistic, and not two measurements. The exit status is 0 when every
-judged row of the closing table falls inside its tolerance and 1 when one of
-them does not, which makes the command usable as a check in a pipeline. A
-single failing row is usually the sampling noise of seventy records rather than
-a fault: see the tolerances below.
+The run repeats itself exactly. Every random draw it makes, the cohort and the
+parametric bootstrap behind the two goodness of fit rows included, comes from
+the one seed it reports, so two runs with the same arguments write the same
+files. Each of those two tests is measured once and printed twice, as a row of
+the closing table and again in the `memorylessness` block of `numbers.json`,
+where the statistic and the sample size stand beside the p value. The two
+readings are therefore one number and one draw rather than two of each, and
+`--seed` moves both together. Only a direct call differs:
+`msrelapse.datasets.reproduction_table(weekly)` with no `rng` draws that
+bootstrap from a seed fixed inside that module, so that one record still gives
+one table.
+
+The exit status is 0 when every judged row of the closing table falls inside
+its tolerance and 1 when one of them does not, which makes the command usable
+as a check in a pipeline. A single failing row is usually the sampling noise of
+seventy records rather than a fault: see the tolerances below. The `sde` engine
+is the one case where a failure is expected rather than incidental, and the
+note at the end of that section says what it comes from.
 
 !!! warning "The shipped record is synthetic"
 
@@ -152,10 +156,29 @@ almost no power on records that hold about four onsets each.
 
 **A false row is usually the cohort size.** Regenerating the twin under sixty
 consecutive seeds and building the table on each, every judged row comes out
-true on 27 of them. The five percent rule on the mean relapse duration fails
-most often, on 24 of the 60, because five percent is narrower than one standard
-error of that mean on 261 relapses. The measurement sits beside each tolerance
-in the source of `msrelapse.datasets`.
+true on 27 of them. That sweep regenerates the twin, so it measures the
+`renewal` engine, which is the engine of the shipped twin and of every default
+run. The five percent rule on the mean relapse duration fails most often, on 24
+of the 60, because five percent is narrower than one standard error of that
+mean on 261 relapses. The measurement sits beside each tolerance in the source
+of `msrelapse.datasets`.
+
+**The `sde` engine does not meet this table.** The tolerances above are set
+against the `renewal` engine, and a cohort generated with `--engine sde`
+records relapses about a tenth to a fifth longer than a renewal cohort built
+from the same specification. The gap is not noise: a remission shorter than a
+week cannot be written in a weekly record, so the two relapses on either side
+of it merge into one episode. The mean relapse duration row therefore falls
+outside its five percent rule on every seed measured here, on six of six, and
+the barrier ratio and relapse goodness of fit rows usually fall outside theirs
+with it. The default seed gives a mean relapse duration of 5.21 weeks against
+the printed 4.3, a barrier ratio of 2.85 against 3.157, and a relapse
+Kolmogorov-Smirnov p value of 0.002, so `msrelapse reproduce --engine sde`
+exits 1 as a matter of course. The measured gap between the two engines, by
+integration step and band fraction, is in the Notes of
+[`msrelapse.cohort.CohortSpec`](api/cohort.md). Read an `sde` run as a
+statement about that generator, and a reproduction of the article as a
+`renewal` run.
 
 ## The four notebooks
 

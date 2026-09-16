@@ -148,10 +148,11 @@ from msrelapse.stats import (
     sample_size_arr,
 )
 
-# The namespace of this package is the public API, so nothing lands in it that
-# the export list does not name: the sentinel is imported under a private name,
-# and ``TextIO`` is needed only by the type checker, since ``from __future__
-# import annotations`` leaves the annotation below a string.
+# The namespace of this package is the public API. Beside the export list it holds only
+# the submodules the re-exports above bind and the ``annotations`` feature flag, which is
+# why the sentinel is imported under a private name and ``TextIO`` is imported for the type
+# checker alone, since ``from __future__ import annotations`` leaves the annotation below a
+# string.
 if _TYPE_CHECKING:  # pragma: no cover - the name is needed only by the type checker
     from typing import TextIO
 

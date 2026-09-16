@@ -33,6 +33,8 @@
     "reproducible research"
   ],
   "dateCreated": "2026-09-15",
+  "datePublished": "2026-09-15",
+  "dateModified": "2026-09-16",
   "developmentStatus": "active",
   "softwareRequirements": [
     "numpy",
@@ -45,5 +47,5 @@
     "identifier": "https://doi.org/10.1155/2013/910321",
     "url": "https://doi.org/10.1155/2013/910321"
   },
-  "comment": "The software has no identifier yet, which is why the identifier field is absent rather than empty. The archive DOI is minted by Zenodo when the first release is tagged; add it then as \"identifier\", in the form https://doi.org/10.5281/zenodo.NNNNNNN, and add the same DOI to CITATION.cff. The author's ORCID belongs on the author entry above as \"@id\" once it is to hand."
+  "comment": "The software has no identifier yet, which is why the identifier field is absent rather than empty. The archive DOI is minted by Zenodo when the first release is tagged; add it then as \"identifier\", in the form https://doi.org/10.5281/zenodo.NNNNNNN, and add the same DOI to CITATION.cff. The author's ORCID belongs on the author entry above as \"@id\" once it is to hand. \"datePublished\" is the release date CITATION.cff carries as \"date-released\", so the two are set together, and \"dateModified\" is the date of the last change to the software."
 }

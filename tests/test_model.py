@@ -125,6 +125,20 @@ def test_barriers_ratio_property_divides_the_two_heights(asymmetric: DoubleWell)
     assert asymmetric.barriers().ratio == pytest.approx(expected, rel=1e-12)
 
 
+def test_barriers_ratio_refuses_a_collapsed_relapse_barrier() -> None:
+    with pytest.raises(ValueError, match="not defined"):
+        _ = Barriers(health=0.75, relapse=0.0).ratio
+
+
+def test_barrier_ratio_just_inside_the_fold_names_the_collapsed_well() -> None:
+    # The cubic still has three distinct roots this close to the fold, but the
+    # relapse barrier is already zero, so the ratio has no value to report.
+    well = DoubleWell(1.0, fold_beta(1.0) - 1e-12)
+    assert well.barriers().relapse == 0.0
+    with pytest.raises(ValueError, match="fold_beta"):
+        well.barrier_ratio()
+
+
 def test_asymmetric_curvatures(asymmetric: DoubleWell) -> None:
     curvatures = asymmetric.curvatures()
     expected = (2.231252490, -0.980548578, 1.749296089)
@@ -294,6 +308,26 @@ def test_paper_exit_time_refuses_a_time_beyond_the_range_of_float64(
         paper_exit_time(calibrated, 0.03, "health")
 
 
+@pytest.mark.parametrize("function", [kramers_time, paper_exit_time, mfpt])
+def test_a_sigma_whose_square_underflows_is_refused_by_name(
+    asymmetric: DoubleWell, function: Callable[..., float]
+) -> None:
+    # Below about 1.5e-162 the square of sigma is exactly zero in float64, so
+    # the exponent of the exit time would be a bare division by zero rather
+    # than the named error the rest of that range gets.
+    with pytest.raises(ValueError, match="float64"):
+        function(asymmetric, 1e-200, "health")
+
+
+def test_a_barrier_that_has_vanished_costs_nothing_at_any_noise() -> None:
+    # Just inside the fold the relapse barrier is exactly zero, so the exit
+    # time of equation (5) is exp(0) whatever the noise, even where the square
+    # of that noise underflows and a positive barrier would be refused.
+    well = DoubleWell(1.0, fold_beta(1.0) - 1e-12)
+    assert well.barriers().relapse == 0.0
+    assert paper_exit_time(well, 1e-200, "relapse") == 1.0
+
+
 @pytest.mark.parametrize(
     ("side", "expected"),
     [("health", 151.8618466), ("relapse", 24.70239682)],
@@ -448,9 +482,16 @@ def test_beta_from_barrier_ratio_rejects_a_ratio_below_one() -> None:
         beta_from_barrier_ratio(0.5)
 
 
-@pytest.mark.parametrize("ratio", [1e14, float("inf"), float("nan")])
-def test_beta_from_barrier_ratio_rejects_a_ratio_the_potential_cannot_reach(ratio: float) -> None:
+def test_beta_from_barrier_ratio_rejects_a_ratio_the_potential_cannot_reach() -> None:
     with pytest.raises(ValueError, match="largest ratio reachable"):
+        beta_from_barrier_ratio(1e14)
+
+
+@pytest.mark.parametrize("ratio", [float("inf"), float("nan")])
+def test_beta_from_barrier_ratio_rejects_a_ratio_that_is_not_finite(ratio: float) -> None:
+    # A missing ratio is not a ratio the fold cannot reach, and saying so would
+    # send the reader looking at alpha instead of at the ratio they passed.
+    with pytest.raises(ValueError, match="must be a finite number"):
         beta_from_barrier_ratio(ratio)
 
 
@@ -572,6 +613,24 @@ def test_calibrate_rejects_non_positive_targets(tau_health: float, tau_relapse: 
         calibrate(tau_health, tau_relapse)
 
 
+@pytest.mark.parametrize(
+    ("tau_health", "tau_relapse"),
+    [
+        (float("nan"), 4.3),
+        (float("inf"), 4.3),
+        (100.0, float("nan")),
+        (100.0, float("inf")),
+    ],
+)
+def test_calibrate_rejects_a_target_that_is_not_finite(
+    tau_health: float, tau_relapse: float
+) -> None:
+    # A missing mean reaches this the moment a caller averages an empty group,
+    # and the least squares driver has no idea which argument to name.
+    with pytest.raises(ValueError, match="must be positive finite numbers"):
+        calibrate(tau_health, tau_relapse)
+
+
 def test_calibrate_rejects_an_alpha_that_leaves_no_room_for_beta() -> None:
     with pytest.raises(ValueError, match="no room"):
         calibrate(100.0, 4.3, 1e12)
@@ -616,7 +675,7 @@ def test_a_calibration_that_probes_an_unreachable_noise_turns_back() -> None:
     assert mfpt(well, sigma, "relapse", *relapse) == pytest.approx(1e250, rel=1e-6)
 
 
-@settings(deadline=None, max_examples=200)
+@settings(deadline=None, max_examples=200, derandomize=True)
 @given(
     alpha=st.floats(min_value=0.3, max_value=3.0),
     magnitude=st.floats(min_value=0.01, max_value=0.9),

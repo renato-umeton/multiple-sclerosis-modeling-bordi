@@ -195,9 +195,11 @@ print(msrelapse.provenance())
         _markdown("""
 ## Figures 2 to 4
 
-Each figure is drawn twice: on the left the bars digitised from the article, on the right the
-same figure measured on this record. Figure 2 shows the three patients of this cohort with
-the most relapses, which is the counterpart of the three sample patients of the paper.
+Figures 3 and 4 are drawn twice: on the left the bars digitised from the article, on the
+right the same figure measured on this record. Figure 2 is drawn once, from this record,
+because the article prints no numbers for its three series. It shows the three patients of
+this cohort with the most relapses, which is the counterpart of the three sample patients of
+the paper.
 """),
         _code("""
 relapse_runs = durations[durations["state"] == RELAPSE]
@@ -287,10 +289,16 @@ them to three decimals for that reason.
 """),
         _code("""
 memoryless_rows = []
+# The Kolmogorov-Smirnov reading of each state is kept, because the closing
+# table reports it too and is handed these tests rather than drawing a second
+# bootstrap of its own.
+ks_tests = {}
 for state in (RELAPSE, HEALTH):
     for method in ("hazard", "cv", "ks", "ad"):
         test = msrelapse.test_memoryless(durations, state, method=method, n_boot=N_BOOT, rng=SEED)
         memoryless_rows.append((STATE_NAMES[state], method, test.n, test.statistic, test.p_value))
+        if method == "ks":
+            ks_tests[state] = test
 
 memoryless = pd.DataFrame(
     memoryless_rows,
@@ -360,6 +368,13 @@ print(f"beta {beta:.4f}, sigma {sigma:.4f}, so epsilon = sigma^2 is {sigma**2:.4
 print(f"the article prints epsilon = {msrelapse.PAPER.epsilon_noise_variance.value}")
 print(well.barriers())
 """),
+        _markdown("""
+The two figures below are the article's Figures 6 and 7 redrawn at the asymmetry and the
+noise the calibration just returned, not at the printed beta = 0.08 and epsilon = 0.13; every
+panel is labelled with the values it was drawn at. The version at the printed parameters is
+what `msrelapse reproduce` writes, and it is what the defaults of both plotting functions
+give.
+"""),
         _code("""
 plots.fig6_asymmetric_potential(beta=beta)
 plt.show()
@@ -389,13 +404,18 @@ plt.show()
 ## The closing table
 
 Every aggregate the article reports, measured on this record the way the article measured its
-own, with the rule each comparison is judged under. The two goodness of fit rows read a
-bootstrap, which is drawn from the seed of this notebook like every other random step here.
-The cell after the table raises if any judged row falls outside its tolerance, so that a
-failed reproduction fails the notebook.
+own, with the rule each comparison is judged under. The two goodness of fit rows and the
+periodicity row are the tests measured above, handed to the table rather than drawn again, so
+that each of those p values appears once in this notebook. The cell after the table raises if
+any judged row falls outside its tolerance, so that a failed reproduction fails the notebook.
 """),
         _code("""
-table = msrelapse.reproduction_table(weekly, rng=SEED)
+table = msrelapse.reproduction_table(
+    weekly,
+    rng=SEED,
+    ks_tests=ks_tests,
+    periodicity=periodicity,
+)
 table
 """),
         _code("""

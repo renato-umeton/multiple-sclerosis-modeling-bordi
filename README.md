@@ -83,7 +83,7 @@ opt in:
 ```bash
 uv sync --extra plot --extra fast   # matplotlib and numba
 uv sync --group docs                # mkdocs and the API reference build
-uv sync --group notebooks           # papermill and the notebook kernel
+uv sync --group notebooks           # nbformat, nbclient and the kernel
 uv sync --all-extras --all-groups   # everything at once
 ```
 

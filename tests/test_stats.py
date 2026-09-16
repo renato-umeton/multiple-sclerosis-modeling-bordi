@@ -22,6 +22,8 @@ from msrelapse.stats import (
     _moment_dispersion,
     _nb_negative_loglik,
     _nb_negative_score,
+    _numerical_hessian,
+    _standard_errors,
     arr,
     compare_arr,
     patient_followup,
@@ -674,6 +676,43 @@ def test_a_search_that_walks_the_dispersion_to_nothing_reports_the_poisson_fit()
     assert _moment_dispersion(design, counts, exposure, displaced) > _DISPERSION_FLOOR
 
     assert _fit_negative_binomial(design, counts, exposure, displaced) is displaced
+
+
+@pytest.mark.parametrize("variance", [-1.0, math.inf, math.nan])
+def test_a_variance_that_is_not_positive_and_finite_has_no_standard_error(
+    variance: float,
+) -> None:
+    # The square root of a negative or a non finite variance is a nan, which
+    # would reach the rate ratio, its interval and its p value without a word.
+    # Each is refused where it is read instead.
+    with pytest.raises(np.linalg.LinAlgError, match="not all finite and positive"):
+        _standard_errors(np.diag(np.array([1.0, variance])), "poisson")
+
+
+def test_a_fit_that_stops_short_of_a_minimum_reports_no_interval(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The refinement of the negative binomial fit is a Newton loop on the
+    # score, and a loop that stopped anywhere but a strict minimum leaves a
+    # curvature that inverts to a negative variance. The square root of that is
+    # a nan, which would reach the rate ratio interval and the p value with the
+    # fit still reporting itself converged; the fit refuses the curvature
+    # instead. The refinement is displaced by hand because no cohort has been
+    # found that displaces it: the point below sits where the likelihood curves
+    # the other way along one direction, which is what the eigenvalue records.
+    design = np.column_stack([np.ones(8), np.array([0.0] * 4 + [1.0] * 4)])
+    counts = np.array([0.0, 3.0, 1.0, 7.0, 2.0, 0.0, 5.0, 1.0])
+    exposure = np.full(8, 2.0)
+    poisson = _fit_poisson(design, counts, exposure)
+    settled = _fit_negative_binomial(design, counts, exposure, poisson)
+    assert np.all(np.isfinite(settled.standard_errors))
+
+    displaced = np.array([-2.0, 3.0, 0.0])
+    curvature = _numerical_hessian(displaced, design, counts, exposure)
+    assert float(np.min(np.linalg.eigvalsh(curvature))) < 0.0
+    monkeypatch.setattr("msrelapse.stats._polish", lambda *_: (displaced, True))
+    with pytest.raises(np.linalg.LinAlgError, match="the nb fit has no standard errors"):
+        _fit_negative_binomial(design, counts, exposure, poisson)
 
 
 def test_the_rate_ratio_is_the_ratio_of_the_two_fitted_rates(

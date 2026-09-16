@@ -150,6 +150,24 @@ def _validate_choice(name: str, value: str, allowed: tuple[str, ...]) -> None:
         raise ValueError(f"{name} must be one of {allowed}, got {value!r}")
 
 
+def _is_positive_finite(value: float) -> bool:
+    """Return whether a number is finite and above zero.
+
+    Parameters
+    ----------
+    value : float
+        Number to test.
+
+    Returns
+    -------
+    bool
+        True when the number is finite and strictly positive, which is what
+        every quantity of this module that stands for a time, a noise or a
+        control parameter has to be.
+    """
+    return math.isfinite(value) and value > 0.0
+
+
 def _validate_sigma(sigma: float) -> None:
     """Raise if the noise amplitude is not a positive finite number.
 
@@ -163,7 +181,7 @@ def _validate_sigma(sigma: float) -> None:
     ValueError
         If `sigma` is zero, negative, infinite or not a number.
     """
-    if not math.isfinite(sigma) or sigma <= 0.0:
+    if not _is_positive_finite(sigma):
         raise ValueError(f"sigma must be a positive finite number, got {sigma!r}")
 
 
@@ -181,7 +199,7 @@ def _validate_alpha(alpha: float) -> None:
         If `alpha` is zero, negative, infinite or not a number, where the
         double well does not exist.
     """
-    if not math.isfinite(alpha) or alpha <= 0.0:
+    if not _is_positive_finite(alpha):
         raise ValueError(f"alpha must be a positive finite number, got {alpha!r}")
 
 
@@ -274,7 +292,23 @@ class Barriers:
 
     @property
     def ratio(self) -> float:
-        """float: The paper's delta V1 / delta V2, above one when beta is positive."""
+        """float: The paper's delta V1 / delta V2, above one when beta is positive.
+
+        Raises
+        ------
+        ValueError
+            If the relapse barrier is not positive, which is where the shallow
+            well has flattened onto the saddle. That is the case within about
+            1e-12 of ``fold_beta(alpha)``, where the cubic still has three
+            distinct roots but the two right ones no longer differ in the
+            potential.
+        """
+        if self.relapse <= 0.0:
+            raise ValueError(
+                f"the barrier ratio is not defined when the relapse barrier is "
+                f"{self.relapse!r}: the shallow well has flattened onto the saddle, which "
+                f"is what happens as beta approaches fold_beta(alpha)"
+            )
         return self.health / self.relapse
 
 
@@ -497,7 +531,10 @@ class DoubleWell:
         Raises
         ------
         ValueError
-            If the potential does not have two wells.
+            If the potential does not have two wells, or if beta is so close to
+            ``fold_beta(alpha)`` that the relapse barrier has already collapsed
+            onto the saddle and the ratio has no value; see
+            :attr:`Barriers.ratio`.
         """
         return self.barriers().ratio
 
@@ -568,6 +605,36 @@ def _barriers_at(well: DoubleWell, points: CriticalPoints) -> Barriers:
     return Barriers(health=top - well.V(points.health), relapse=top - well.V(points.relapse))
 
 
+def _height_exponent(height: float, sigma: float) -> float:
+    """Return ``2 * height / sigma**2``, infinite where the square underflows.
+
+    A sigma below about 1.5e-162 has a square that underflows to exactly zero
+    in float64, where the plain division would raise ZeroDivisionError. Such a
+    noise puts every positive height far beyond the range of float64, which is
+    what the callers' own ``_MAX_EXPONENT`` guard reports, so the exponent is
+    handed back as infinite and that guard turns it into the ValueError the
+    public functions document.
+
+    Parameters
+    ----------
+    height : float
+        A barrier to climb, or the largest departure of the potential over a
+        passage, in units of the potential. Never negative.
+    sigma : float
+        Noise amplitude. Must already have passed :func:`_validate_sigma`.
+
+    Returns
+    -------
+    float
+        The exponent, infinite where the square of `sigma` underflows and the
+        height is positive.
+    """
+    variance = sigma * sigma
+    if variance == 0.0:
+        return math.inf if height > 0.0 else 0.0
+    return 2.0 * height / variance
+
+
 def _escape_exponent(well: DoubleWell, sigma: float, side: Side) -> float:
     """Return ``2 barrier / sigma**2``, refusing a value float64 cannot carry.
 
@@ -597,7 +664,7 @@ def _escape_exponent(well: DoubleWell, sigma: float, side: Side) -> float:
     """
     barriers = well.barriers()
     barrier = barriers.health if side == "health" else barriers.relapse
-    exponent = 2.0 * barrier / sigma**2
+    exponent = _height_exponent(barrier, sigma)
     if exponent > _MAX_EXPONENT:
         raise ValueError(
             f"2 * barrier / sigma^2 = {exponent:.6g} at sigma={sigma!r} puts the {side} "
@@ -1013,7 +1080,7 @@ def mfpt(
             f"x_absorb, got x0={start!r} and x_absorb={absorb!r}"
         )
     barriers = _barriers_at(well, points)
-    exponent = 2.0 * max(barriers.health, barriers.relapse) / sigma**2
+    exponent = _height_exponent(max(barriers.health, barriers.relapse), sigma)
     if exponent > _MAX_EXPONENT:
         raise ValueError(
             f"2 * barrier / sigma^2 = {exponent:.6g} overflows float64 inside the first "
@@ -1026,7 +1093,7 @@ def mfpt(
     reflecting = _reflecting_boundary(well, sigma, origin, well.V(bottom), direction)
     lower, upper = (reflecting, absorb) if side == "health" else (absorb, reflecting)
     departure = _largest_departure(well, points, lower, upper)
-    departure_exponent = 2.0 * departure / sigma**2
+    departure_exponent = _height_exponent(departure, sigma)
     if departure_exponent > _MAX_EXPONENT:
         raise ValueError(
             f"the potential departs from its value at the saddle by up to {departure:.6g} "
@@ -1113,7 +1180,8 @@ def beta_from_barrier_ratio(ratio: float, alpha: float = PAPER.alpha_reference.v
     Parameters
     ----------
     ratio : float
-        The wanted ``delta V1 / delta V2``. Must be at least one.
+        The wanted ``delta V1 / delta V2``. Must be a finite number of at least
+        one.
     alpha : float, optional
         Control parameter, held fixed. Defaults to the reference value of the
         paper, which is the only value the paper ever fits with.
@@ -1126,16 +1194,18 @@ def beta_from_barrier_ratio(ratio: float, alpha: float = PAPER.alpha_reference.v
     Raises
     ------
     ValueError
-        If `ratio` is below one, which would need a negative beta and would
-        make the no health well the deeper of the two, if `ratio` is larger
-        than any potential at this alpha can deliver, or if `alpha` is not a
-        positive finite number.
+        If `ratio` is not a finite number, if `ratio` is below one, which would
+        need a negative beta and would make the no health well the deeper of
+        the two, if `ratio` is larger than any potential at this alpha can
+        deliver, or if `alpha` is not a positive finite number.
 
     Examples
     --------
     >>> round(beta_from_barrier_ratio(3.157221141), 6)
     0.13749
     """
+    if not math.isfinite(ratio):
+        raise ValueError(f"the barrier ratio must be a finite number, got {ratio!r}")
     if ratio < 1.0:
         raise ValueError(
             f"the barrier ratio must be at least 1, because a positive beta makes the "
@@ -1208,10 +1278,11 @@ def calibrate(
     Parameters
     ----------
     tau_health : float
-        Target mean duration of a health episode, in weeks. Must be positive.
+        Target mean duration of a health episode, in weeks. Must be a positive
+        finite number.
     tau_relapse : float
-        Target mean duration of a no health episode, in weeks. Must be
-        positive.
+        Target mean duration of a no health episode, in weeks. Must be a
+        positive finite number.
     alpha : float, optional
         Control parameter, held fixed. Defaults to the reference value of the
         paper.
@@ -1236,9 +1307,10 @@ def calibrate(
     Raises
     ------
     ValueError
-        If either target is not positive, if `method` or `passage` is not one
-        of the accepted spellings, or if no parameter pair inside the search
-        box reproduces both targets to 1e-6 in relative terms.
+        If either target is not a positive finite number, if `method` or
+        `passage` is not one of the accepted spellings, or if no parameter pair
+        inside the search box reproduces both targets to 1e-6 in relative
+        terms.
 
     Notes
     -----
@@ -1262,10 +1334,10 @@ def calibrate(
     """
     _validate_choice("method", method, _METHODS)
     _validate_choice("passage", passage, _PASSAGES)
-    if tau_health <= 0.0 or tau_relapse <= 0.0:
+    if not _is_positive_finite(tau_health) or not _is_positive_finite(tau_relapse):
         raise ValueError(
-            f"both target times must be positive, got tau_health={tau_health!r} and "
-            f"tau_relapse={tau_relapse!r}"
+            f"both target times must be positive finite numbers, got "
+            f"tau_health={tau_health!r} and tau_relapse={tau_relapse!r}"
         )
     lower_bounds, upper_bounds = _calibration_bounds(alpha)
 

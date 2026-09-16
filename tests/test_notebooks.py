@@ -19,7 +19,12 @@ except ImportError:  # pragma: no cover - the notebooks dependency group is opti
         allow_module_level=True,
     )
 
-pytestmark = [pytest.mark.notebook, pytest.mark.slow]
+# Every test here belongs to the notebook job of CI, which selects on this
+# marker. Only the two tests that start a kernel are slow; the rest are file
+# checks of a few milliseconds and are left selectable, so that the sdist step,
+# which runs the packaged suite with -m "not slow", still checks the notebooks
+# it ships.
+pytestmark = [pytest.mark.notebook]
 
 # nbformat.read and nbformat.writes carry no annotations, so they are named once
 # here with the types they are called with, rather than spreading Any through
@@ -117,11 +122,13 @@ def builder() -> ModuleType:
     return module
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("name", NOTEBOOK_NAMES)
 def test_notebook_runs_to_the_end(name: str, run_notebook: Callable[[str], NotebookNode]) -> None:
     assert error_report(run_notebook(name)) == ""
 
 
+@pytest.mark.slow
 def test_reproduction_table_rows_are_within_tolerance(
     run_notebook: Callable[[str], NotebookNode],
 ) -> None:

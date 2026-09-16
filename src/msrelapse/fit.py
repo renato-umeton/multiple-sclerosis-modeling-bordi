@@ -561,7 +561,8 @@ def fit_durations(  # noqa: PLR0917
     that family gives: ``z / sqrt(n_complete)`` for the exponential and
     ``z sqrt((1 - rate) / n_complete)`` for the geometric, the shorter of the two
     by ``sqrt(1 - rate)``. At the 4.3 week relapse of the paper the exponential
-    interval is 14 percent the wider. See :func:`_fisher_interval`.
+    interval is 14 percent the wider. It is built by the private helper
+    ``_fisher_interval`` of this module, which the API pages do not carry.
 
     A weekly record is discrete, so the geometric family is the exact law of what
     was recorded and is the one to read a weekly duration with. The exponential
@@ -728,7 +729,9 @@ def test_memoryless(
     difference is the whole test at the four or five weeks the paper reports for
     a relapse: replicates drawn at the mean are rounded twice over, land further
     from an exponential than the data do, and reject a memoryless cohort of the
-    paper's size almost every time. See :func:`_exponential_scale`.
+    paper's size almost every time. The scale is solved for by the private
+    helper ``_exponential_scale`` of this module, which the API pages do not
+    carry.
 
     ``cv`` is read the same way. The coefficient of variation of a rounded
     exponential of mean m is near ``m / (m + 0.5)`` rather than the 1 of an
@@ -747,8 +750,9 @@ def test_memoryless(
     ``h (1 - h) / at_risk`` and grows sharply as the at risk set empties, so the
     printed p value is too small: on memoryless durations of the length and
     number the paper reports for a relapse it falls below 0.05 for nearly one
-    cohort in ten rather than one in twenty, and worse as the cohort grows. See
-    :func:`_hazard_test`.
+    cohort in ten rather than one in twenty, and worse as the cohort grows. The
+    replicates are drawn by the private helper ``_hazard_test`` of this module,
+    which the API pages do not carry.
 
     ``ks`` has little to say about short durations. Its distance from a
     continuous exponential is dominated there by the width of the weekly step,
@@ -964,14 +968,13 @@ def test_periodicity(
     onsets, and a patient followed for a few hundred weeks at the rate of the
     paper has only a handful. Under ``fisher_g`` the reason is a ceiling: the
     periodogram of a train of n impulses cannot exceed n squared however the
-    impulses are arranged, while the exponential null behind
-    :func:`_fisher_g_p_value` has no such ceiling, so the largest ordinate of a
-    sparse train falls short of what white noise would produce. Over records of
-    400 weeks with the onsets placed at random, the share of p values at or
-    below 0.05 is 0.000 at six onsets, 0.007 at ten, 0.026 at twenty and 0.039
-    at forty, against the 0.05 a test of the nominal size would give. Read a
-    large p value as no rhythm being visible in these few onsets, and not as
-    evidence that there is none.
+    impulses are arranged, while the exponential null behind the exact p value
+    has no such ceiling, so the largest ordinate of a sparse train falls short
+    of what white noise would produce. Over records of 400 weeks with the onsets
+    placed at random, the share of p values at or below 0.05 is 0.000 at six
+    onsets, 0.007 at ten, 0.026 at twenty and 0.039 at forty, against the 0.05 a
+    test of the nominal size would give. Read a large p value as no rhythm being
+    visible in these few onsets, and not as evidence that there is none.
 
     The permutation p value of ``lombscargle`` shuffles the gaps between
     consecutive onsets, which keeps the distribution of the gaps and destroys
@@ -988,6 +991,19 @@ def test_periodicity(
     onsets the largest power lands near that limit often enough that a reported
     ``period_weeks`` beside a large p value says nothing; read a period beside
     the p value of its own row.
+
+    What ``period_weeks`` is, and what it is not. Both methods report the period
+    of the largest ordinate they found and nothing more. A train of onsets at a
+    fixed spacing carries power at every harmonic of that spacing, so when the
+    record is not a whole number of spacings long the leakage between
+    neighbouring frequencies can leave a harmonic the largest ordinate of the
+    three. Onsets every seven weeks over a record of 40 weeks are reported by
+    ``fisher_g`` as a period of 2.35 weeks beside a p value of 0.015, while the
+    same onsets over 42 weeks, a whole six spacings, are reported as the 7 weeks
+    they were placed at. A small p value is therefore evidence of a rhythm and
+    not of the particular period printed with it: read a significant row against
+    the whole periodogram of that patient, and treat a short period as possibly
+    a harmonic of a longer one.
     """
     _validate_choice("method", method, _PERIODICITY_METHODS)
     if n_perm < 1:
@@ -1769,6 +1785,13 @@ def _fisher_g(series: _Vector) -> tuple[float, float, float] | None:
     the other ordinates of such a series is its own rounding error, below 1e-32
     of the power of the series, which is why the emptiness is read against
     :data:`_SPECTRUM_FLOOR` rather than against an exact zero.
+
+    The period returned is the period of the largest ordinate alone. A sparse
+    train of onsets carries power at every harmonic of its spacing, and when the
+    record is not a whole number of spacings long the leakage between
+    neighbouring frequencies can lift a harmonic above the fundamental, so the
+    number is the strongest frequency of this record rather than the rhythm
+    behind it. :func:`test_periodicity` says so in its own Notes.
     """
     centred = series - series.mean()
     spectrum = np.abs(np.fft.rfft(centred)) ** 2

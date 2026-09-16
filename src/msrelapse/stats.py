@@ -501,11 +501,12 @@ def compare_arr(  # noqa: PLR0917
         range, or if an arm has no relapse at all, where no finite log linear
         fit exists.
     numpy.linalg.LinAlgError
-        If the Hessian of the fitted model is singular at the optimum, so that
-        no standard error exists. Both coefficients are identified as soon as
-        each arm has a relapse, so this needs a degenerate cohort; it is raised
-        rather than caught, because a fit whose curvature cannot be inverted
-        has no interval to report.
+        If the Hessian of the fitted model is singular at the optimum, or
+        inverts to a variance that is not finite and positive, so that no
+        standard error exists. Both coefficients are identified as soon as each
+        arm has a relapse, so this needs a degenerate cohort; it is raised
+        rather than caught, because a fit whose curvature carries no interval
+        is not reported as one with a nan interval.
 
     Notes
     -----
@@ -878,6 +879,49 @@ def _bootstrap_interval(
     return float(low), float(high)
 
 
+def _standard_errors(covariance: _Matrix, model: ModelName) -> _Vector:
+    """Return the standard errors an inverted curvature carries.
+
+    Inverting the Hessian is not on its own proof that there is a Wald interval
+    to read from it. A curvature that is singular to working precision inverts
+    to variances that are not finite, and a point that is not a strict minimum
+    of the negative log likelihood to variances that are negative; the square
+    root of either is a nan that would travel silently into the rate ratio, its
+    interval and its p value while the fit still reported itself converged.
+    Both are refused here instead, in the manner of
+    :func:`msrelapse.fit._log_dispersion_standard_error`, which reports the same
+    condition to a caller that has a Poisson fit to fall back on. No cohort has
+    been found that reaches this, here or in several hundred randomised fits, so
+    it stands as insurance against the search and not as a description of any
+    data.
+
+    Parameters
+    ----------
+    covariance : numpy.ndarray
+        The inverse of the Hessian of the negative log likelihood at the fit.
+    model : {'nb', 'poisson'}
+        The model that was fitted, which the message names.
+
+    Returns
+    -------
+    numpy.ndarray
+        The square root of each variance on the diagonal, one per parameter.
+
+    Raises
+    ------
+    numpy.linalg.LinAlgError
+        If a variance on the diagonal is not finite and positive.
+    """
+    variances = np.asarray(np.diag(covariance), dtype=np.float64)
+    if not bool(np.all(np.isfinite(variances) & (variances > 0.0))):
+        raise np.linalg.LinAlgError(
+            f"the {model} fit has no standard errors: the curvature at its optimum inverts to "
+            f"the variances {variances.tolist()}, which are not all finite and positive, so "
+            "the fit does not sit at a minimum a Wald interval can be read from"
+        )
+    return np.sqrt(variances)
+
+
 def _fit_poisson(design: _Matrix, counts: _Vector, exposure: _Vector) -> _Fit:
     """Fit a log linear Poisson model by Newton iteration on the exact score."""
     coefficients = np.zeros(design.shape[1])
@@ -892,7 +936,7 @@ def _fit_poisson(design: _Matrix, counts: _Vector, exposure: _Vector) -> _Fit:
             break
     fitted = exposure * np.exp(design @ coefficients)
     covariance = np.linalg.inv(design.T @ (design * fitted[:, None]))
-    errors = np.sqrt(np.diag(covariance))
+    errors = _standard_errors(covariance, "poisson")
     return _Fit(coefficients, errors, 0.0, converged)
 
 
@@ -1034,7 +1078,7 @@ def _fit_negative_binomial(
     if dispersion <= _DISPERSION_FLOOR:
         return poisson
     covariance = np.linalg.inv(_numerical_hessian(parameters, design, counts, exposure))
-    errors = np.sqrt(np.diag(covariance))
+    errors = _standard_errors(covariance, "nb")
     return _Fit(parameters[:-1], errors[:-1], dispersion, converged)
 
 

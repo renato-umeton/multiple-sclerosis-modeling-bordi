@@ -17,6 +17,7 @@ import pytest
 import msrelapse.cli
 from msrelapse._params import PAPER
 from msrelapse.cli import main
+from msrelapse.cohort import CohortSpec, generate
 from msrelapse.datasets import SYNTHETIC_SEED
 from msrelapse.fit import PeriodicityResult, fit_durations
 from msrelapse.fit import TestResult as PooledResult  # renamed: pytest collects Test* classes
@@ -481,6 +482,30 @@ def test_reproduce_refuses_an_engine_together_with_a_record(tmp_path: Path) -> N
     assert raised.value.code == 2
 
 
+def test_reproduce_with_the_sde_engine_misses_the_mean_relapse_duration(tmp_path: Path) -> None:
+    # The sde engine is an ordinary option of reproduce and this pins what it
+    # does with it: the run completes, the file says which engine produced the
+    # record, and the exit code is 1 because the mean relapse duration comes out
+    # above the 4.3 weeks of the article. The reason is the merging described in
+    # the module docstring of msrelapse.cohort: two relapses parted by less than a
+    # week fall in the same week and become one longer weekly episode, which no
+    # calibration can undo, so the naive relapse mean of an sde cohort sits about
+    # a tenth to a fifth above the renewal one and outside the five percent rule
+    # of that row whatever the seed. tests/test_cohort.py measures the size of
+    # that gap; what is pinned here is what the command line does with it. The
+    # run costs about five seconds, which buys the only test of this route.
+    code, payload = reproduce(tmp_path, "--engine", "sde", "--seed", "1")
+    assert code == 1
+    assert payload["engine"] == "sde"
+    assert payload["all_within_tolerance"] is False
+    row = row_named(payload, "mean relapse duration")
+    assert row["within_tolerance"] is False
+    reproduced, printed = row["reproduced"], row["paper"]
+    assert isinstance(reproduced, float)
+    assert isinstance(printed, float)
+    assert reproduced > printed
+
+
 def test_reproduce_reads_its_derived_numbers_off_the_closing_table(
     reproduction: Reproduction,
 ) -> None:
@@ -573,6 +598,42 @@ def test_one_failed_row_puts_the_whole_closing_table_outside_tolerance() -> None
 
 def test_a_row_without_a_tolerance_carries_no_verdict() -> None:
     assert msrelapse.cli._all_within_tolerance(closing_table(True, None, True)) is True
+
+
+def test_a_quantity_the_closing_table_lost_fails_where_it_is_read() -> None:
+    # numbers.json reads three of its numbers off the closing table by name, so a
+    # row renamed or dropped in msrelapse.datasets has to fail here, with the
+    # count that was found, rather than go missing from the file.
+    with pytest.raises(ValueError, match="holds 0 rows"):
+        msrelapse.cli._reproduced(closing_table(True), "mean relapse duration")
+
+
+def test_a_quantity_the_closing_table_reports_twice_fails_where_it_is_read() -> None:
+    # Two rows of one name are as bad as none: the file would carry whichever of
+    # them came first, so the reader refuses both.
+    with pytest.raises(ValueError, match="holds 2 rows"):
+        msrelapse.cli._reproduced(closing_table(True, True), "quantity")
+
+
+def test_reproduce_refuses_a_spec_that_builds_no_weekly_record(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A reproduction measures a weekly record, so a spec that stopped building one
+    # has to fail where the cohort is generated, with a message naming the spec,
+    # rather than measure nothing. The spec of the paper keeps whole weeks on, so
+    # one that does not is handed to the helper here.
+    def spec(engine: str = "renewal") -> CohortSpec:
+        return CohortSpec(
+            n=2,
+            tau_health=COHORT_REMISSION_WEEKS,
+            tau_relapse=COHORT_RELAPSE_WEEKS,
+            followup_weeks=COHORT_WEEKS,
+            weekly=False,
+        )
+
+    monkeypatch.setattr(msrelapse.cli, "bordi2013_spec", spec)
+    with pytest.raises(ValueError, match="holds no weekly record"):
+        msrelapse.cli._load_record(None, None, generate_cohort=True, seed=COHORT_SEED)
 
 
 def test_a_number_that_is_not_there_prints_as_a_missing_value() -> None:
@@ -687,6 +748,27 @@ def test_simulate_takes_the_sde_engine(tmp_path: Path) -> None:
     )
     assert code == 0
     assert read_weekly(path)["patient_id"].nunique() == 3
+
+
+def test_simulate_refuses_a_schema_its_cohort_holds_no_frame_for(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Under the renewal engine a spec that keeps whole weeks off builds the events
+    # table alone, and asking such a cohort for the weekly schema has to name the
+    # schema that is missing rather than write nothing. The subcommand builds no
+    # such spec today, so the cohort is generated here and handed to it.
+    spec = CohortSpec(
+        n=2,
+        tau_health=COHORT_REMISSION_WEEKS,
+        tau_relapse=COHORT_RELAPSE_WEEKS,
+        followup_weeks=COHORT_WEEKS,
+        weekly=False,
+    )
+    cohort = generate(spec, rng=COHORT_SEED)
+    assert cohort.weekly is None
+    monkeypatch.setattr(msrelapse.cli, "generate", lambda *_, **__: cohort)
+    with pytest.raises(ValueError, match="produced no weekly frame"):
+        simulate(tmp_path, "weekly")
 
 
 def test_simulate_creates_the_directory_of_the_file_it_writes(tmp_path: Path) -> None:
@@ -895,6 +977,22 @@ def test_test_periodicity_reports_how_many_patients_were_tested(
     assert in_record == [float(COHORT_PATIENTS)]
     assert len(tested) == 1
     assert 0.0 < tested[0] <= in_record[0]
+
+
+def test_test_periodicity_help_names_the_series_it_reads(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # The test reads the relapse onsets, whose spectrum is flat under the
+    # memoryless hypothesis of the paper, which is why that series was chosen. The
+    # help has to say so and to read a small p value as a rhythm, rather than
+    # repeat the earlier state series reading, under which the same p value was
+    # evidence of nothing but a relapse lasting more than a week.
+    with pytest.raises(SystemExit) as raised:
+        main(["test-periodicity", "--help"])
+    assert raised.value.code == 0
+    printed = " ".join(capsys.readouterr().out.split())
+    assert "one impulse in every week a relapse starts" in printed
+    assert "a small p value is evidence of a rhythm" in printed
 
 
 def test_cite_prints_the_doi(capsys: pytest.CaptureFixture[str]) -> None:

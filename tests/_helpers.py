@@ -175,9 +175,9 @@ def gitignored_paths(root: Path = ROOT) -> frozenset[str]:
     correctly. The plain entries are enough for the sweep: they are what keeps
     the local planning notes and any generated output directory out of the
     walk, while a tracked file of the same kind, such as the implementation
-    plan, stays in. A packaged checkout, an unpacked sdist for one, ships no
-    .gitignore, and then nothing is left out: what the file names is not in the
-    archive either.
+    plan, stays in. An unpacked sdist does carry .gitignore, which hatchling
+    adds whatever the include list of pyproject.toml holds, but it carries none
+    of the files those entries name, so there the same entries match nothing.
 
     Parameters
     ----------

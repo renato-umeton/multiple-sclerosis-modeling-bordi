@@ -24,14 +24,17 @@ command needs so that `uv run` installs them if they are missing.
 
 Everything below has to pass before a change is merged. The test suite runs in
 continuous integration on Linux, macOS and Windows across Python 3.10 to 3.14;
-the lint, documentation and notebook jobs run once, on Linux and Python 3.13.
+the lint, documentation, notebook and distribution jobs run once, on Linux and
+Python 3.13.
 
 ```bash
 uv run ruff check .                            # lint
 uv run ruff format --check --diff .            # formatting
-uv run mypy                                    # strict, over src and tests
+uv run mypy                                    # strict: src, tests, notebooks
 uv run --all-extras pytest --cov=msrelapse     # the suite, with coverage
 uv run --group docs mkdocs build --strict      # the documentation site
+uvx cffconvert --validate -i CITATION.cff      # the citation metadata
+uv build && uvx twine check --strict dist/*    # the distribution
 ```
 
 - **ruff** lints and formats, with the numpy docstring convention. Every public
@@ -39,12 +42,19 @@ uv run --group docs mkdocs build --strict      # the documentation site
   Parameters, Returns, Raises where it raises, and Examples where an example
   helps. The gate above only checks the formatting; `uv run ruff format .`
   applies it.
-- **mypy** runs in strict mode over `src` and `tests`. Type hints everywhere,
-  including in tests.
+- **mypy** runs in strict mode over `src`, `tests` and `notebooks`. Type hints
+  everywhere, including in tests and in `notebooks/build_notebooks.py`, which
+  is held to the same bar because the test suite imports it.
 - **pytest** is configured with `--strict-markers` and `--strict-config`.
   Coverage is off unless it is asked for, so pass `--cov=msrelapse` as the gate
   above does; a measured run fails below 90 percent. Two markers exist: `slow`
   for long running tests and `notebook` for the notebook execution tests.
+- **cffconvert and twine** cover the metadata. The lint job validates
+  `CITATION.cff`, which Zenodo and the reference managers read, and the build
+  job builds the wheel and the sdist, checks them with `twine check --strict`,
+  runs the packaged suite from the unpacked sdist and installs the wheel on its
+  own to run the command line. A change to the version, the classifiers, the
+  sdist include list or the README rendering fails there.
 - **pre-commit** runs ruff, mypy and `nbstripout`, the last of which keeps
   notebook outputs out of the repository. Never bypass the hooks.
 - **House style** is a test rather than a convention left to review. The sweep
@@ -131,7 +141,13 @@ Releases are the maintainer's, and the steps are:
 
 1. Update `docs/CHANGELOG.md`, moving the Unreleased entries under the new
    version and its date.
-2. Bump the version in `pyproject.toml` and in `CITATION.cff`.
+2. Bump the version in `pyproject.toml`, `src/msrelapse/__init__.py`,
+   `CITATION.cff` and `codemeta.json`. The suite compares those four against
+   each other, so leaving one behind is a failing test rather than a quiet
+   mismatch. Two further copies sit in prose: the `version` field of the
+   software entry on `docs/citing.md`, which the suite checks against the
+   BibTeX the package prints, and the citation sentence near the end of
+   `README.md`, which nothing checks.
 3. Check that the whole gate list above is green on a clean checkout.
 4. Tag the commit as `vX.Y.Z` and push the tag. The release workflow builds the
    distributions, checks them with `twine check --strict`, and publishes to
@@ -140,8 +156,10 @@ Releases are the maintainer's, and the steps are:
    so an accidental tag cannot publish unattended.
 5. Zenodo archives the GitHub release and mints the archive DOI. Put that DOI
    into `CITATION.cff`, `codemeta.json` and the software BibTeX entry in
-   `src/msrelapse/_citation.py`, replacing the placeholder, and release the
-   patch that carries them.
+   `src/msrelapse/_citation.py`, replacing the placeholder. The same
+   placeholder sits in the BibTeX block of `docs/citing.md`, which the suite
+   checks against the entry the package prints, and in the badge at the top of
+   `README.md`, which nothing checks. Then release the patch that carries them.
 6. Before submitting `docs/paper/paper.md` to the Journal of Open Source
    Software, fill in the affiliation and the ORCID the header leaves as
    placeholders, and turn the fenced `yaml` block at the top of that file into
