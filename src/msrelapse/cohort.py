@@ -49,8 +49,10 @@ same quantity on the uncorrected printed pair, where it is about half as
 frequent. This merging is the whole of the residual gap between the two engines
 now that :func:`msrelapse.simulate.simulate_weekly` carries the Brownian bridge
 correction, and it is why the default band fraction of :class:`CohortSpec` is
-0.4. The measured table is in the Notes of that class, together with the reason
-the band is not widened further.
+:data:`SDE_ENGINE_BAND_FRACTION` rather than the
+:data:`msrelapse.model.DEFAULT_BAND_FRACTION` of the layers below. The measured
+table is in the Notes of that class, together with the reason the band is not
+widened further.
 
 A caution on naive means
 ------------------------
@@ -101,6 +103,7 @@ from msrelapse.renewal import alternating_renewal, rates_from_means
 from msrelapse.simulate import MAX_DT, simulate_weekly
 
 __all__ = [
+    "SDE_ENGINE_BAND_FRACTION",
     "Cohort",
     "CohortSpec",
     "Engine",
@@ -134,6 +137,22 @@ Engine = Literal["renewal", "sde"]
 
 StartState = Literal["relapse", "health"]
 """Which state every patient is in at the start of follow up."""
+
+SDE_ENGINE_BAND_FRACTION: Final = 0.4
+"""Where the ``sde`` engine puts the two hysteresis thresholds, by default.
+
+Notes
+-----
+It is wider than the :data:`msrelapse.model.DEFAULT_BAND_FRACTION` every band
+taking function of :mod:`msrelapse.model` and :mod:`msrelapse.simulate` uses,
+because the width of the band decides how often two relapses on either side of a
+remission shorter than a week merge into one weekly episode, which is the whole
+of the residual gap between the two engines. On the potential the measured table
+of :class:`CohortSpec` was built on, about one complete remission in five and a
+half is that short at :data:`msrelapse.model.DEFAULT_BAND_FRACTION` and about
+one in ten here. The table, and the reason the band is not widened further, are
+in the Notes of that class.
+"""
 
 _Frames = tuple[pd.DataFrame | None, pd.DataFrame | None, pd.DataFrame]
 """The weekly, durations and events frames a generator returns."""
@@ -648,7 +667,8 @@ class CohortSpec:
         Position of the two hysteresis thresholds that cut a simulated path into
         episodes, as a fraction of the distance from the saddle to each well
         bottom. Must lie strictly between 0 and 1. Used by the ``sde`` engine
-        alone. The default of 0.4 is wider than the 0.3 that every band taking
+        alone. The default of :data:`SDE_ENGINE_BAND_FRACTION` is wider than the
+        :data:`msrelapse.model.DEFAULT_BAND_FRACTION` that every band taking
         function of :mod:`msrelapse.model` and :mod:`msrelapse.simulate`
         defaults to, for the reason in the Notes. The two defaults cut a path
         into episodes differently, so a path segmented by
@@ -746,7 +766,7 @@ class CohortSpec:
     engine: Engine = "renewal"
     alpha: float = PAPER.alpha_reference.value
     weekly: bool = True
-    band_fraction: float = 0.4
+    band_fraction: float = SDE_ENGINE_BAND_FRACTION
     dt: float = 0.02
     start_state: StartState = "relapse"
     naive_tau_health: float | None = None

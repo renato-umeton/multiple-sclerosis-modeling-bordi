@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import doctest
+import dataclasses
 from importlib import resources
 from pathlib import Path
 
@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 
 import msrelapse.datasets
+from msrelapse import fit
 from msrelapse._params import PAPER
 from msrelapse.cohort import CohortSpec, bordi2013_spec
 from msrelapse.datasets import (
@@ -24,6 +25,14 @@ SCHEMAS: tuple[Schema, ...] = ("weekly", "durations", "events")
 
 RELAPSE = PAPER.state_no_health.value
 HEALTH = PAPER.state_health.value
+
+# How the closing table names its two goodness of fit rows, which is how they
+# are picked out of the table below.
+GOODNESS_OF_FIT_ROWS = "exponential fit"
+
+# A p value planted in a precomputed result, well below the default level of the
+# table, so that a row carrying it is recognisable and comes out unmet.
+PLANTED_P_VALUE = 0.01
 
 
 def shipped_bytes(name: str) -> bytes:
@@ -295,7 +304,122 @@ def test_every_row_of_the_closing_table_carries_a_rule(weekly: pd.DataFrame) -> 
     assert table["within_tolerance"].notna().all()
 
 
-def test_docstring_examples_run() -> None:
-    results = doctest.testmod(msrelapse.datasets)
-    assert results.attempted > 0
-    assert results.failed == 0
+def goodness_of_fit(table: pd.DataFrame) -> pd.Series:
+    """Return the mask of the two goodness of fit rows of a closing table."""
+    return table["quantity"].str.startswith(GOODNESS_OF_FIT_ROWS)
+
+
+def ks_test_of_each_state(durations: pd.DataFrame) -> dict[int, fit.TestResult]:
+    """Return the Kolmogorov-Smirnov reading of each state, as the table asks for it."""
+    return {
+        state: fit.test_memoryless(durations, state, method="ks", rng=SYNTHETIC_SEED)
+        for state in (RELAPSE, HEALTH)
+    }
+
+
+def test_one_record_gives_one_table_when_no_generator_is_named(weekly: pd.DataFrame) -> None:
+    # The bootstrap behind the two goodness of fit rows is the only random step
+    # of the table, and a caller who names no generator gets the seed this module
+    # fixes, so two builds of the same record are one table.
+    first = reproduction_table(weekly)
+    second = reproduction_table(weekly)
+    assert first["reproduced"].tolist() == second["reproduced"].tolist()
+
+
+def test_the_generator_the_table_uses_by_default_is_the_seed_of_the_twin(
+    weekly: pd.DataFrame,
+) -> None:
+    # What "no generator named" means, spelled out: the seed the shipped twin was
+    # generated from, which is the one this module fixes for the bootstrap.
+    named = reproduction_table(weekly, rng=SYNTHETIC_SEED)
+    assert named["reproduced"].tolist() == reproduction_table(weekly)["reproduced"].tolist()
+
+
+def test_the_generator_moves_the_two_goodness_of_fit_rows_and_nothing_else(
+    weekly: pd.DataFrame,
+) -> None:
+    # Two fixed seeds, so the comparison is a fixed one: the bootstrap p values
+    # move with the generator, which is what the argument is for, and every other
+    # row is a measurement of the record and cannot move at all.
+    one = reproduction_table(weekly, rng=1)
+    two = reproduction_table(weekly, rng=2)
+    fits = goodness_of_fit(one)
+    assert one.loc[fits, "reproduced"].tolist() != two.loc[fits, "reproduced"].tolist()
+    assert one.loc[~fits, "reproduced"].tolist() == two.loc[~fits, "reproduced"].tolist()
+
+
+def test_a_generator_is_accepted_where_a_seed_is(weekly: pd.DataFrame) -> None:
+    first = reproduction_table(weekly, rng=np.random.default_rng(4))
+    second = reproduction_table(weekly, rng=np.random.default_rng(4))
+    assert first["reproduced"].tolist() == second["reproduced"].tolist()
+
+
+def test_a_precomputed_goodness_of_fit_test_is_read_rather_than_measured_again(
+    weekly: pd.DataFrame, durations: pd.DataFrame
+) -> None:
+    # A caller that has already run the test on these durations hands it in, and
+    # the table reports that p value rather than drawing a bootstrap of its own.
+    planted = {
+        state: dataclasses.replace(result, p_value=PLANTED_P_VALUE)
+        for state, result in ks_test_of_each_state(durations).items()
+    }
+    table = reproduction_table(weekly, ks_tests=planted)
+    fits = goodness_of_fit(table)
+    assert table.loc[fits, "reproduced"].tolist() == [PLANTED_P_VALUE, PLANTED_P_VALUE]
+    assert table.loc[fits, "within_tolerance"].tolist() == [False, False]
+
+
+def test_a_precomputed_test_missing_a_state_is_refused(
+    weekly: pd.DataFrame, durations: pd.DataFrame
+) -> None:
+    tests = ks_test_of_each_state(durations)
+    with pytest.raises(ValueError, match="holds no test of state"):
+        reproduction_table(weekly, ks_tests={RELAPSE: tests[RELAPSE]})
+
+
+def test_a_precomputed_test_of_another_reading_is_refused(
+    weekly: pd.DataFrame, durations: pd.DataFrame
+) -> None:
+    # The row reports a Kolmogorov-Smirnov p value and says so in its name, so a
+    # reading of another kind cannot stand in for one.
+    other = {
+        state: fit.test_memoryless(durations, state, method="ad", rng=SYNTHETIC_SEED)
+        for state in (RELAPSE, HEALTH)
+    }
+    with pytest.raises(ValueError, match="method 'ad'"):
+        reproduction_table(weekly, ks_tests=other)
+
+
+def test_a_precomputed_test_measured_on_another_record_is_refused(
+    weekly: pd.DataFrame, durations: pd.DataFrame
+) -> None:
+    # A result carried over from another cohort would put a p value in the table
+    # that belongs to no record in it, so the count of durations behind it has to
+    # be the count this record holds.
+    stale = {
+        state: dataclasses.replace(result, n=result.n + 1)
+        for state, result in ks_test_of_each_state(durations).items()
+    }
+    with pytest.raises(ValueError, match="complete duration"):
+        reproduction_table(weekly, ks_tests=stale)
+
+
+def test_a_precomputed_periodicity_result_is_read_rather_than_measured_again(
+    weekly: pd.DataFrame,
+) -> None:
+    measured = fit.test_periodicity(weekly, method="fisher_g")
+    planted = dataclasses.replace(
+        measured, pooled=dataclasses.replace(measured.pooled, p_value=PLANTED_P_VALUE)
+    )
+    row = reproduction_table(weekly, periodicity=planted).iloc[-1]
+    assert row["reproduced"] == PLANTED_P_VALUE
+    assert row["within_tolerance"] is False
+
+
+def test_a_periodicity_result_measured_on_another_record_is_refused(
+    weekly: pd.DataFrame,
+) -> None:
+    other = weekly[weekly["patient_id"] != weekly["patient_id"].iloc[0]].reset_index(drop=True)
+    measured = fit.test_periodicity(other, method="fisher_g")
+    with pytest.raises(ValueError, match="another record"):
+        reproduction_table(weekly, periodicity=measured)

@@ -89,6 +89,20 @@ One JSON object, with these keys.
 Every value is a plain number, string, boolean or pair, so the file is readable
 by anything that reads JSON and needs no library of ours to open.
 
+**Which of the six fits to read.** A weekly record holds whole weeks and no run
+shorter than one week, so the geometric family is the exact law of what was
+recorded and is the one to read a weekly duration with:
+`fit_durations(runs, state, family="geometric")`, which uses the censoring flag
+by default. The exponential family is kept because it is the law of the article
+and of `msrelapse.model`, and because it is the reading that reproduces the
+numbers of the article: its default continuity correction of 0 takes every
+recorded duration at face value, which is the arithmetic the article did, and
+`censoring=False` completes that reading by averaging the censored final
+remission of each record as the article averaged it. To read an exponential on
+rounded weeks otherwise, pass `continuity_correction=0.5`, which places a
+duration recorded as k weeks at the midpoint of the week it ended in; the
+geometric family refuses a correction, since it already lives on whole weeks.
+
 ## The closing table and its tolerances
 
 The table is built by `msrelapse.datasets.reproduction_table`, which takes any
@@ -111,6 +125,13 @@ in `numbers.json`.
 | exponential fit, relapse durations (KS p value) | not reported | Kolmogorov-Smirnov p above 0.05 |
 | exponential fit, remission durations (KS p value) | not reported | Kolmogorov-Smirnov p above 0.05 |
 | periodicity of the relapse onsets (pooled Fisher g p value) | reported as absent | pooled Fisher g p above 0.05 |
+
+The barrier ratio row above is the cohort one, and it is the only barrier ratio
+in the table. The per patient ratios of patients 23, 32 and 53 are rows of
+`msrelapse.cohort.paper_patients` instead: this table measures a weekly frame,
+while those three values are read off the durations the article prints for each
+of the three patients, so no weekly record holds a counterpart to put beside
+them.
 
 Three of the tolerances are worth a sentence each.
 
@@ -245,6 +266,19 @@ the first thing that is wrong with it rather than failing later inside an
 analysis. [Data](data.md) documents all three schemas, and the events to weekly
 direction is the one lossy conversion, because it applies the rounding rule of
 the study.
+
+The table is a cohort measurement and a handful of records does not carry it,
+so `ms.reproduction_table` raises rather than returning a thin table when the
+record is too small. Three of its rows set that floor. The two goodness of fit
+rows need at least two complete, uncensored durations of each state to
+bootstrap, and the periodicity row needs at least one patient whose periodogram
+the pooled test can read, which asks for 8 weeks of follow up, 3 relapse onsets
+and onsets that do not fall in every other week. A record holding no run of one
+of the two states is refused before any of that, since the table then has no
+mean duration to report for that state. None of this is a statement about how
+many patients are enough for the numbers to mean something: seventy records
+already leave every mean with a standard error near six percent, which
+[Data](data.md) measures.
 
 Two things change when the record is real. The relapsing-remitting phase range
 row becomes an exact comparison rather than a range check, because 40 to 1311

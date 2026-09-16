@@ -47,6 +47,13 @@ uv run --group docs mkdocs build --strict      # the documentation site
   for long running tests and `notebook` for the notebook execution tests.
 - **pre-commit** runs ruff, mypy and `nbstripout`, the last of which keeps
   notebook outputs out of the repository. Never bypass the hooks.
+- **House style** is a test rather than a convention left to review. The sweep
+  in `tests/test_docs.py` reads every tracked text file of the repository,
+  source, prose, notebooks and workflow files alike, and fails on an em dash, on
+  a line of three hyphens, or on the name of a generative model or its tooling.
+  A change can therefore fail the suite on a sentence rather than on code, and
+  the fix is to rewrite the sentence: a comma or a colon where an em dash is
+  tempting, a heading or a blank line where a horizontal rule is.
 
 ## Working on the code
 
@@ -114,8 +121,9 @@ into a failure, which is the point of building the docs in continuous
 integration at all. API pages are one file per module under `docs/api/`, each
 holding a short introduction and an mkdocstrings directive, so a new module
 needs a new page and a new navigation entry in `mkdocs.yml`. Prose pages avoid
-em dashes and horizontal rules, and the mathematics is written in the article's
-own convention, $V(x) = -x^2/2 + \alpha x^4/4 + \beta x$.
+em dashes and horizontal rules, which the house style sweep above enforces over
+every tracked file, and the mathematics is written in the article's own
+convention, $V(x) = -x^2/2 + \alpha x^4/4 + \beta x$.
 
 ## Releasing
 

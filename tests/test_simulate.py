@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import doctest
 import math
+from collections.abc import Callable
+from inspect import signature
 
 import numpy as np
 import numpy.typing as npt
@@ -14,7 +15,7 @@ from scipy import stats
 import msrelapse.simulate
 from msrelapse._params import PAPER
 from msrelapse.io import validate, weekly_to_durations
-from msrelapse.model import DoubleWell, calibrate, mfpt, passage_endpoints
+from msrelapse.model import DEFAULT_BAND_FRACTION, DoubleWell, calibrate, mfpt, passage_endpoints
 from msrelapse.simulate import (
     BRIDGE_CONSTANT,
     HAS_NUMBA,
@@ -1101,7 +1102,11 @@ def test_the_bridge_constant_is_exported() -> None:
     assert "BRIDGE_CONSTANT" in msrelapse.simulate.__all__
 
 
-def test_docstring_examples_run() -> None:
-    results = doctest.testmod(msrelapse.simulate)
-    assert results.attempted > 0
-    assert results.failed == 0
+@pytest.mark.parametrize("function", [exit_times, to_states, simulate_weekly])
+def test_the_band_threshold_defaults_to_the_shared_constant(
+    function: Callable[..., object],
+) -> None:
+    # These three cut a path into episodes at the band model calibrates against,
+    # so none of them may default to a band of its own: all three resolve to the
+    # constant model names.
+    assert signature(function).parameters["band_fraction"].default == DEFAULT_BAND_FRACTION

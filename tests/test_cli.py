@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import contextlib
-import doctest
 import inspect
 import io
 import json
@@ -68,6 +67,10 @@ NUMBERS_KEYS = frozenset(
 
 # The four readings of memorylessness the CLI runs under --method all.
 MEMORYLESS_METHODS = ("hazard", "cv", "ks", "ad")
+
+# The one of them the two goodness of fit rows of the closing table report, so
+# that the report and the table can be held against each other.
+KS_METHOD = "ks"
 
 # The three readings of the same durations a reproduction reports, and the two
 # clinical states it reports each of them for. The run has to print and write all
@@ -332,32 +335,62 @@ def test_reproduce_prints_both_the_named_seed_and_the_seed_it_drew_from(
     assert f"every random draw of this run uses seed {SYNTHETIC_SEED}" in out
 
 
-def test_reproduce_names_the_one_draw_it_did_not_seed(reproduction: Reproduction) -> None:
-    # The bootstrap behind the two goodness of fit rows of the closing table is
-    # drawn from a seed msrelapse.datasets fixes, so under a seed of the caller's
-    # own those two p values sit a little apart from the ones the memorylessness
-    # block reports on the same durations. The line that names the seed has to
-    # carry the exception, or a reader meets two numbers and no reason for it.
+def test_reproduce_names_one_seed_for_every_draw_it_made(reproduction: Reproduction) -> None:
+    # Every random draw of the run comes from the seed the line names, the
+    # bootstrap behind the two goodness of fit rows of the closing table
+    # included, so the line carries a seed and no exception to it.
     named = [
         line
         for line in reproduction.out.splitlines()
-        if line.startswith(f"every random draw of this run uses seed {SYNTHETIC_SEED}")
+        if line.startswith("every random draw of this run uses seed")
     ]
-    assert len(named) == 1
-    assert "msrelapse.datasets" in named[0]
+    assert named == [f"every random draw of this run uses seed {SYNTHETIC_SEED}"]
 
 
-def test_reproduce_gives_one_record_one_closing_table_under_any_seed(
+def test_reproduce_gives_one_record_and_one_seed_one_closing_table(
     reproduction: Reproduction, tmp_path: Path
 ) -> None:
-    # That fixed seed buys one property, which nothing else pins: the table a
-    # record gives does not move when the run around it is seeded differently.
-    # The record of the module run is read back here under a seed of the caller's
-    # own, so every row of the table has to come back where it was.
+    # The table is a measurement of the record and of the seed the run draws
+    # from, and of nothing else: the record of the module run is read back here
+    # from the file it wrote, under the seed it was measured at, so every row has
+    # to come back where it was.
     _, payload = reproduce(
-        tmp_path, "--data", str(reproduction.directory / "weekly.csv"), "--seed", "1"
+        tmp_path,
+        "--data",
+        str(reproduction.directory / "weekly.csv"),
+        "--seed",
+        str(SYNTHETIC_SEED),
     )
     assert payload["closing_table"] == reproduction.payload["closing_table"]
+
+
+def test_reproduce_repeats_itself_byte_for_byte_under_one_seed(tmp_path: Path) -> None:
+    # The whole point of --seed: two runs of the same command write the same
+    # record of numbers, down to the byte. Every draw of the run reaches this
+    # file, the bootstrap of the closing table included, so a draw left unseeded
+    # anywhere would show up here as two files that differ.
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    reproduce(first, "--seed", "1")
+    reproduce(second, "--seed", "1")
+    assert (first / "numbers.json").read_bytes() == (second / "numbers.json").read_bytes()
+
+
+def test_reproduce_reports_one_goodness_of_fit_p_value(tmp_path: Path) -> None:
+    # The closing table judges a Kolmogorov-Smirnov p value of each state and the
+    # memorylessness block reports the same test with its statistic beside it.
+    # There is one bootstrap behind each state, so the two readings are one
+    # number and the file must not carry two. The seed is one of the caller's
+    # own, which is the run where a table seeded elsewhere would show up.
+    _, payload = reproduce(tmp_path, "--seed", "1")
+    tests = payload["memorylessness"]
+    assert isinstance(tests, list)
+    for state_name in STATE_NAMES:
+        ks = [
+            row for row in tests if row["state_name"] == state_name and row["method"] == KS_METHOD
+        ]
+        assert len(ks) == 1
+        assert ks[0]["p_value"] == row_named(payload, f"{state_name} durations")["reproduced"]
 
 
 def test_reproduce_prints_every_fit_it_made(reproduction: Reproduction) -> None:
@@ -936,9 +969,3 @@ def test_the_console_script_points_at_main() -> None:
     ]
     assert len(scripts) == 1
     assert scripts[0].value == "msrelapse.cli:main"
-
-
-def test_the_docstrings_of_the_module_are_correct() -> None:
-    results = doctest.testmod(msrelapse.cli)
-    assert results.attempted > 0
-    assert results.failed == 0

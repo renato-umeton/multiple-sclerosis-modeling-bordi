@@ -490,11 +490,24 @@ measurement and the mapping of a path to states carry it.
 $x(t)$ into a $\pm 1$ series. A bare threshold at the saddle counts every
 wobble across the barrier top as a relapse. The package instead places two
 thresholds a fraction of the way from the saddle towards each well bottom, and
-a state changes only when the path crosses the far one. The fraction is 0.3 in
-`msrelapse.simulate` and 0.4 in `msrelapse.cohort`, where a wider band removes
-more of the sub-week remissions that the weekly rounding would merge. Passing
-the same fraction to `calibrate` with `passage='band'` makes the simulated
-durations approach the calibration targets.
+a state changes only when the path crosses the far one. The fraction has two
+named defaults, and they are not the same number.
+`msrelapse.model.DEFAULT_BAND_FRACTION` is 0.3, and every band taking function
+of `msrelapse.model` and `msrelapse.simulate` uses it.
+`msrelapse.cohort.SDE_ENGINE_BAND_FRACTION` is 0.4, and the stochastic engine of
+`msrelapse.cohort.CohortSpec` uses it, because a wider band removes more of the
+sub-week remissions that the weekly rounding would merge. The two cut a path
+into episodes differently, so a path segmented at one of them and a cohort
+generated at the other agree only when the same fraction is passed to both.
+Passing that same fraction to `calibrate` with `passage='band'` makes the
+simulated durations approach the calibration targets.
+
+**The parameters do not vary with time.** $\beta$ and $\sigma$ are constants of
+a patient here, as they are in the article. A slowly varying $\beta(t)$ or
+$\sigma(t)$, which would let a barrier drift over a follow up and is the natural
+way to write a treatment effect or a progression into the model, is out of scope
+for version 0.1 and is recorded as future work: the equations allow it, and what
+is missing is a calibration procedure and the data to validate it against.
 
 ## Other relapsing conditions
 

@@ -53,7 +53,7 @@ import pandas as pd
 from scipy import stats
 
 from msrelapse._params import PAPER
-from msrelapse.fit import _MIN_AT_RISK, fit_durations, fit_nb_counts
+from msrelapse.fit import MIN_AT_RISK, discrete_hazard, fit_durations, fit_nb_counts
 from msrelapse.io import validate
 from msrelapse.model import CriticalPoints, DoubleWell
 from msrelapse.simulate import Seed, simulate_paths
@@ -1550,41 +1550,6 @@ def _kaplan_meier(values: _Vector, censored: npt.NDArray[np.bool_]) -> tuple[_Ve
     return np.array(times, dtype=np.float64), np.array(survival, dtype=np.float64)
 
 
-def _discrete_hazard(values: _Vector) -> tuple[_Vector, _Vector]:
-    """Return the weekly hazard of a set of complete durations.
-
-    This is the hazard :func:`msrelapse.fit.test_memoryless` regresses on time:
-    the share of the durations still at risk at the start of week k that end in
-    that week, read only at the weeks where at least
-    :data:`msrelapse.fit._MIN_AT_RISK` of them are still at risk.
-
-    Parameters
-    ----------
-    values : numpy.ndarray
-        Complete durations, whole weeks and at least one week each.
-
-    Returns
-    -------
-    tuple of numpy.ndarray
-        The weeks that were read and the hazard at each of them. Both are empty
-        when no week holds enough durations still at risk, which the inset says
-        rather than drawing.
-
-    Notes
-    -----
-    This is a copy of the hazard of :func:`msrelapse.fit._hazard_test` and has
-    to be changed in lockstep with it, until that module offers the computation
-    as a helper of its own. The inset is regressed against the slope and the
-    intercept that module reports, so the two cannot drift apart unnoticed.
-    """
-    weeks = values.astype(np.int64)
-    deaths = np.bincount(weeks)[1:]
-    times = np.arange(1, deaths.size + 1, dtype=np.float64)
-    at_risk = weeks.size - np.concatenate(([0], np.cumsum(deaths)[:-1]))
-    keep = at_risk >= _MIN_AT_RISK
-    return times[keep], deaths[keep] / at_risk[keep]
-
-
 def _draw_hazard_inset(ax: Axes, complete: _Vector, fitted_hazard: float) -> None:
     """Draw the discrete hazard of a state in an inset of its survival panel.
 
@@ -1605,11 +1570,11 @@ def _draw_hazard_inset(ax: Axes, complete: _Vector, fitted_hazard: float) -> Non
     Notes
     -----
     A set of durations too small for any week to be read, which is every set of
-    fewer than :data:`msrelapse.fit._MIN_AT_RISK` durations and a per patient
+    fewer than :data:`msrelapse.fit.MIN_AT_RISK` durations and a per patient
     call of the paper's own sample patients, gets an inset saying so rather than
     an empty pair of axes with a lone guide line across it.
     """
-    weeks, hazard = _discrete_hazard(complete)
+    weeks, hazard, _at_risk = discrete_hazard(complete)
     inset = ax.inset_axes(_INSET_BOX)
     inset.tick_params(labelsize="x-small")
     if weeks.size == 0:
@@ -1621,7 +1586,7 @@ def _draw_hazard_inset(ax: Axes, complete: _Vector, fitted_hazard: float) -> Non
             0.5,
             0.5,
             f"none of these {complete.size} duration(s)\n"
-            f"reaches a week with {_MIN_AT_RISK} still at risk",
+            f"reaches a week with {MIN_AT_RISK} still at risk",
             transform=inset.transAxes,
             ha="center",
             va="center",

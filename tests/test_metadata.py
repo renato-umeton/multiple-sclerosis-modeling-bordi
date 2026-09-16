@@ -1,26 +1,24 @@
-"""Tests of the repository metadata: README, citation files, templates, release."""
+"""Tests of the repository metadata: README, citation files, templates, release.
+
+The house style rules these files once carried of their own, no em dash and no
+line of hyphens, are kept by the sweep in ``tests/test_docs.py``, which reads
+every text file of the repository rather than the list below.
+"""
 
 from __future__ import annotations
 
-import json
 import re
-from pathlib import Path
 from typing import Any, cast
 
 import pytest
 import yaml  # type: ignore[import-untyped]
 
 import msrelapse
+from _helpers import ROOT, flatten, load_json, load_workflow, load_yaml, read
 from msrelapse._params import PAPER
-
-ROOT = Path(__file__).resolve().parents[1]
 
 REPOSITORY = "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi"
 DOCUMENTATION = "https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/"
-
-# Written as a code point so that the character itself never enters a source
-# file of this repository, which is the rule the check below enforces.
-EM_DASH = chr(0x2014)
 
 OWNED_FILES = (
     "README.md",
@@ -52,23 +50,6 @@ PAPER_AUTHORS = (
 BIB_KEYS = ("bordi2013", "benzi1983", "kramers1940", "day1983", "zhu2014", "keene2007")
 
 
-def read(relative: str) -> str:
-    return (ROOT / relative).read_text(encoding="utf-8")
-
-
-def load_yaml(relative: str) -> dict[str, Any]:
-    return cast("dict[str, Any]", yaml.safe_load(read(relative)))
-
-
-def load_json(relative: str) -> dict[str, Any]:
-    return cast("dict[str, Any]", json.loads(read(relative)))
-
-
-def flat(text: str) -> str:
-    """Collapse every run of whitespace, so that a wrapped sentence still matches."""
-    return " ".join(text.split())
-
-
 def code_blocks(markdown: str, language: str) -> list[str]:
     """Return the body of every fenced block of one language."""
     pattern = re.compile(rf"^```{language}\n(.*?)^```", re.DOTALL | re.MULTILINE)
@@ -93,17 +74,6 @@ def section(markdown: str, heading: str) -> str:
 @pytest.mark.parametrize("relative", OWNED_FILES)
 def test_metadata_file_exists(relative: str) -> None:
     assert (ROOT / relative).is_file()
-
-
-@pytest.mark.parametrize("relative", OWNED_FILES)
-def test_no_em_dash(relative: str) -> None:
-    assert EM_DASH not in read(relative)
-
-
-@pytest.mark.parametrize("relative", OWNED_FILES)
-def test_no_line_of_three_hyphens(relative: str) -> None:
-    lines = [line for line in read(relative).splitlines() if line.strip() == "---"]
-    assert lines == []
 
 
 def test_readme_title_is_the_package_name() -> None:
@@ -139,7 +109,7 @@ def test_readme_holds_the_summary_paragraph_verbatim() -> None:
         "the two mean durations estimates the ratio of the two barrier heights (about 3). "
         f"Bordi, Umeton et al., Int J Genomics 2013, doi:{PAPER.paper_doi.value}."
     )
-    assert summary in flat(read("README.md"))
+    assert summary in flatten(read("README.md"))
 
 
 @pytest.mark.parametrize(
@@ -151,13 +121,13 @@ def test_readme_holds_the_summary_paragraph_verbatim() -> None:
     ],
 )
 def test_readme_names_each_audience_with_an_entry_point(audience: str, entry_point: str) -> None:
-    readme = flat(read("README.md")).lower()
+    readme = flatten(read("README.md")).lower()
     assert audience.lower() in readme
     assert entry_point.lower() in readme
 
 
 def test_readme_documents_the_uv_setup() -> None:
-    readme = flat(read("README.md"))
+    readme = flatten(read("README.md"))
     assert "uv sync" in readme
     for extra in ("plot", "fast"):
         assert f"--extra {extra}" in readme
@@ -180,13 +150,13 @@ def test_readme_documents_every_cli_subcommand() -> None:
 
 
 def test_readme_says_the_shipped_records_are_synthetic() -> None:
-    readme = flat(read("README.md")).lower()
+    readme = flatten(read("README.md")).lower()
     assert "synthetic" in readme
     assert "never released" in readme or "was never released" in readme
 
 
 def test_readme_links_the_documentation_site() -> None:
-    readme = flat(read("README.md"))
+    readme = flatten(read("README.md"))
     assert DOCUMENTATION in readme
     assert "Pages" in readme
 
@@ -215,7 +185,7 @@ def test_readme_describes_each_entry_point_with_the_verb_it_deserves(
     printed = capsys.readouterr().out
     assert (printed != "") is prints
     assert (result is None) is prints
-    match = re.search(rf"`msrelapse\.{name}\(\)` (prints|returns)", flat(read("README.md")))
+    match = re.search(rf"`msrelapse\.{name}\(\)` (prints|returns)", flatten(read("README.md")))
     assert match is not None
     assert match.group(1) == ("prints" if prints else "returns")
 
@@ -381,7 +351,7 @@ def test_issue_config_turns_blank_issues_off_and_offers_a_link() -> None:
 
 
 def test_pull_request_template_lists_the_quality_gates() -> None:
-    template = flat(read("docs/pull_request_template.md")).lower()
+    template = flatten(read("docs/pull_request_template.md")).lower()
     for gate in ("tests", "ruff", "mypy", "changelog", "_params.py", "notebook"):
         assert gate.lower() in template
     assert "- [ ]" in read("docs/pull_request_template.md")
@@ -389,7 +359,7 @@ def test_pull_request_template_lists_the_quality_gates() -> None:
 
 def release_workflow() -> dict[str, Any]:
     """Return release.yml, reading ``on`` past the YAML rule that turns it into True."""
-    raw = cast("dict[Any, Any]", yaml.safe_load(read(".github/workflows/release.yml")))
+    raw = load_workflow("release.yml")
     return {("on" if key is True else str(key)): value for key, value in raw.items()}
 
 

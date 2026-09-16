@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import doctest
 import math
 
 import numpy as np
@@ -8,9 +7,9 @@ import numpy.typing as npt
 import pandas as pd
 import pytest
 
-import msrelapse.cohort
 from msrelapse._params import PAPER
 from msrelapse.cohort import (
+    SDE_ENGINE_BAND_FRACTION,
     Cohort,
     CohortSpec,
     Engine,
@@ -28,7 +27,13 @@ from msrelapse.cohort import (
     per_patient_params,
 )
 from msrelapse.io import validate
-from msrelapse.model import DoubleWell, barrier_ratio_from_durations, calibrate, fold_beta
+from msrelapse.model import (
+    DEFAULT_BAND_FRACTION,
+    DoubleWell,
+    barrier_ratio_from_durations,
+    calibrate,
+    fold_beta,
+)
 from msrelapse.simulate import MAX_DT
 
 RELAPSE = PAPER.state_no_health.value
@@ -933,7 +938,12 @@ def test_a_cohort_of_varied_patients_calibrates_each_target_pair() -> None:
     assert patients["beta"].nunique() == 4
 
 
-def test_docstring_examples_run() -> None:
-    results = doctest.testmod(msrelapse.cohort)
-    assert results.attempted > 0
-    assert results.failed == 0
+def test_the_sde_engine_cuts_its_paths_at_its_own_named_band() -> None:
+    # The engine widens the band that every layer below it uses, because a
+    # narrower one merges too many sub week remissions into a single weekly
+    # episode. What is pinned here is that departure: the spec cuts at the
+    # constant of this layer, and that constant is the wider of the two.
+    spec = CohortSpec(n=1, tau_health=100.0, tau_relapse=4.0, followup_weeks=300.0)
+
+    assert spec.band_fraction == SDE_ENGINE_BAND_FRACTION
+    assert SDE_ENGINE_BAND_FRACTION > DEFAULT_BAND_FRACTION

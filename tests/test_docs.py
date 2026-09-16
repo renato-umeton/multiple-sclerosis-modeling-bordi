@@ -4,23 +4,42 @@ The site itself is built with ``mkdocs build --strict``; these tests cover what
 a build cannot see: that every module of the package has a reference page, that
 the pages written here keep the house style, and that the two workflow files
 say what they are meant to say.
+
+The house style sweep in the middle of this file reads every text file of the
+repository rather than a hand written list, so that a module, a test, a
+notebook and a workflow are held to the rules the prose is held to.
 """
 
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 import pytest
-import yaml  # type: ignore[import-untyped]
 
 import msrelapse
+from _helpers import (
+    ASSISTANT_NAMES,
+    ASSISTANT_PHRASE,
+    EM_DASH,
+    ROOT,
+    assistant_mention_lines,
+    contains_em_dash,
+    em_dash_lines,
+    flatten,
+    gitignored_paths,
+    has_three_hyphen_line,
+    load_workflow,
+    load_yaml,
+    read,
+    single_trailing_space_lines,
+    text_files,
+    three_hyphen_lines,
+)
 
-ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
-MKDOCS = ROOT / "mkdocs.yml"
-WORKFLOWS = ROOT / ".github" / "workflows"
 PACKAGE = ROOT / "src" / "msrelapse"
 # The README holds the summary paragraph the home page has to quote word for
 # word, so the two say the same thing. The local planning notes hold it too,
@@ -30,10 +49,6 @@ SUMMARY_MARKER = "In 70 untreated relapsing-remitting MS patients"
 
 # The first line of a BibTeX entry, and a field line inside one.
 BIBTEX_LINE = re.compile(r"^(@\w+\{|[a-z]+\s*=\s*\{)")
-
-# Written as a code point so that the character itself never enters a source
-# file of this repository, which is the rule the check below enforces.
-EM_DASH = chr(0x2014)
 
 # The reference page of each module, as the page name and the object the
 # mkdocstrings directive on it addresses.
@@ -51,38 +66,24 @@ API_PAGES = {
     "params": "msrelapse._params",
 }
 
-# The prose pages written for the site. paper_facts.md is older than this task
-# and is published as it stands.
-PROSE_PAGES = (
-    "index.md",
-    "theory.md",
-    "reproducing.md",
-    "data.md",
-    "citing.md",
-    "CHANGELOG.md",
-    "CONTRIBUTING.md",
-)
-
 # Pages that live under docs/ but are not part of the published site.
 EXCLUDED = ("plan1.md", "IMPLEMENTATION_PLAN.md", "paper/", "pull_request_template.md")
+
+# A line of hyphens, built rather than written, so that this file keeps the
+# rule it checks. The same goes for the two fence markers below.
+HYPHEN_LINE = "-" * 3
+FENCE = "`" * 3
+OTHER_FENCE = "~" * 3
+
+# The chat prefixed spelling of one of the names, built in pieces here for the
+# same reason the names themselves are built in pieces in ``_helpers``: no
+# piece of it is a name, so this file keeps the rule it checks.
+CHAT_ASSISTANT = "chat" + "gp" + "t"
 
 
 def load_config() -> dict[str, Any]:
     """Return the parsed mkdocs configuration."""
-    with MKDOCS.open(encoding="utf-8") as handle:
-        config: dict[str, Any] = yaml.safe_load(handle)
-    return config
-
-
-def load_workflow(name: str) -> dict[Any, Any]:
-    """Return one parsed workflow file of .github/workflows.
-
-    The keys are not all strings: YAML reads the unquoted workflow key ``on``
-    as the boolean True, which is how the triggers are addressed below.
-    """
-    with (WORKFLOWS / name).open(encoding="utf-8") as handle:
-        workflow: dict[Any, Any] = yaml.safe_load(handle)
-    return workflow
+    return load_yaml("mkdocs.yml")
 
 
 def nav_targets(nav: Any) -> list[str]:
@@ -96,32 +97,6 @@ def nav_targets(nav: Any) -> list[str]:
     raise TypeError(f"a nav entry is a string, a list or a mapping, got {nav!r}")
 
 
-def authored_files() -> list[Path]:
-    """Return every file of the site this task writes.
-
-    The pages, prose and reference alike, plus the configuration, the MathJax
-    loader and the two workflow files, because the house style rule below
-    applies to all of them and not only to the Markdown.
-    """
-    return [
-        *(DOCS / name for name in PROSE_PAGES),
-        *(DOCS / "api" / f"{name}.md" for name in sorted(API_PAGES)),
-        DOCS / "javascripts" / "mathjax.js",
-        MKDOCS,
-        WORKFLOWS / "ci.yml",
-        WORKFLOWS / "docs.yml",
-    ]
-
-
-AUTHORED_FILES = authored_files()
-
-
-def flatten(text: str) -> str:
-    """Return text with blockquote markers dropped and the spacing flattened."""
-    lines = [line.strip().removeprefix(">").strip() for line in text.splitlines()]
-    return " ".join(" ".join(lines).split())
-
-
 def summary_sentence() -> str:
     """Return the summary paragraph the home page has to quote from the README.
 
@@ -131,7 +106,7 @@ def summary_sentence() -> str:
     """
     if not SUMMARY_SOURCE.is_file():
         raise AssertionError(f"{SUMMARY_SOURCE} is gone, so the home page has nothing to match")
-    lines = SUMMARY_SOURCE.read_text(encoding="utf-8").splitlines()
+    lines = read(SUMMARY_SOURCE).splitlines()
     for start, line in enumerate(lines):
         if SUMMARY_MARKER in line:
             end = start
@@ -148,6 +123,42 @@ def package_modules() -> set[str]:
         for path in PACKAGE.glob("*.py")
         if path.stem != "__init__" and not path.stem.startswith("_")
     }
+
+
+def swept() -> set[str]:
+    """Return the path of every file of the sweep, relative to the repository."""
+    return {path.relative_to(ROOT).as_posix() for path in text_files()}
+
+
+def offenders(numbers: dict[str, list[int]]) -> list[str]:
+    """Return one ``path:line`` marker for every line a rule rejected."""
+    return [f"{path}:{number}" for path, lines in numbers.items() for number in lines]
+
+
+def sweep(rule: Callable[[str], list[int]], *, suffix: str | None = None) -> list[str]:
+    """Return one ``path:line`` marker for every line of the repository a rule rejects.
+
+    Parameters
+    ----------
+    rule : callable
+        One of the house style rules of ``_helpers``, which takes the text of a
+        file and returns the number of every line it rejects.
+    suffix : str, optional
+        Read only the files with this suffix, such as ``".md"``. Default None,
+        which reads every text file of the repository.
+
+    Returns
+    -------
+    list of str
+        One marker per rejected line, empty when the repository keeps the rule.
+    """
+    return offenders(
+        {
+            path.relative_to(ROOT).as_posix(): rule(text)
+            for path, text in text_files().items()
+            if suffix is None or path.suffix == suffix
+        }
+    )
 
 
 def test_site_is_named_after_the_package() -> None:
@@ -175,7 +186,7 @@ def test_every_page_of_the_site_is_in_the_nav() -> None:
 
 @pytest.mark.parametrize(("page", "obj"), sorted(API_PAGES.items()))
 def test_each_api_page_documents_its_module(page: str, obj: str) -> None:
-    text = (DOCS / "api" / f"{page}.md").read_text(encoding="utf-8")
+    text = read(DOCS / "api" / f"{page}.md")
     assert f"::: {obj}" in text
     assert text.startswith("# ")
 
@@ -195,22 +206,187 @@ def test_only_the_numbers_of_the_paper_are_documented_from_the_private_modules()
     """
     documented = set()
     for path in sorted((DOCS / "api").glob("*.md")):
-        for line in path.read_text(encoding="utf-8").splitlines():
+        for line in read(path).splitlines():
             if line.startswith("::: msrelapse."):
                 documented.add(line.removeprefix("::: ").strip())
     private = {name for name in documented if name.rpartition(".")[2].startswith("_")}
     assert private == {"msrelapse._params"}, "docs/api/ documents a private module of its own"
 
 
-@pytest.mark.parametrize(
-    "path",
-    AUTHORED_FILES,
-    ids=[path.relative_to(ROOT).as_posix() for path in AUTHORED_FILES],
+def test_contains_em_dash_finds_the_character_and_nothing_else() -> None:
+    assert contains_em_dash(f"a sentence broken {EM_DASH} in two")
+    assert not contains_em_dash("a sentence broken, in two, with a hyphen-joined word")
+    assert em_dash_lines(f"a first line\na sentence broken {EM_DASH} in two") == [2]
+
+
+def test_a_bare_line_of_hyphens_is_a_violation() -> None:
+    assert has_three_hyphen_line(f"a paragraph\n{HYPHEN_LINE}\nthe next one")
+    assert three_hyphen_lines(f"a paragraph\n{HYPHEN_LINE}\nthe next one") == [2]
+
+
+def test_a_markdown_table_separator_row_is_not_a_violation() -> None:
+    table = f"| Quantity | Value |\n|{HYPHEN_LINE}|{HYPHEN_LINE}|\n| mean relapse | 4.3 |"
+    assert not has_three_hyphen_line(table)
+
+
+def test_a_line_of_hyphens_inside_a_fenced_block_is_not_a_violation() -> None:
+    block = f"{FENCE}yaml\n{HYPHEN_LINE}\nname: CI\n{FENCE}"
+    assert not has_three_hyphen_line(block)
+
+
+def test_only_the_marker_that_opened_a_fence_closes_it() -> None:
+    """A block opened with one marker runs to the matching one, not to the other."""
+    mixed = f"{FENCE}text\n{OTHER_FENCE}\n{HYPHEN_LINE}\n{FENCE}"
+    assert three_hyphen_lines(mixed) == []
+    closed = f"{FENCE}text\nquoted\n{FENCE}\n{HYPHEN_LINE}"
+    assert three_hyphen_lines(closed) == [4]
+
+
+def test_a_numpydoc_underline_is_a_violation_only_outside_python() -> None:
+    title = "Parameters"
+    section = f"{title}\n{'-' * len(title)}\nseed : int"
+    assert not has_three_hyphen_line(section, python_source=True)
+    assert has_three_hyphen_line(section)
+
+
+def test_an_underline_shorter_than_its_title_is_a_violation_in_python_too() -> None:
+    """A section underline runs the length of the title, which is what tells it apart."""
+    assert three_hyphen_lines(f"Parameters\n{HYPHEN_LINE}", python_source=True) == [2]
+
+
+def test_a_line_of_hyphens_under_a_line_of_code_is_a_violation_in_python() -> None:
+    code = "value = compute(seed)"
+    assert three_hyphen_lines(f"{code}\n{HYPHEN_LINE}", python_source=True) == [2]
+
+
+def test_a_line_of_hyphens_under_a_sentence_is_a_violation_in_python_too() -> None:
+    prose = "a sentence long enough that no numpydoc section of any module opens with it"
+    assert has_three_hyphen_line(f"{prose}\n{HYPHEN_LINE}", python_source=True)
+
+
+def test_a_named_assistant_is_a_violation_whatever_it_runs_into() -> None:
+    """The name is caught whatever the case, and a following digit does not hide it."""
+    for name in ASSISTANT_NAMES:
+        assert assistant_mention_lines(f"drafted with {name.upper()} at hand") == [1]
+        assert assistant_mention_lines(f"drafted with {name}4 at hand") == [1]
+    assert assistant_mention_lines(f"drafted with {CHAT_ASSISTANT.upper()} at hand") == [1]
+
+
+def test_the_claim_that_a_machine_wrote_a_file_is_a_violation() -> None:
+    assert assistant_mention_lines(f"this page was {ASSISTANT_PHRASE} last spring") == [1]
+
+
+def test_a_word_of_the_domain_is_not_an_assistant() -> None:
+    assert assistant_mention_lines("the model of the article is an asymmetric double well") == []
+    assert assistant_mention_lines("the work was funded by a philanthropic donor") == []
+
+
+def test_a_single_trailing_space_is_a_violation_and_a_hard_break_is_not() -> None:
+    assert single_trailing_space_lines("a line that ends in one space \nand the next") == [1]
+    assert single_trailing_space_lines("a Markdown hard break  \nand the next") == []
+
+
+def test_the_sweep_reads_the_sources_the_tests_and_the_notebooks() -> None:
+    """The sweep is worth nothing if it walks past the files that matter."""
+    reached = swept()
+    for relative in (
+        "README.md",
+        "pyproject.toml",
+        "mkdocs.yml",
+        "src/msrelapse/model.py",
+        "src/msrelapse/data/PROVENANCE.txt",
+        "tests/conftest.py",
+        "notebooks/build_notebooks.py",
+        "notebooks/01_reproduce_bordi2013.ipynb",
+        "docs/index.md",
+        "docs/api/model.md",
+        ".github/workflows/ci.yml",
+    ):
+        assert relative in reached, f"the house style sweep never reads {relative}"
+
+
+def test_the_sweep_leaves_out_the_publisher_pdf_and_the_directories_of_no_prose() -> None:
+    reached = swept()
+    assert [path for path in reached if path.endswith(".pdf")] == []
+    assert [path for path in reached if path.startswith((".venv/", "site/", ".git/"))] == []
+
+
+def test_the_local_planning_notes_are_named_by_gitignore() -> None:
+    """What keeps the notes out of the sweep is the entry, not their absence."""
+    assert "docs/plan1.md" in gitignored_paths()
+
+
+@pytest.mark.skipif(
+    not (ROOT / "docs" / "plan1.md").is_file(),
+    reason="the local planning notes are not in the repository, so a checkout has none",
 )
-def test_files_keep_the_house_style(path: Path) -> None:
-    lines = path.read_text(encoding="utf-8").splitlines()
-    assert [line for line in lines if EM_DASH in line] == []
-    assert [line for line in lines if line.strip() == "---"] == []
+def test_the_local_planning_notes_stay_out_of_the_sweep() -> None:
+    assert "docs/plan1.md" not in swept()
+
+
+def test_the_walk_prunes_a_directory_that_holds_nothing_written_by_hand(tmp_path: Path) -> None:
+    (tmp_path / "page.md").write_text("a page\n", encoding="utf-8")
+    cache = tmp_path / "__pycache__"
+    cache.mkdir()
+    (cache / "page.md").write_text("a cached page\n", encoding="utf-8")
+    reached = {path.relative_to(tmp_path).as_posix() for path in text_files(tmp_path)}
+    assert reached == {"page.md"}
+
+
+def test_the_walk_leaves_out_a_path_gitignore_names(tmp_path: Path) -> None:
+    (tmp_path / ".gitignore").write_text("notes.md\n", encoding="utf-8")
+    (tmp_path / "notes.md").write_text("local notes\n", encoding="utf-8")
+    (tmp_path / "page.md").write_text("a page\n", encoding="utf-8")
+    reached = {path.relative_to(tmp_path).as_posix() for path in text_files(tmp_path)}
+    assert reached == {".gitignore", "page.md"}
+
+
+def test_the_walk_skips_a_file_that_does_not_decode_as_text(tmp_path: Path) -> None:
+    (tmp_path / "page.md").write_text("a page\n", encoding="utf-8")
+    (tmp_path / "picture.bin").write_bytes(bytes(range(256)))
+    reached = {path.relative_to(tmp_path).as_posix() for path in text_files(tmp_path)}
+    assert reached == {"page.md"}
+
+
+@pytest.mark.skipif(
+    not (ROOT / "docs" / "IMPLEMENTATION_PLAN.md").is_file(),
+    reason="the plan is finished and its page has been removed",
+)
+def test_the_tracked_plan_page_is_held_to_the_house_style() -> None:
+    """Only what git ignores is left out, and the plan page is in the repository."""
+    assert "docs/IMPLEMENTATION_PLAN.md" in swept()
+
+
+def test_no_file_holds_an_em_dash() -> None:
+    found = sweep(em_dash_lines)
+    assert found == [], f"the em dash is not used anywhere in this repository: {found}"
+
+
+def test_no_file_holds_a_line_of_hyphens() -> None:
+    found = offenders(
+        {
+            path.relative_to(ROOT).as_posix(): three_hyphen_lines(
+                text, python_source=path.suffix == ".py"
+            )
+            for path, text in text_files().items()
+        }
+    )
+    assert found == [], (
+        "a line of three or more hyphens is allowed only as a table separator row, "
+        f"inside a fenced block, or under the title of a section of a docstring: {found}"
+    )
+
+
+def test_no_file_names_an_assistant_or_a_model() -> None:
+    found = sweep(assistant_mention_lines)
+    assert found == [], f"no file of this repository names an assistant or a model: {found}"
+
+
+def test_no_markdown_line_ends_in_a_single_space() -> None:
+    found = sweep(single_trailing_space_lines, suffix=".md")
+    assert found == [], (
+        f"a Markdown line ends in one trailing space, where two are a hard break: {found}"
+    )
 
 
 def test_the_private_pages_are_kept_out_of_the_site() -> None:
@@ -258,17 +434,17 @@ def test_display_math_is_rendered_by_arithmatex() -> None:
     ]
     assert arithmatex, "mkdocs.yml declares no pymdownx.arithmatex extension"
     assert arithmatex[0]["generic"] is True
-    assert "$$" in (DOCS / "theory.md").read_text(encoding="utf-8")
+    assert "$$" in read(DOCS / "theory.md")
 
 
 def test_the_theory_page_cites_the_work_it_rests_on() -> None:
-    text = (DOCS / "theory.md").read_text(encoding="utf-8")
+    text = read(DOCS / "theory.md")
     for author in ("Bordi", "Benzi", "Kramers", "Day", "Zhu", "Keene"):
         assert author in text
 
 
 def test_the_home_page_quotes_the_summary_sentence_word_for_word() -> None:
-    page = flatten((DOCS / "index.md").read_text(encoding="utf-8"))
+    page = flatten(read(DOCS / "index.md"))
     assert summary_sentence() in page, "docs/index.md and README.md summarise the work differently"
 
 
@@ -278,7 +454,7 @@ def test_the_citing_page_carries_the_bibtex_the_package_prints() -> None:
     Both are written out in full, so nothing but this check stops the page from
     drifting away from the code as the version or the DOI changes.
     """
-    page = flatten((DOCS / "citing.md").read_text(encoding="utf-8"))
+    page = flatten(read(DOCS / "citing.md"))
     entries = [
         flatten(line)
         for line in msrelapse.citation().splitlines()
@@ -292,13 +468,13 @@ def test_the_citing_page_carries_the_bibtex_the_package_prints() -> None:
 def test_the_reproduction_page_lists_the_rows_of_the_closing_table() -> None:
     """The page names every row ``reproduction_table`` builds, as it names it."""
     table = msrelapse.reproduction_table(msrelapse.load_synthetic_bordi2013())
-    page = flatten((DOCS / "reproducing.md").read_text(encoding="utf-8"))
+    page = flatten(read(DOCS / "reproducing.md"))
     missing = [quantity for quantity in table["quantity"] if quantity not in page]
     assert missing == [], "docs/reproducing.md has drifted from reproduction_table"
 
 
 def test_the_home_page_sends_each_audience_to_its_entry_point() -> None:
-    lines = (DOCS / "index.md").read_text(encoding="utf-8").splitlines()
+    lines = read(DOCS / "index.md").splitlines()
     assert any("10.1155/2013/910321" in line for line in lines)
     assert any(line.startswith("| Audience | What they need | Entry point |") for line in lines)
     for audience, entry_point in (

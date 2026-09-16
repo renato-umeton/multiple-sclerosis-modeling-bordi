@@ -167,7 +167,7 @@ from msrelapse import plots
 
 # Every random step of this notebook is drawn from this one seed.
 SEED = 20130910
-# Bootstrap replicates behind three of the four memorylessness tests. Their p
+# Bootstrap replicates behind each of the four memorylessness tests. Their p
 # value is (1 + exceeded) / (n_boot + 1), a Monte Carlo estimate that moves with
 # the seed: over thirty seeds the p value of the cv test on the health durations
 # spans about 0.57 to 0.92 at 200 replicates and about 0.72 to 0.83 at the 2000
@@ -281,9 +281,9 @@ rhythm of the relapse onsets. A large p value means the record does not contradi
 article, and not that the claim is established: none of these tests has much power on a cohort
 of this size, and the periodicity test has almost none at four onsets per patient.
 
-Three of the four tests read their p value off a bootstrap, so that number carries a Monte
-Carlo error of its own on top of the sampling error of the cohort, and the table shows it to
-three decimals for that reason.
+All four tests read their p value off a bootstrap, so every one of those numbers carries a
+Monte Carlo error of its own on top of the sampling error of the cohort, and the table shows
+them to three decimals for that reason.
 """),
         _code("""
 memoryless_rows = []
@@ -389,11 +389,13 @@ plt.show()
 ## The closing table
 
 Every aggregate the article reports, measured on this record the way the article measured its
-own, with the rule each comparison is judged under. The cell after the table raises if any
-judged row falls outside its tolerance, so that a failed reproduction fails the notebook.
+own, with the rule each comparison is judged under. The two goodness of fit rows read a
+bootstrap, which is drawn from the seed of this notebook like every other random step here.
+The cell after the table raises if any judged row falls outside its tolerance, so that a
+failed reproduction fails the notebook.
 """),
         _code("""
-table = msrelapse.reproduction_table(weekly)
+table = msrelapse.reproduction_table(weekly, rng=SEED)
 table
 """),
         _code("""

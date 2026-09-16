@@ -41,6 +41,7 @@ from scipy.optimize import brentq, least_squares
 from msrelapse._params import PAPER
 
 __all__ = [
+    "DEFAULT_BAND_FRACTION",
     "Barriers",
     "CriticalPoints",
     "Curvatures",
@@ -63,6 +64,19 @@ Side = Literal["health", "relapse"]
 
 Passage = Literal["bottom_to_saddle", "bottom_to_bottom", "band"]
 """Which crossing of the potential one episode is taken to be."""
+
+DEFAULT_BAND_FRACTION: Final = 0.3
+"""Where the two thresholds of a ``band`` passage sit, by default.
+
+The number is the fraction of the distance from the saddle to each well bottom
+at which that state is entered, so a small fraction puts the thresholds close to
+the saddle and a large one deep inside the wells. It is the default of
+:func:`passage_endpoints` and :func:`calibrate` here, and of every band taking
+function of :mod:`msrelapse.simulate`, so that a potential calibrated with
+``passage='band'`` is cut into episodes exactly as it was calibrated. The cohort
+engine of :mod:`msrelapse.cohort` is the one place that departs from it; see
+:data:`msrelapse.cohort.SDE_ENGINE_BAND_FRACTION`.
+"""
 
 _Vector = np.ndarray[tuple[int], np.dtype[np.float64]]
 """One dimensional array of doubles, the shape scipy hands a residual function."""
@@ -597,7 +611,7 @@ def passage_endpoints(
     well: DoubleWell,
     side: Side,
     passage: Passage = "bottom_to_saddle",
-    band_fraction: float = 0.3,
+    band_fraction: float = DEFAULT_BAND_FRACTION,
 ) -> tuple[float, float]:
     """Return the start and the absorbing point of one episode of a given side.
 
@@ -620,10 +634,10 @@ def passage_endpoints(
     band_fraction : float, optional
         Position of the two thresholds of the ``band`` passage, as a fraction
         of the distance from the saddle to each well bottom. Must lie strictly
-        between 0 and 1. It matches the argument of the same name used to cut a
-        simulated trajectory into episodes, so calibrating with
-        ``passage='band'`` and the same fraction makes the simulated durations
-        match the targets.
+        between 0 and 1, and defaults to :data:`DEFAULT_BAND_FRACTION`. It
+        matches the argument of the same name used to cut a simulated trajectory
+        into episodes, so calibrating with ``passage='band'`` and the same
+        fraction makes the simulated durations match the targets.
 
     Returns
     -------
@@ -1181,7 +1195,7 @@ def calibrate(
     *,
     method: Literal["mfpt", "kramers"] = "mfpt",
     passage: Passage = "bottom_to_saddle",
-    band_fraction: float = 0.3,
+    band_fraction: float = DEFAULT_BAND_FRACTION,
 ) -> tuple[float, float]:
     """Return the asymmetry and the noise that reproduce two episode durations.
 
@@ -1210,8 +1224,9 @@ def calibrate(
         Which crossing counts as one episode, see :func:`passage_endpoints`.
         Ignored when `method` is ``kramers``.
     band_fraction : float, optional
-        Threshold position of the ``band`` passage. Ignored when `passage` is
-        not ``band`` or `method` is ``kramers``.
+        Threshold position of the ``band`` passage, which defaults to
+        :data:`DEFAULT_BAND_FRACTION`. Ignored when `passage` is not ``band`` or
+        `method` is ``kramers``.
 
     Returns
     -------

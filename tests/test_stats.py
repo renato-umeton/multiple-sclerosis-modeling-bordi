@@ -13,8 +13,13 @@ from msrelapse import _citation
 from msrelapse._params import PAPER
 from msrelapse.renewal import alternating_renewal, gamma_rates, rates_from_means, relapse_counts
 from msrelapse.stats import (
+    _DISPERSION_FLOOR,
     WEEKS_PER_YEAR,
     ARRResult,
+    _Fit,
+    _fit_negative_binomial,
+    _fit_poisson,
+    _moment_dispersion,
     _nb_negative_loglik,
     _nb_negative_score,
     arr,
@@ -649,6 +654,26 @@ def test_the_likelihood_survives_a_search_that_wanders_off(log_dispersion: float
     parameters = np.array([-0.5, -0.2, log_dispersion])
     assert math.isfinite(_nb_negative_loglik(parameters, design, counts, exposure))
     assert np.all(np.isfinite(_nb_negative_score(parameters, design, counts, exposure)))
+
+
+def test_a_search_that_walks_the_dispersion_to_nothing_reports_the_poisson_fit() -> None:
+    # The moment dispersion around the fitted Poisson mean is what starts the
+    # negative binomial search, and a start above the floor can still walk down
+    # to a dispersion no model can tell from zero. That is the optimiser rather
+    # than the data, so the Poisson fit it was handed comes back unchanged
+    # instead of an interval built on curvature that is not there. It is driven
+    # here by starting the search away from the maximum: these two counts are
+    # all but equidispersed, while the mean the start is taken around is not
+    # their maximiser, which leaves the moment dispersion well clear of the
+    # floor and the likelihood with nowhere to go but back down to it.
+    design = np.ones((2, 1))
+    counts = np.array([22649.0, 22349.0])
+    exposure = np.ones(2)
+    settled = _fit_poisson(design, counts, exposure)
+    displaced = _Fit(settled.coefficients + 0.05, settled.standard_errors, 0.0, True)
+    assert _moment_dispersion(design, counts, exposure, displaced) > _DISPERSION_FLOOR
+
+    assert _fit_negative_binomial(design, counts, exposure, displaced) is displaced
 
 
 def test_the_rate_ratio_is_the_ratio_of_the_two_fitted_rates(

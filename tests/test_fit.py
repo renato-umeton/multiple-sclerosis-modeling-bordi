@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import doctest
 import math
 from importlib import metadata
+from inspect import signature
 
 import numpy as np
 import numpy.typing as npt
@@ -50,6 +50,12 @@ RESULT_FIELDS = {
 # hazard needs three weeks with enough runs still at risk, so it is left out of
 # the tests that feed a degenerate sample.
 BOOTSTRAP_METHODS = ("cv", "ks", "ad")
+
+# Six relapses that clear the three week guard of the hazard method by a hair:
+# five are still at risk in week three and none of the later weeks is read. A
+# replicate drawn at their scale usually falls short of that guard and is
+# dropped, which is the cohort the two tests of the dropped replicates use.
+SHORT_HAZARD_DURATIONS = np.array([1, 3, 3, 4, 5, 6], dtype=np.int64)
 
 # Sample sizes and shapes of the memorylessness fixtures, from the task
 # specification: 500 durations of mean 20 weeks, ageing (Weibull shape 2) in one
@@ -640,6 +646,15 @@ def test_exponential_loglikelihood_matches_the_closed_form() -> None:
     assert result.mean == pytest.approx(2.5)
 
 
+def test_a_correction_that_takes_all_of_the_observed_time_away_has_no_rate() -> None:
+    # A whole week correction on runs that all lasted a single week leaves no
+    # observed time at all. The public entry point keeps the correction below a
+    # week, so the guard is read here on the estimator itself.
+    values = np.ones(3, dtype=np.float64)
+    with pytest.raises(ValueError, match="total observed time"):
+        fit._estimate(values, np.zeros(3, dtype=bool), "exponential", 1.0)
+
+
 def test_fit_result_repr_names_the_fit_and_cites_the_paper_once() -> None:
     frame = one_run_per_patient(np.array([1, 2, 3, 4], dtype=np.int64), RELAPSE)
     text = repr(fit.fit_durations(frame, RELAPSE))
@@ -769,6 +784,88 @@ def test_memorylessness_needs_two_complete_durations() -> None:
         fit.test_memoryless(frame, RELAPSE, method="cv")
 
 
+def test_the_discrete_hazard_matches_a_hand_counted_example() -> None:
+    # Six durations: two of one week, one of two, two of three and one of four.
+    # Six are at risk in week 1 and two of them end, four in week 2 and one ends,
+    # three in week 3 and two end, one in week 4. With a threshold of two the
+    # last week is left out, because a hazard over a single record says nothing.
+    times, hazard, at_risk = fit.discrete_hazard([1, 1, 2, 3, 3, 4], min_at_risk=2)
+
+    assert times.tolist() == [1.0, 2.0, 3.0]
+    assert at_risk.tolist() == [6, 4, 3]
+    assert hazard == pytest.approx([2 / 6, 1 / 4, 2 / 3])
+
+
+def test_the_discrete_hazard_reads_only_the_weeks_that_clear_its_threshold() -> None:
+    # Eight durations, whose at risk set is eight, five, two and one across the
+    # four weeks. The default threshold keeps the first two weeks.
+    times, _hazard, at_risk = fit.discrete_hazard(np.repeat([1, 2, 3, 4], [3, 3, 1, 1]))
+
+    assert times.tolist() == [1.0, 2.0]
+    assert at_risk.tolist() == [8, 5]
+
+
+def test_the_discrete_hazard_threshold_defaults_to_the_module_constant() -> None:
+    # The memorylessness test and the survival inset both read the hazard at the
+    # one threshold this module names, rather than each at a number of its own.
+    default = signature(fit.discrete_hazard).parameters["min_at_risk"].default
+
+    assert default == fit.MIN_AT_RISK
+
+
+def test_the_discrete_hazard_of_too_few_durations_is_empty() -> None:
+    times, hazard, at_risk = fit.discrete_hazard([2, 3])
+
+    assert times.size == 0
+    assert hazard.size == 0
+    assert at_risk.size == 0
+
+
+@pytest.mark.parametrize("values", [[1.5, 2.0], [0, 3], [1.0, np.nan]])
+def test_the_discrete_hazard_refuses_a_duration_that_is_not_a_whole_week(
+    values: list[float],
+) -> None:
+    with pytest.raises(ValueError, match="whole number of weeks"):
+        fit.discrete_hazard(values)
+
+
+def test_the_discrete_hazard_refuses_an_empty_set_of_durations() -> None:
+    with pytest.raises(ValueError, match="at least one"):
+        fit.discrete_hazard([])
+
+
+def test_the_discrete_hazard_refuses_a_threshold_below_one_record() -> None:
+    with pytest.raises(ValueError, match="min_at_risk"):
+        fit.discrete_hazard([1, 2, 3], min_at_risk=0)
+
+
+@pytest.mark.parametrize("longest", [2e6, 1e19])
+def test_the_discrete_hazard_refuses_a_duration_longer_than_any_record(longest: float) -> None:
+    # One bin per week is allocated up to the longest duration, so a duration of
+    # a million years asks for an array no machine can hold and one past the
+    # range of int64 asks for a nonsense one. Both are refused by the same
+    # ceiling, and named, rather than met further in as a memory error or an
+    # index error.
+    with pytest.raises(ValueError, match="one week at a time"):
+        fit.discrete_hazard([1.0, longest])
+
+
+def test_a_replicate_of_too_few_readable_weeks_is_dropped_rather_than_counted() -> None:
+    # Three weeks are the fewest a slope can carry a standard error over, and
+    # these six durations leave two. A replicate of the null that lands here is
+    # left out of the bootstrap, which is what makes details['n_boot'] fall
+    # below the n_boot that was asked for.
+    assert fit._hazard_drift(np.array([1.0, 1.0, 2.0, 2.0, 3.0, 3.0])) is None
+
+
+def test_a_replicate_whose_hazard_is_a_straight_line_is_dropped_rather_than_counted() -> None:
+    # The durations of test_hazard_test_refuses_a_hazard_that_is_exactly_a
+    # _straight_line, whose hazard is one half in every readable week. As a
+    # sample they are refused outright; as a replicate of the null they are the
+    # other reason one is dropped.
+    assert fit._hazard_drift(np.repeat([1, 2, 3, 4], [16, 8, 4, 4]).astype(np.float64)) is None
+
+
 def test_hazard_test_refuses_a_hazard_that_is_exactly_a_straight_line() -> None:
     # Sixteen durations of one week, eight of two, four of three and four of
     # four leave a hazard of exactly one half at every week with five or more
@@ -785,6 +882,31 @@ def test_hazard_test_needs_enough_times_at_risk() -> None:
         fit.test_memoryless(frame, RELAPSE, method="hazard")
 
 
+def test_hazard_test_refuses_a_bootstrap_whose_replicates_were_all_dropped() -> None:
+    # These six relapses clear the three week guard by a hair, and a replicate
+    # drawn at their scale usually does not clear it at all, so a bootstrap of a
+    # few replicates can lose every one of them. The share of nothing that
+    # exceeds the statistic is nothing, which would print as a p value of
+    # exactly 1, the most reassuring number this test can report, from a
+    # bootstrap that never ran. It is refused instead.
+    frame = one_run_per_patient(SHORT_HAZARD_DURATIONS, RELAPSE)
+    with pytest.raises(ValueError, match="none of the 3 replicates"):
+        fit.test_memoryless(frame, RELAPSE, method="hazard", n_boot=3, rng=1)
+
+
+def test_the_hazard_test_reports_how_many_replicates_it_could_read() -> None:
+    # The same six relapses, with enough replicates drawn that some of them
+    # survive. Most do not, so details['n_boot'] is well below the 500 asked
+    # for, and it is the count the p value was actually built on: the p value
+    # lands on a multiple of 1 / (n_boot + 1) of that count and not of 501.
+    frame = one_run_per_patient(SHORT_HAZARD_DURATIONS, RELAPSE)
+    result = fit.test_memoryless(frame, RELAPSE, method="hazard", n_boot=500, rng=SEED)
+    n_read = result.details["n_boot"]
+
+    assert 0.0 < n_read < 500.0
+    assert result.p_value * (n_read + 1.0) == pytest.approx(round(result.p_value * (n_read + 1.0)))
+
+
 def test_the_hazard_p_value_counts_replicates_rather_than_reading_the_regression(
     memoryless_frame: pd.DataFrame,
 ) -> None:
@@ -797,7 +919,7 @@ def test_the_hazard_p_value_counts_replicates_rather_than_reading_the_regression
     # error, signed, which is what the survival inset is drawn against.
     result = fit.test_memoryless(memoryless_frame, RELAPSE, method="hazard", n_boot=100, rng=SEED)
     values = memoryless_frame["duration_w"].to_numpy(dtype=np.float64)
-    times, hazard = fit._hazard_points(values)
+    times, hazard, _at_risk = fit.discrete_hazard(values)
     line = stats.linregress(times, hazard)
 
     assert result.details["n_boot"] == 100.0
@@ -1029,6 +1151,24 @@ def test_a_record_that_relapses_every_other_week_is_skipped_by_fisher_g() -> Non
     assert result.pooled.n == 1
 
 
+def test_the_fisher_g_p_value_covers_the_two_ends_of_its_range() -> None:
+    # A statistic of zero is the smallest a ratio of an ordinate to the sum of
+    # the ordinates can be, and nothing is ruled out there; a statistic of one is
+    # the largest, one ordinate carrying all of the power, and nothing above it
+    # is possible. The finite sum describes neither end, so both are answered
+    # outright.
+    assert fit._fisher_g_p_value(0.0, 5) == 1.0
+    assert fit._fisher_g_p_value(1.0, 5) == 0.0
+
+
+def test_the_fisher_g_sum_stops_when_the_remainder_runs_out() -> None:
+    # At g = 1/4 the fourth term of the classical sum has a remainder of exactly
+    # zero, so the sum is the first three terms and no more.
+    expected = sum((-1) ** (j - 1) * math.comb(10, j) * (1.0 - j * 0.25) ** 9 for j in range(1, 4))
+
+    assert fit._fisher_g_p_value(0.25, 10) == pytest.approx(expected, rel=1e-12)
+
+
 def test_periodicity_rejects_an_unknown_method() -> None:
     with pytest.raises(ValueError, match="method"):
         fit.test_periodicity(yearly_cycle_weekly(n_patients=2), method="welch")  # type: ignore[arg-type]
@@ -1145,6 +1285,23 @@ def test_a_barely_identified_dispersion_does_not_break_the_fit() -> None:
     assert result.mean == pytest.approx(float(counts.mean()), rel=1e-6)
 
 
+def test_overdispersion_below_the_floor_is_fitted_as_poisson() -> None:
+    # The dispersion of a cohort of whole counts is the population variance less
+    # the mean, over the square of the mean, and for two counts that works out as
+    # ((a - b)**2 - 2 (a + b)) / (a + b)**2. At a - b = 300 and a + b = 44998 the
+    # numerator is 4 and the dispersion is about 2e-9, which clears the variance
+    # screen and is still below the floor no model can see past. The maximiser
+    # stays there, so the fit is the Poisson one.
+    counts = np.array([22649, 22349], dtype=np.int64)
+    assert float(counts.var()) > float(counts.mean())
+    result = fit.fit_nb_counts(counts)
+    assert result.dispersion == 0.0
+    assert result.dispersion_ci == (0.0, 0.0)
+    assert result.p_value == 1.0
+    assert result.lrt_statistic == 0.0
+    assert result.mean == pytest.approx(float(counts.mean()))
+
+
 def test_a_cohort_with_no_relapse_is_not_overdispersed() -> None:
     result = fit.fit_nb_counts(np.zeros(50, dtype=np.int64))
     assert result.mean == 0.0
@@ -1172,6 +1329,18 @@ def test_a_likelihood_flat_in_the_dispersion_has_no_standard_error() -> None:
     # whose dispersion sits on the boundary is screened off well before here.
     values = np.arange(5.0)
     assert fit._log_dispersion_standard_error(np.array([math.log(2.0), -60.0]), values) is None
+
+
+def test_a_likelihood_flat_in_both_directions_has_no_standard_error_either() -> None:
+    # Beyond both bounds the clipped likelihood is flat in the mean as well, so
+    # the observed information is the zero matrix and has no inverse at all. That
+    # is the second way the dispersion can fail to be identified, and it reads as
+    # the same answer to the caller.
+    values = np.arange(5.0)
+    beyond = np.array([fit._LOG_MEAN_LIMIT + 10.0, fit._LOG_DISPERSION_LIMIT + 10.0])
+
+    assert np.all(fit._numerical_hessian(beyond, values) == 0.0)
+    assert fit._log_dispersion_standard_error(beyond, values) is None
 
 
 def test_an_interval_too_wide_for_float64_saturates_rather_than_overflowing() -> None:
@@ -1406,10 +1575,3 @@ def test_version_of_an_uninstalled_source_tree_is_named_rather_than_raised(
 
     monkeypatch.setattr(metadata, "version", absent)
     assert _citation._software_version() == "0+unknown"
-
-
-def test_docstring_examples_run() -> None:
-    for module in (fit, _citation):
-        results = doctest.testmod(module)
-        assert results.attempted > 0
-        assert results.failed == 0

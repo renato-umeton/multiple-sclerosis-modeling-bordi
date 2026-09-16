@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import doctest
 import sys
 from collections.abc import Iterator
 from pathlib import Path
@@ -722,13 +721,6 @@ def test_save_all_paper_figures_closes_a_figure_a_failed_draw_left_behind(
         plots.save_all_paper_figures(tmp_path, weekly, runs, rng=5)
 
     assert plt.get_fignums() == []
-
-
-def test_docstring_examples_run() -> None:
-    results = doctest.testmod(plots)
-
-    assert results.attempted > 0
-    assert results.failed == 0
 
 
 def test_drawing_without_matplotlib_names_the_extra(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -80,7 +80,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from msrelapse._params import PAPER
 from msrelapse.io import validate, weekly_to_durations
-from msrelapse.model import DoubleWell, Passage, Side, passage_endpoints
+from msrelapse.model import DEFAULT_BAND_FRACTION, DoubleWell, Passage, Side, passage_endpoints
 
 try:
     import numba
@@ -288,7 +288,7 @@ def exit_times(  # noqa: PLR0917
     dt: float = 0.02,
     rng: Seed = None,
     passage: Passage = "bottom_to_saddle",
-    band_fraction: float = 0.3,
+    band_fraction: float = DEFAULT_BAND_FRACTION,
     bridge_correction: bool = True,
     max_time: float = 20000.0,
     use_numba: bool | None = None,
@@ -321,7 +321,10 @@ def exit_times(  # noqa: PLR0917
     passage : {'bottom_to_saddle', 'bottom_to_bottom', 'band'}, optional
         Which crossing counts as one episode.
     band_fraction : float, optional
-        Threshold position of the ``band`` passage, ignored otherwise.
+        Threshold position of the ``band`` passage, ignored otherwise. The
+        default is :data:`msrelapse.model.DEFAULT_BAND_FRACTION`; the cohort
+        engine cuts its paths at the wider
+        :data:`msrelapse.cohort.SDE_ENGINE_BAND_FRACTION` instead.
     bridge_correction : bool, optional
         Whether to move the absorbing level towards the walker by
         :data:`BRIDGE_CONSTANT` ``sigma sqrt(dt)``, which removes the
@@ -414,7 +417,7 @@ def exit_times(  # noqa: PLR0917
 def to_states(
     x: NDArray[np.float64],
     well: DoubleWell,
-    band_fraction: float = 0.3,
+    band_fraction: float = DEFAULT_BAND_FRACTION,
     initial: int | None = None,
     level_shift: float = 0.0,
 ) -> NDArray[np.int64]:
@@ -435,7 +438,10 @@ def to_states(
         The potential the path was drawn from, which fixes the thresholds.
     band_fraction : float, optional
         Position of the two thresholds, as a fraction of the distance from the
-        saddle to each well bottom. Must lie strictly between 0 and 1.
+        saddle to each well bottom. Must lie strictly between 0 and 1. The
+        default is :data:`msrelapse.model.DEFAULT_BAND_FRACTION`; the cohort
+        engine cuts its paths at the wider
+        :data:`msrelapse.cohort.SDE_ENGINE_BAND_FRACTION` instead.
     initial : int, optional
         State to start every path in. The default starts a path in health when
         its first sample lies below the saddle and in no health otherwise.
@@ -674,7 +680,7 @@ def simulate_weekly(  # noqa: PLR0917
     n_paths: int = 1,
     dt: float = 0.02,
     rng: Seed = None,
-    band_fraction: float = 0.3,
+    band_fraction: float = DEFAULT_BAND_FRACTION,
     x0: float | NDArray[np.float64] | None = None,
     patient_ids: Sequence[str] | None = None,
     use_numba: bool | None = None,
@@ -703,7 +709,10 @@ def simulate_weekly(  # noqa: PLR0917
         Generator to draw the normal increments from, or a seed for
         :func:`numpy.random.default_rng`.
     band_fraction : float, optional
-        Position of the two hysteresis thresholds.
+        Position of the two hysteresis thresholds. The default is
+        :data:`msrelapse.model.DEFAULT_BAND_FRACTION`; the cohort engine cuts
+        its paths at the wider
+        :data:`msrelapse.cohort.SDE_ENGINE_BAND_FRACTION` instead.
     x0 : float or numpy.ndarray, optional
         Starting position of each path. Defaults to the bottom of the health
         well, so every patient starts in remission.

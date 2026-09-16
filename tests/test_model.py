@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
+from inspect import signature
 from itertools import pairwise
 
 import numpy as np
@@ -10,6 +12,7 @@ from hypothesis import strategies as st
 
 from msrelapse._params import PAPER
 from msrelapse.model import (
+    DEFAULT_BAND_FRACTION,
     Barriers,
     CriticalPoints,
     Curvatures,
@@ -587,6 +590,30 @@ def test_calibrate_reports_the_closest_times_it_reached() -> None:
 def test_calibrate_explains_that_the_symmetric_case_is_outside_the_search_box() -> None:
     with pytest.raises(ValueError, match="symmetric potential lies outside the search box"):
         calibrate(100.0, 100.0)
+
+
+@pytest.mark.parametrize("function", [passage_endpoints, calibrate])
+def test_the_band_threshold_defaults_to_the_shared_constant(
+    function: Callable[..., object],
+) -> None:
+    # A calibration and the segmentation that reads it have to cut at the same
+    # band, so neither of these two functions can be called with a band of its
+    # own by default: both resolve to the one constant of this layer.
+    assert signature(function).parameters["band_fraction"].default == DEFAULT_BAND_FRACTION
+
+
+def test_a_calibration_that_probes_an_unreachable_noise_turns_back() -> None:
+    # Targets this long ask for a barrier the search can only reach by driving
+    # the noise down until the exponent of the exit time leaves float64. The
+    # residual there is a penalty that points the search back rather than an
+    # overflow, so the calibration still lands on its targets.
+    beta, sigma = calibrate(1e300, 1e250)
+    well = DoubleWell(PAPER.alpha_reference.value, beta)
+    health = passage_endpoints(well, "health")
+    relapse = passage_endpoints(well, "relapse")
+
+    assert mfpt(well, sigma, "health", *health) == pytest.approx(1e300, rel=1e-6)
+    assert mfpt(well, sigma, "relapse", *relapse) == pytest.approx(1e250, rel=1e-6)
 
 
 @settings(deadline=None, max_examples=200)

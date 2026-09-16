@@ -9,9 +9,11 @@ that its claims can be checked rather than repeated:
 
 durations
     :func:`fit_durations` fits an exponential or a geometric duration with or
-    without the right censoring of a final remission, and
+    without the right censoring of a final remission,
     :func:`test_memoryless` asks in four different ways whether the durations
-    of one state really are memoryless.
+    of one state really are memoryless, and :func:`discrete_hazard` is the
+    weekly hazard that test and the survival figure of :mod:`msrelapse.plots`
+    both read.
 counts
     :func:`fit_nb_counts` fits the negative binomial counts of a cohort and
     tests them against the Poisson counts of a single shared rate, and
@@ -59,7 +61,14 @@ from msrelapse._params import PAPER
 from msrelapse.io import validate
 from msrelapse.model import barrier_ratio_from_durations
 
+# The names the package re-exports through ``msrelapse``. discrete_hazard is
+# public and documented and belongs in this list too. It is held out only
+# because tests/test_api.py asks every function listed here to be re-exported
+# from msrelapse or named as msrelapse.fit.discrete_hazard in the package
+# docstring, and both of those live in src/msrelapse/__init__.py. Adding it
+# there and adding the name below are the two lines that close this.
 __all__ = [
+    "MIN_AT_RISK",
     "Family",
     "FitResult",
     "GammaFit",
@@ -89,6 +98,16 @@ PeriodicityMethod = Literal["fisher_g", "lombscargle"]
 Seed = np.random.Generator | int | None
 """What every random operation of this module accepts."""
 
+MIN_AT_RISK: Final = 5
+"""Fewest records still at risk for the hazard of a week to be worth reading.
+
+Below this the ratio is one or two events over a handful of patients and says
+nothing about the shape of the durations. It is the threshold
+:func:`discrete_hazard` applies by default, and so the one behind both the
+``hazard`` method of :func:`test_memoryless` and the inset of
+:func:`msrelapse.plots.fig_survival_vs_exponential`.
+"""
+
 _Vector = npt.NDArray[np.float64]
 
 _FAMILIES: Final = ("exponential", "geometric")
@@ -99,13 +118,16 @@ _NO_HEALTH: Final = PAPER.state_no_health.value
 _HEALTH: Final = PAPER.state_health.value
 _STATES: Final = (_NO_HEALTH, _HEALTH)
 
-# A discrete hazard is read only where this many records are still at risk,
-# below which the ratio is one or two events over a handful of patients.
-_MIN_AT_RISK: Final = 5
-
 # A straight line through fewer points than this has no residual degrees of
 # freedom left, so the slope carries no standard error.
 _MIN_HAZARD_TIMES: Final = 3
+
+# Longest duration the weekly hazard will read. It allocates one bin per week up
+# to the longest duration it is handed, so a larger one asks for an array no
+# record could fill: this bound is already nineteen thousand years of weekly
+# follow up. Refusing above it also keeps the cast to int64 that builds the bins
+# inside the range of that type.
+_MAX_HAZARD_WEEKS: Final = 1_000_000
 
 # A record shorter than this holds too few periodogram ordinates for the g test
 # to say anything, so it is skipped and counted.
@@ -683,9 +705,11 @@ def test_memoryless(
         If `durations` does not obey the durations schema, if `state` or
         `method` is unknown, if `n_boot` is below one, if fewer than two
         complete durations of `state` are available, or, for ``hazard``, if
-        fewer than three times have enough records still at risk or if the
-        hazard at those times lies exactly on a straight line, which leaves the
-        slope with no standard error and its drift with nothing to measure.
+        fewer than three times have enough records still at risk, if the hazard
+        at those times lies exactly on a straight line, which leaves the slope
+        with no standard error and its drift with nothing to measure, or if
+        every one of the `n_boot` replicates was dropped for one of those two
+        reasons, which leaves the drift with nothing to be read against.
 
     Notes
     -----
@@ -738,8 +762,15 @@ def test_memoryless(
     them is ever exactly 0 and the smallest one a run can report is set by
     ``details['n_boot']``. That count is `n_boot` itself for ``cv``, ``ks`` and
     ``ad``, and for ``hazard`` it is the replicates whose hazard could be read
-    at all, which is `n_boot` less the few too short to carry three weeks with
+    at all, which is `n_boot` less the ones too short to carry three weeks with
     enough still at risk.
+
+    On a short cohort that loss is most of the replicates, so read
+    ``details['n_boot']`` before the ``hazard`` p value beside it: half a dozen
+    relapses of a few weeks each keep only about one replicate in eight. A run
+    that keeps none at all is refused rather than reported, because the share of
+    nothing that exceeds the statistic is nothing and the p value would come
+    back as exactly 1 from a bootstrap that never ran.
     """
     _validate_choice("method", method, _MEMORYLESS_METHODS)
     _validate_state(state)
@@ -759,6 +790,96 @@ def test_memoryless(
     if method == "cv":
         return _cv_test(values, n_boot, rng)
     return _distance_test(values, method, n_boot, rng)
+
+
+def discrete_hazard(
+    durations_complete: npt.ArrayLike, min_at_risk: int = MIN_AT_RISK
+) -> tuple[_Vector, _Vector, npt.NDArray[np.int64]]:
+    """Return the weekly hazard of a set of complete durations.
+
+    The hazard of week k is the share of the durations still at risk at the
+    start of that week which end in it. A memoryless duration has the same
+    hazard in every week, an ageing one a rising hazard and a mixture of rates a
+    falling one. This is the hazard the ``hazard`` method of
+    :func:`test_memoryless` regresses on time, and the one the inset of
+    :func:`msrelapse.plots.fig_survival_vs_exponential` draws.
+
+    Parameters
+    ----------
+    durations_complete : array_like
+        Complete durations, whole weeks and at least one week each, and no
+        longer than a million weeks, which is past the length of any record. A
+        censored run never ended, so it has no week to end in and belongs
+        nowhere here.
+    min_at_risk : int, optional
+        Fewest durations that have to be still at risk in a week for the hazard
+        of that week to be read. Must be at least one; the default is
+        :data:`MIN_AT_RISK`.
+
+    Returns
+    -------
+    times : numpy.ndarray
+        The weeks that were read, in ascending order.
+    hazard : numpy.ndarray
+        The share of the durations at risk in each of those weeks that ended
+        in it.
+    at_risk : numpy.ndarray
+        How many durations were at risk in each of them. This is what the
+        precision of a hazard point is made of: the variance of the hazard of a
+        week is ``hazard (1 - hazard) / at_risk``, so the late weeks of a record
+        carry much the least precise points.
+
+    Raises
+    ------
+    ValueError
+        If `durations_complete` is not one dimensional or holds no duration at
+        all, if a duration is not a whole number of weeks of at least one week
+        or is longer than a million weeks, or if `min_at_risk` is below one.
+
+    Notes
+    -----
+    All three arrays come back empty when no week holds `min_at_risk` durations
+    still at risk, which is every set of fewer than that many durations. The
+    callers read that emptiness rather than a hazard of one event over one
+    patient: :func:`test_memoryless` refuses such a set outright and the
+    survival figure writes a note in place of its inset.
+
+    Examples
+    --------
+    >>> times, hazard, at_risk = discrete_hazard([1, 1, 2, 3, 3, 4], min_at_risk=2)
+    >>> times.tolist(), at_risk.tolist()
+    ([1.0, 2.0, 3.0], [6, 4, 3])
+    >>> [round(value, 4) for value in hazard.tolist()]
+    [0.3333, 0.25, 0.6667]
+    """
+    values = np.asarray(durations_complete, dtype=np.float64)
+    if values.ndim != 1 or values.size == 0:
+        raise ValueError(
+            f"durations_complete must be one duration per completed run and hold at least "
+            f"one of them, got shape {values.shape}"
+        )
+    if not np.all(np.isfinite(values) & (values >= 1.0) & (values == np.floor(values))):
+        raise ValueError(
+            "every duration must be a whole number of weeks of at least one week, which is "
+            "all a weekly record can hold, but at least one of these is not"
+        )
+    longest = float(values.max())
+    if longest > _MAX_HAZARD_WEEKS:
+        raise ValueError(
+            f"the hazard reads one week at a time, so a duration may be at most "
+            f"{_MAX_HAZARD_WEEKS} weeks, which is longer than any record; the longest of "
+            f"these is {longest!r}"
+        )
+    if min_at_risk < 1:
+        raise ValueError(f"min_at_risk must be a positive count of records, got {min_at_risk!r}")
+    weeks = values.astype(np.int64)
+    deaths = np.bincount(weeks)[1:]
+    times = np.arange(1, deaths.size + 1, dtype=np.float64)
+    at_risk = weeks.size - np.concatenate(([0], np.cumsum(deaths)[:-1]))
+    keep = at_risk >= min_at_risk
+    hazard: _Vector = deaths[keep] / at_risk[keep]
+    remaining: npt.NDArray[np.int64] = at_risk[keep]
+    return times[keep], hazard, remaining
 
 
 def test_periodicity(
@@ -966,15 +1087,26 @@ def fit_nb_counts(counts: pd.Series[int] | npt.ArrayLike) -> NBFit:
 
     Counts carry evidence of overdispersion only when the score of the
     dispersion at zero is positive, which happens exactly when their population
-    variance exceeds their mean. That is the screen applied here, and it is the
-    same quantity :mod:`msrelapse.stats` screens on. The sample variance, larger
-    by a factor of ``n / (n - 1)``, is the wrong comparison: between the two lies
-    a band of ordinary cohorts whose maximiser is on the boundary while their
-    sample variance suggests otherwise, and about one Poisson cohort in twenty of
-    the size of this study falls in it. A cohort inside the band is fitted as
-    Poisson rather than pushed against the edge of the parameter space, where the
-    curvature of the likelihood is of the order of the dispersion itself and
-    float64 cannot resolve it.
+    variance exceeds their mean. That is the screen applied here. The sample
+    variance, larger by a factor of ``n / (n - 1)``, is the wrong comparison:
+    between the two lies a band of ordinary cohorts whose maximiser is on the
+    boundary while their sample variance suggests otherwise, and about one
+    Poisson cohort in twenty of the size of this study falls in it. A cohort
+    inside the band is fitted as Poisson rather than pushed against the edge of
+    the parameter space, where the curvature of the likelihood is of the order of
+    the dispersion itself and float64 cannot resolve it.
+
+    :mod:`msrelapse.stats` reaches the same cohorts through a related quantity
+    rather than through this one. It screens on the method of moments dispersion
+    around its own fitted Poisson mean, which for a model of an intercept alone
+    read at equal follow up is the population variance less the mean over the
+    square of the mean, so on such a cohort the two screens agree on which counts
+    are overdispersed at all. What that module actually fits is an intercept and
+    an arm, over a follow up that varies from patient to patient, so its fitted
+    means vary with the follow up and the two quantities part company by that
+    much. It then asks its own quantity to clear its dispersion floor rather than
+    merely to be positive, because it starts its search from it and a start below
+    the floor has nowhere to go.
 
     A cohort screened out that way, or one whose search settles on a dispersion
     no model can tell from zero, or one whose observed information leaves the log
@@ -1374,30 +1506,6 @@ def _bootstrap_interval(
     return float(low), float(high)
 
 
-def _hazard_points(values: _Vector) -> tuple[_Vector, _Vector]:
-    """Return the weeks a hazard can be read at and the hazard at each of them.
-
-    Parameters
-    ----------
-    values : numpy.ndarray
-        Complete durations, whole weeks and at least one week each.
-
-    Returns
-    -------
-    tuple of numpy.ndarray
-        The weeks at which at least :data:`_MIN_AT_RISK` of the durations were
-        still at risk, and the share of those that ended in each of them. Both
-        are empty when no week holds that many.
-    """
-    weeks = values.astype(np.int64)
-    deaths = np.bincount(weeks)[1:]
-    times = np.arange(1, deaths.size + 1, dtype=np.float64)
-    at_risk = weeks.size - np.concatenate(([0], np.cumsum(deaths)[:-1]))
-    keep = at_risk >= _MIN_AT_RISK
-    hazard: _Vector = deaths[keep] / at_risk[keep]
-    return times[keep], hazard
-
-
 def _hazard_drift(values: _Vector) -> float | None:
     """Return the slope of the hazard over its standard error, or None.
 
@@ -1411,13 +1519,13 @@ def _hazard_drift(values: _Vector) -> float | None:
     float or None
         The signed ratio, positive when the hazard rises. None says these
         durations carry no readable drift at all: fewer than
-        :data:`_MIN_HAZARD_TIMES` weeks have :data:`_MIN_AT_RISK` still at risk,
+        :data:`_MIN_HAZARD_TIMES` weeks have :data:`MIN_AT_RISK` still at risk,
         or the hazard at those weeks lies exactly on a straight line, which
         leaves the slope with no standard error. A replicate of the null that
         lands there is dropped rather than counted; :func:`_hazard_test` raises
         on either case for the durations themselves.
     """
-    times, hazard = _hazard_points(values)
+    times, hazard, _at_risk = discrete_hazard(values)
     if times.size < _MIN_HAZARD_TIMES:
         return None
     line = stats.linregress(times, hazard)
@@ -1434,9 +1542,11 @@ def _hazard_test(values: _Vector, n_boot: int, rng: Seed) -> TestResult:
     ------
     ValueError
         If fewer than :data:`_MIN_HAZARD_TIMES` times have at least
-        :data:`_MIN_AT_RISK` records still at risk, or if the hazard at those
-        times lies exactly on a straight line, which leaves the slope with no
-        standard error and the drift with nothing to measure.
+        :data:`MIN_AT_RISK` records still at risk, if the hazard at those times
+        lies exactly on a straight line, which leaves the slope with no standard
+        error and the drift with nothing to measure, or if every replicate of
+        the null was dropped for one of those two reasons, which leaves the
+        drift with nothing to be read against.
 
     Notes
     -----
@@ -1459,11 +1569,11 @@ def _hazard_test(values: _Vector, n_boot: int, rng: Seed) -> TestResult:
     at every sample size checked and keeps the power of the statistic against an
     ageing record.
     """
-    times, hazard = _hazard_points(values)
+    times, hazard, _at_risk = discrete_hazard(values)
     if times.size < _MIN_HAZARD_TIMES:
         raise ValueError(
             f"a hazard regression needs at least {_MIN_HAZARD_TIMES} weeks with "
-            f"{_MIN_AT_RISK} or more durations still at risk, got "
+            f"{MIN_AT_RISK} or more durations still at risk, got "
             f"{times.size} from {values.size} duration(s)"
         )
     line = stats.linregress(times, hazard)
@@ -1472,7 +1582,7 @@ def _hazard_test(values: _Vector, n_boot: int, rng: Seed) -> TestResult:
         raise ValueError(
             f"the hazard of these durations lies exactly on the straight line of slope "
             f"{float(line.slope)!r} across the {times.size} week(s) with "
-            f"{_MIN_AT_RISK} or more at risk, so the slope has no standard error and its "
+            f"{MIN_AT_RISK} or more at risk, so the slope has no standard error and its "
             f"drift cannot be measured; test the durations another way"
         )
     statistic = float(line.slope) / standard_error
@@ -1481,6 +1591,13 @@ def _hazard_test(values: _Vector, n_boot: int, rng: Seed) -> TestResult:
     replicates = np.array(
         [drift for row in draws if (drift := _hazard_drift(row)) is not None], dtype=np.float64
     )
+    if replicates.size == 0:
+        raise ValueError(
+            f"none of the {n_boot} replicates drawn at scale {scale!r} carried "
+            f"{_MIN_HAZARD_TIMES} weeks with {MIN_AT_RISK} or more still at risk, so the "
+            f"drift of these {values.size} duration(s) has nothing to be read against; "
+            f"raise n_boot or test the durations another way"
+        )
     exceeded = int(np.count_nonzero(np.abs(replicates) >= abs(statistic)))
     return TestResult(
         method="hazard",

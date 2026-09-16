@@ -45,7 +45,8 @@ from msrelapse.io import (
 )
 from msrelapse.model import barrier_ratio_from_durations
 
-if TYPE_CHECKING:  # pragma: no cover - the name is needed only by the type checker
+if TYPE_CHECKING:  # pragma: no cover - the names are needed only by the type checker
+    from collections.abc import Mapping
     from importlib.resources.abc import Traversable
 
 __all__ = [
@@ -151,12 +152,16 @@ _PHASE_MAX_HEADROOM: Final = max(
 # comparison should build the table on a larger cohort.
 _BARRIER_RATIO_TOLERANCE: Final = 0.2
 
-# Seed of the parametric bootstrap behind the two Kolmogorov-Smirnov rows, fixed
-# so that the table is the same table every time it is built. It reuses the seed
-# of the cohort only so that this module carries one number rather than two;
-# nothing couples the two, and a reader who wants the bootstrap drawn from
-# somewhere else may give this a value of its own.
+# Seed of the parametric bootstrap behind the two Kolmogorov-Smirnov rows when
+# the caller names no generator, so that one record gives one table. It reuses
+# the seed of the cohort only so that this module carries one number rather than
+# two; nothing couples the two, and a caller who wants the bootstrap drawn from
+# somewhere else passes an rng of their own.
 _KS_SEED: Final = SYNTHETIC_SEED
+
+# The reading of memorylessness the two goodness of fit rows report, which is
+# also the reading a precomputed test has to carry.
+_KS_METHOD: Final = "ks"
 
 _TABLE_COLUMNS: Final = ("quantity", "paper", "reproduced", "tolerance", "within_tolerance")
 
@@ -338,7 +343,13 @@ def regenerate_synthetic_bordi2013(
     return written
 
 
-def reproduction_table(weekly: pd.DataFrame, alpha: float | None = None) -> pd.DataFrame:
+def reproduction_table(
+    weekly: pd.DataFrame,
+    alpha: float | None = None,
+    rng: fit.Seed = None,
+    ks_tests: Mapping[int, fit.TestResult] | None = None,
+    periodicity: fit.PeriodicityResult | None = None,
+) -> pd.DataFrame:
     """Measure on a weekly record every aggregate the article reports.
 
     Each row puts the number the article prints beside the number this record
@@ -356,6 +367,25 @@ def reproduction_table(weekly: pd.DataFrame, alpha: float | None = None) -> pd.D
         Significance level the three p value rows are judged at, the two
         goodness of fit rows and the periodicity row. The default of None uses
         0.05.
+    rng : numpy.random.Generator or int or None, optional
+        Generator behind the parametric bootstrap of the two goodness of fit
+        rows, or a seed for :func:`numpy.random.default_rng`. The default of
+        None draws from the seed this module fixes, so that one record gives one
+        table when no generator is named. It is also handed to
+        :func:`msrelapse.fit.test_periodicity`, whose Fisher g test is exact and
+        draws nothing, so the two goodness of fit rows are the only rows that
+        move with it.
+    ks_tests : mapping of int to msrelapse.fit.TestResult, optional
+        The Kolmogorov-Smirnov reading of each state, keyed by clinical code,
+        already measured on the durations of this same record. A caller that
+        needs the statistic and the sample size beside the p value, which no row
+        of this table carries, measures the test once and hands it in here rather
+        than leaving the table to draw a second bootstrap of its own. The default
+        of None measures both tests here.
+    periodicity : msrelapse.fit.PeriodicityResult, optional
+        The pooled search for a period, already measured on this same record, for
+        a caller that needs the per patient table beside the pooled p value. The
+        default of None measures it here.
 
     Returns
     -------
@@ -378,6 +408,13 @@ def reproduction_table(weekly: pd.DataFrame, alpha: float | None = None) -> pd.D
         for eight weeks of follow up, three relapse onsets and onsets that do
         not fall in every other week. The table is a cohort measurement; a
         handful of records does not carry it.
+
+        A precomputed result is checked against the record before it is
+        reported, since a stale one would put a p value in the table that
+        belongs to no record in it: `ks_tests` has to hold a Kolmogorov-Smirnov
+        reading of each state over exactly the complete durations this record
+        holds, and `periodicity` has to have been measured on exactly these
+        patients.
 
     Notes
     -----
@@ -428,10 +465,13 @@ def reproduction_table(weekly: pd.DataFrame, alpha: float | None = None) -> pd.D
     The two Kolmogorov-Smirnov rows are judged, at `alpha`, against the claim the
     article makes in prose: that the durations of each state carry no typical
     scale. The p value is the parametric bootstrap of
-    :func:`msrelapse.fit.test_memoryless`, drawn from a generator seeded inside
-    this module so that the table is the same table every time it is built, and a
-    p value above `alpha` means the record is consistent with a memoryless
-    duration rather than that it is one.
+    :func:`msrelapse.fit.test_memoryless`, drawn from `rng` and from the seed
+    this module fixes when the caller names none, and a p value above `alpha`
+    means the record is consistent with a memoryless duration rather than that it
+    is one. It is a Monte Carlo estimate, so it moves a little with the
+    generator: on the shipped twin the relapse row lands between about 0.50 and
+    0.56 over the first few seeds, well clear of any level a reader would judge
+    it at.
 
     The periodicity row is judged at `alpha` in the same way, against the
     article's other claim in prose: that the relapses carry no typical period.
@@ -474,13 +514,18 @@ def reproduction_table(weekly: pd.DataFrame, alpha: float | None = None) -> pd.D
             f"the record holds {relapses.size} relapse run(s) and {remissions.size} remission "
             f"run(s), so the table has no mean duration to report for one of the two states"
         )
+    if ks_tests is not None:
+        _check_ks_tests(ks_tests, runs)
+    if periodicity is not None:
+        _check_periodicity(periodicity, weekly)
+    generator = _KS_SEED if rng is None else rng
     phase = weekly.groupby("patient_id", sort=True).size()
     rows = [
         *_duration_rows(relapses, remissions),
         *_range_rows(relapses, remissions, phase),
         _barrier_ratio_row(runs),
-        *_memoryless_rows(runs, level),
-        _periodicity_row(weekly, level),
+        *_memoryless_rows(runs, level, generator, ks_tests),
+        _periodicity_row(weekly, level, generator, periodicity),
     ]
     # Column by column and as object, so that a column holding both a value and
     # a None keeps the None rather than turning it into a missing float, and so
@@ -661,9 +706,99 @@ def _barrier_ratio_row(runs: pd.DataFrame) -> tuple[str, object, object, str | N
     )
 
 
+def _complete_durations(runs: pd.DataFrame, state: int) -> int:
+    """Return how many complete durations of one state a durations frame holds.
+
+    Parameters
+    ----------
+    runs : pandas.DataFrame
+        A frame in the durations schema.
+    state : int
+        The clinical code of the state to count.
+
+    Returns
+    -------
+    int
+        The number of runs of that state that were not cut short by the end of
+        follow up, which is the sample :func:`msrelapse.fit.test_memoryless`
+        reads.
+    """
+    return int(((runs["state"] == state) & ~runs["censored"]).sum())
+
+
+def _check_ks_tests(ks_tests: Mapping[int, fit.TestResult], runs: pd.DataFrame) -> None:
+    """Raise unless a precomputed pair of tests belongs to this record.
+
+    Parameters
+    ----------
+    ks_tests : mapping of int to msrelapse.fit.TestResult
+        What the caller handed in.
+    runs : pandas.DataFrame
+        The durations of the record the table is being built on.
+
+    Raises
+    ------
+    ValueError
+        If a state is missing, if a result is a reading of another kind, or if a
+        result was measured on a different number of durations than this record
+        holds, which is a result that does not belong to it.
+    """
+    for state in (_NO_HEALTH, _HEALTH):
+        result = ks_tests.get(state)
+        if result is None:
+            raise ValueError(
+                f"ks_tests holds no test of state {state:+d}, and the closing table reports "
+                f"one goodness of fit row per state; pass a {_KS_METHOD!r} test of each or "
+                f"none at all"
+            )
+        if result.method != _KS_METHOD:
+            raise ValueError(
+                f"the test of state {state:+d} carries method {result.method!r} and the "
+                f"goodness of fit row reports a {_KS_METHOD!r} p value, so the two do not "
+                f"describe the same reading"
+            )
+        expected = _complete_durations(runs, state)
+        if result.n != expected:
+            raise ValueError(
+                f"the test of state {state:+d} was measured on {result.n} duration(s) and this "
+                f"record holds {expected} complete duration(s) of that state, so the test does "
+                f"not belong to this record"
+            )
+
+
+def _check_periodicity(periodicity: fit.PeriodicityResult, weekly: pd.DataFrame) -> None:
+    """Raise unless a precomputed periodicity result belongs to this record.
+
+    Parameters
+    ----------
+    periodicity : msrelapse.fit.PeriodicityResult
+        What the caller handed in.
+    weekly : pandas.DataFrame
+        The record the table is being built on.
+
+    Raises
+    ------
+    ValueError
+        If the result covers other patients than this record holds, which is a
+        result measured on another record. The pooled test keeps a row for every
+        patient it read, skipped ones included, so the two sets of patient
+        identifiers are the same set whenever the two records are.
+    """
+    measured_on = sorted(str(patient) for patient in periodicity.per_patient["patient_id"])
+    here = sorted(str(patient) for patient in weekly["patient_id"].unique())
+    if measured_on != here:
+        raise ValueError(
+            f"the periodicity result names patients this record does not hold, or misses "
+            f"some it does: it was measured on {len(measured_on)} patient(s) and this record "
+            f"holds {len(here)}, so it belongs to another record"
+        )
+
+
 def _memoryless_rows(
     runs: pd.DataFrame,
     level: float,
+    rng: fit.Seed,
+    precomputed: Mapping[int, fit.TestResult] | None,
 ) -> list[tuple[str, object, object, str | None, bool | None]]:
     """Return the two exponential goodness of fit rows of the table.
 
@@ -673,6 +808,12 @@ def _memoryless_rows(
         A frame in the durations schema.
     level : float
         Significance level the two p values are judged at.
+    rng : numpy.random.Generator or int or None
+        Generator behind the parametric bootstrap, unused where a test is handed
+        in already measured.
+    precomputed : mapping of int to msrelapse.fit.TestResult or None
+        The test of each state, already measured on `runs`, or None to measure
+        both here. It has been checked against the record by the caller.
 
     Returns
     -------
@@ -683,7 +824,11 @@ def _memoryless_rows(
     """
     rows: list[tuple[str, object, object, str | None, bool | None]] = []
     for state, name in ((_NO_HEALTH, "relapse"), (_HEALTH, "remission")):
-        result = fit.test_memoryless(runs, state, method="ks", rng=_KS_SEED)
+        result = (
+            fit.test_memoryless(runs, state, method=_KS_METHOD, rng=rng)
+            if precomputed is None
+            else precomputed[state]
+        )
         rows.append(
             _row(
                 f"exponential fit, {name} durations (KS p value)",
@@ -700,6 +845,8 @@ def _memoryless_rows(
 def _periodicity_row(
     weekly: pd.DataFrame,
     level: float,
+    rng: fit.Seed,
+    precomputed: fit.PeriodicityResult | None,
 ) -> tuple[str, object, object, str | None, bool | None]:
     """Return the periodicity row of the table.
 
@@ -709,6 +856,12 @@ def _periodicity_row(
         A frame in the weekly schema.
     level : float
         Significance level the pooled p value is judged at.
+    rng : numpy.random.Generator or int or None
+        Generator handed to the test. Fisher's g test is exact and draws
+        nothing, so this row does not move with it.
+    precomputed : msrelapse.fit.PeriodicityResult or None
+        The search, already run on `weekly`, or None to run it here. It has been
+        checked against the record by the caller.
 
     Returns
     -------
@@ -717,7 +870,12 @@ def _periodicity_row(
         onsets of every patient, judged against the article's claim that the
         relapses carry no typical period.
     """
-    pooled = fit.test_periodicity(weekly, method="fisher_g").pooled
+    measured = (
+        fit.test_periodicity(weekly, method="fisher_g", rng=rng)
+        if precomputed is None
+        else precomputed
+    )
+    pooled = measured.pooled
     return _row(
         "periodicity of the relapse onsets (pooled Fisher g p value)",
         None,
