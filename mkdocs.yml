@@ -89,6 +89,7 @@ plugins:
 nav:
   - Home: index.md
   - Theory: theory.md
+  - Disability trajectory: disability.md
   - Reproducing the paper: reproducing.md
   - Data: data.md
   - Paper facts: paper_facts.md
@@ -103,6 +104,7 @@ nav:
       - io: api/io.md
       - plots: api/plots.md
       - datasets: api/datasets.md
+      - edss: api/edss.md
       - cli: api/cli.md
       - params: api/params.md
   - Citing: citing.md

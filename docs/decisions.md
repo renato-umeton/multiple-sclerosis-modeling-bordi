@@ -18,6 +18,21 @@ chosen so that its naive means reproduce the printed 100 and 4.3 weeks.
 `msrelapse.cohort.naive_mean_targets` inverts the measurement, and
 `msrelapse.cohort.bordi2013_spec` applies it when `match_naive_means` is true.
 
+**The disability panel of the animation is an EDSS trajectory built from the
+later literature, and it replaces the running count of weeks spent in
+relapse.** That count was the package's only disability proxy, and it read
+badly: its first step equalled the length of the first relapse, so a long first
+attack drew a large permanent jump and a short one drew almost nothing, which
+is a claim the literature does not support. A relapse leaves a residual in
+about 42 percent of cases, the residual is driven by the severity of the attack
+rather than by its length, and the mean net residual is about a quarter of an
+EDSS point, so the honest picture of a first attack is a spike of about one
+point that is mostly gone within six months. `msrelapse.edss` draws that
+picture and [Disability trajectory](disability.md) sets out its parameters,
+their sources and its caveats. It is an illustrative extension and not part of
+the 2013 article, which reports no disability score, and it is labelled that
+way on the page, in the module and in the caption of the animation.
+
 **Time varying parameters are out of scope for version 0.1** and are recorded
 as future work. The asymmetry and the noise of the article are constants of a
 patient. A slowly varying asymmetry or noise, which would let a barrier drift

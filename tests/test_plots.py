@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import sys
 from collections.abc import Iterator
 from pathlib import Path
@@ -10,7 +11,7 @@ import pandas as pd
 import pytest
 from scipy import stats
 
-from msrelapse import fit, plots
+from msrelapse import edss, fit, plots
 from msrelapse._params import PAPER, symmetric_barrier
 from msrelapse.io import events_to_weekly, weekly_to_durations
 from msrelapse.model import DoubleWell, calibrate
@@ -72,7 +73,7 @@ EXPECTED_FILE_NAMES = [
 # The seed is fixed so that the path, and with it every number read off the
 # panels, is the same on every run. It is also chosen so that the record holds
 # one whole relapse, weeks 3 to 9, and ends back in remission: a record of one
-# long remission would make the burden panel a flat line at zero and every
+# long remission would hold the disability panel on its baseline and every
 # assertion about it vacuous.
 ANIMATION_WEEKS = 20
 ANIMATION_WEEKS_PER_FRAME = 5.0
@@ -90,7 +91,13 @@ PNG_MAGIC = b"\x89PNG"
 # test picks one of them out of a panel that also holds static lines.
 PARTICLE_LABEL = "x(t)"
 CURRENT_WEEK_LABEL = "current week"
-BURDEN_LABEL = "Cumulative weeks in relapse (disability proxy)"
+EDSS_LABEL = "EDSS"
+EDSS_DISPLAY_LABEL = "displayed EDSS"
+EDSS_BASELINE_LABEL = "baseline"
+EDSS_AXIS_LABEL = "EDSS (illustrative model, see docs)"
+
+# The lower half of the EDSS scale, which the disability panel always shows.
+EDSS_PANEL_FLOOR = 6.0
 
 # Several tests below build an animation, read the opening frame off its panels
 # and never play it, which is what they are about. matplotlib warns whenever
@@ -820,7 +827,7 @@ class Playback(NamedTuple):
     figure: Figure
     potential: Axes
     series: Axes
-    burden: Axes
+    edss: Axes
 
 
 def calibrated_potential() -> tuple[DoubleWell, float]:
@@ -846,8 +853,8 @@ def build_animation(figure: Figure, **kwargs: Any) -> Any:
 def playback() -> Playback:
     figure = plt.figure(figsize=ANIMATION_FIGURE_SIZE, layout="constrained")
     animation = build_animation(figure)
-    potential, series, burden = figure.axes
-    return Playback(animation, figure, potential, series, burden)
+    potential, series, edss = figure.axes
+    return Playback(animation, figure, potential, series, edss)
 
 
 def play(animation: Any, path: Path) -> Path:
@@ -871,14 +878,19 @@ def test_the_animation_runs_one_frame_per_step_of_weeks(playback: Playback) -> N
     assert len(list(playback.animation.new_frame_seq())) == ANIMATION_FRAMES
 
 
-def test_the_animation_draws_a_potential_a_series_and_a_burden_panel(playback: Playback) -> None:
+def test_the_animation_draws_a_potential_a_series_and_an_edss_panel(playback: Playback) -> None:
     assert (playback.potential.get_xlabel(), playback.potential.get_ylabel()) == ("x", "V(x)")
     assert [label.get_text() for label in playback.series.get_yticklabels()] == [
         "Health",
         "No health",
     ]
     # The words of the label, whatever line the panel has to break them over.
-    assert playback.burden.get_ylabel().split() == BURDEN_LABEL.split()
+    assert playback.edss.get_ylabel().split() == EDSS_AXIS_LABEL.split()
+
+
+def test_the_edss_panel_says_it_is_an_illustrative_model(playback: Playback) -> None:
+    assert "EDSS" in playback.edss.get_ylabel()
+    assert "illustrative" in playback.edss.get_ylabel()
 
 
 def test_the_potential_panel_names_the_two_wells_and_the_saddle(playback: Playback) -> None:
@@ -952,35 +964,95 @@ def weekly_states(playback: Playback) -> Any:
     return ydata(step_line(playback.series))[:-1]
 
 
-def test_the_burden_curve_is_the_running_count_of_relapse_weeks(
+def edss_trace(playback: Playback) -> Any:
+    """Return the continuous disability trace the bottom panel holds."""
+    return ydata(line_labelled(playback.edss, EDSS_LABEL))
+
+
+def test_the_edss_trace_is_driven_by_the_weekly_series(playback: Playback, tmp_path: Path) -> None:
+    play(playback.animation, tmp_path / "played.gif")
+
+    states = weekly_states(playback)
+    trace = edss_trace(playback)
+    onset = int(np.flatnonzero(states == NO_HEALTH)[0])
+    baseline = edss.EDSSSpec().baseline
+
+    assert trace.size == states.size
+    # Nothing has happened yet before the first relapse, so the trace sits on
+    # its baseline; the deficit appears in the week the series turns.
+    assert trace[:onset] == pytest.approx(baseline)
+    assert trace[onset] > baseline
+
+
+def test_the_edss_trace_stays_on_the_scale(playback: Playback, tmp_path: Path) -> None:
+    play(playback.animation, tmp_path / "played.gif")
+
+    trace = edss_trace(playback)
+
+    assert bool(np.all((trace >= 0.0) & (trace <= 10.0)))
+
+
+def test_the_edss_trace_rises_at_a_relapse_and_decays_afterwards(
     playback: Playback, tmp_path: Path
 ) -> None:
     play(playback.animation, tmp_path / "played.gif")
 
     states = weekly_states(playback)
-    burden = ydata(playback.burden.lines[0])
-    assert NO_HEALTH in states
-    assert burden == pytest.approx(np.cumsum(states == NO_HEALTH))
+    trace = edss_trace(playback)
+    onset = int(np.flatnonzero(states == NO_HEALTH)[0])
+
+    # The deficit is at its highest in the first week of the relapse and never
+    # rises again afterwards, because the record holds one relapse alone.
+    assert trace[onset] == pytest.approx(trace.max())
+    assert bool(np.all(np.diff(trace[onset:]) <= 1e-12))
 
 
-def test_the_burden_curve_never_falls(playback: Playback, tmp_path: Path) -> None:
-    play(playback.animation, tmp_path / "played.gif")
-
-    burden = ydata(playback.burden.lines[0])
-    assert NO_HEALTH in weekly_states(playback)
-    assert np.all(np.diff(burden) >= 0.0)
-
-
-def test_the_burden_curve_steps_up_over_a_relapse_and_then_holds(
+def test_the_displayed_trace_sits_on_the_half_point_grid(
     playback: Playback, tmp_path: Path
 ) -> None:
     play(playback.animation, tmp_path / "played.gif")
 
-    burden = ydata(playback.burden.lines[0])
+    displayed = ydata(line_labelled(playback.edss, EDSS_DISPLAY_LABEL))
 
-    # A relapse week adds one to the total and a week of remission adds nothing,
-    # so a record with a relapse in it shows both steps and no other.
-    assert set(np.unique(np.diff(burden)).tolist()) == {0.0, 1.0}
+    assert displayed == pytest.approx(np.round(displayed * 2.0) / 2.0)
+    assert displayed.size == edss_trace(playback).size
+
+
+def test_the_edss_panel_marks_the_baseline_the_record_opens_at(playback: Playback) -> None:
+    baseline = line_labelled(playback.edss, EDSS_BASELINE_LABEL)
+
+    assert ydata(baseline) == pytest.approx([edss.EDSSSpec().baseline] * 2)
+    assert baseline.get_linestyle() == ":"
+
+
+def test_the_edss_panel_names_its_three_lines_in_a_legend(playback: Playback) -> None:
+    # The panel holds three lines a reader has to tell apart, which the two
+    # panels above it do not, so it is the one panel of the figure with a key.
+    legend = playback.edss.get_legend()
+
+    assert legend is not None
+    assert [text.get_text() for text in legend.get_texts()] == [
+        EDSS_LABEL,
+        EDSS_DISPLAY_LABEL,
+        EDSS_BASELINE_LABEL,
+    ]
+
+
+def test_the_edss_panel_shows_the_lower_half_of_the_scale(playback: Playback) -> None:
+    bottom, top = playback.edss.get_ylim()
+
+    assert bottom == 0.0
+    assert top >= EDSS_PANEL_FLOOR
+
+
+def test_the_animation_takes_a_disability_spec_of_its_own() -> None:
+    figure = plt.figure(figsize=ANIMATION_FIGURE_SIZE, layout="constrained")
+    spec = dataclasses.replace(edss.EDSSSpec(), baseline=5.0)
+
+    build_animation(figure, spec=spec)
+
+    baseline = line_labelled(figure.axes[2], EDSS_BASELINE_LABEL)
+    assert ydata(baseline) == pytest.approx([5.0, 5.0])
 
 
 def test_the_potential_panel_keeps_the_limits_of_the_paper(playback: Playback) -> None:
@@ -990,7 +1062,7 @@ def test_the_potential_panel_keeps_the_limits_of_the_paper(playback: Playback) -
 
 def test_the_time_panels_span_the_whole_record(playback: Playback) -> None:
     assert playback.series.get_xlim() == (0.0, float(ANIMATION_WEEKS))
-    assert playback.burden.get_xlim() == (0.0, float(ANIMATION_WEEKS))
+    assert playback.edss.get_xlim() == (0.0, float(ANIMATION_WEEKS))
 
 
 def test_no_panel_rescales_while_the_animation_runs(playback: Playback, tmp_path: Path) -> None:

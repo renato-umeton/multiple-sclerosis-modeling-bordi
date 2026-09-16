@@ -47,12 +47,27 @@ TYPE_ALIASES = (
 EXPORTING_MODULES = (
     "cohort",
     "datasets",
+    "edss",
     "fit",
     "io",
     "model",
     "renewal",
     "simulate",
     "stats",
+)
+
+# The illustrative disability extension, whose names a reader meets through the
+# package rather than through the module that holds them.
+EDSS_EXPORTS = (
+    "EDSSSpec",
+    "EVIDENCE",
+    "Evidence",
+    "edss_trajectory",
+    "episode_draws",
+    "expected_peak",
+    "expected_residual",
+    "relapse_episodes",
+    "summarise",
 )
 
 
@@ -112,6 +127,34 @@ def test_the_weekly_hazard_is_exported_beside_the_tests_that_read_it() -> None:
     assert "discrete_hazard" in msrelapse.fit.__all__
     assert "discrete_hazard" in msrelapse.__all__
     assert msrelapse.discrete_hazard is msrelapse.fit.discrete_hazard
+
+
+@pytest.mark.parametrize("name", EDSS_EXPORTS)
+def test_the_disability_extension_is_reached_through_the_package(name: str) -> None:
+    assert name in msrelapse.__all__
+    assert getattr(msrelapse, name) is getattr(msrelapse.edss, name)
+
+
+def test_the_package_docstring_places_the_disability_extension() -> None:
+    assert msrelapse.__doc__ is not None
+
+    assert "msrelapse.edss" in msrelapse.__doc__
+    assert "illustrative" in msrelapse.__doc__
+
+
+def test_a_trajectory_runs_through_the_public_api() -> None:
+    states = [msrelapse.PAPER.state_no_health.value] * 3
+    states += [msrelapse.PAPER.state_health.value] * 60
+
+    trace = msrelapse.edss_trajectory(states, rng=0)
+    draws = msrelapse.episode_draws(states, rng=0)
+    summary = msrelapse.summarise(trace, draws)
+
+    assert msrelapse.relapse_episodes(states) == [(0, 2)]
+    assert isinstance(msrelapse.EVIDENCE[0], msrelapse.Evidence)
+    assert 0.0 <= summary["max_edss"] <= msrelapse.EDSSSpec().scale_max
+    assert _is_positive_number(msrelapse.expected_peak())
+    assert _is_positive_number(msrelapse.expected_residual())
 
 
 def test_the_export_list_names_nothing_twice() -> None:

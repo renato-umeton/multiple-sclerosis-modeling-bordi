@@ -22,6 +22,9 @@ lays out three panels of its own and hands back the animation over them, which
 the caller plays or saves.
 [`save_double_well_gif`][msrelapse.plots.save_double_well_gif] is that call
 written out to a file, and it is what writes the animation the README shows.
+Its bottom panel is the illustrative EDSS trajectory of
+[`msrelapse.edss`][msrelapse.edss], which is an extension of this package and
+not a quantity the article reports.
 
 Numbers taken from the article, the bin edges of Figure 3 and the digitised bar
 heights of Figures 3 and 4 among them, are read from ``PAPER`` in
@@ -62,6 +65,7 @@ import pandas as pd
 from scipy import stats
 
 from msrelapse._params import PAPER
+from msrelapse.edss import EDSSSpec, edss_trajectory
 from msrelapse.fit import MIN_AT_RISK, discrete_hazard, fit_durations, fit_nb_counts
 from msrelapse.io import validate
 from msrelapse.model import DEFAULT_BAND_FRACTION, CriticalPoints, DoubleWell, calibrate
@@ -157,20 +161,27 @@ _ANIMATION_DT: Final = _FIG7_DT
 _PARTICLE_SIZE: Final = 10
 _CURRENT_WEEK_SIZE: Final = 6
 _SADDLE_SIZE: Final = 5
-# Room left above the highest point of the cumulative curve, so that its last
-# step does not sit on the top of the panel.
-_BURDEN_HEADROOM: Final = 1.1
+# The bottom of the disability panel, and the room left above the highest score
+# the trace reaches, so that a peak does not sit on the top of the panel. The
+# panel never shrinks below the floor, so that a quiet record is not drawn as a
+# dramatic one by a tight axis.
+_EDSS_PANEL_FLOOR: Final = 6.0
+_EDSS_HEADROOM: Final = 0.5
+# The key of the disability panel is laid out in one flat strip, because the
+# panel is wide and short and a stacked key would cover the opening weeks.
+_EDSS_LEGEND_COLUMNS: Final = 3
 # How many frames of a finished animation the contact sheet lays side by side.
 _CONTACT_SHEET_PANELS: Final = 4
 
-# The three moving pieces carry a label, which is how a caller reading a panel
-# back tells them from the static lines beside them.
+# The moving pieces carry a label, which is how a caller reading a panel back
+# tells them from the static lines beside them.
 _PARTICLE_LABEL: Final = "x(t)"
 _CURRENT_WEEK_LABEL: Final = "current week"
 _SADDLE_LABEL: Final = "saddle"
-# Written over two lines because the panel is shorter than the sentence: set on
-# one line the label runs off both ends of its own axis.
-_BURDEN_AXIS_LABEL: Final = "Cumulative weeks in relapse\n(disability proxy)"
+_EDSS_LABEL: Final = "EDSS"
+_EDSS_DISPLAY_LABEL: Final = "displayed EDSS"
+_EDSS_BASELINE_LABEL: Final = "baseline"
+_EDSS_AXIS_LABEL: Final = "EDSS (illustrative model, see docs)"
 
 
 def fig2_sample_patients(
@@ -907,26 +918,29 @@ def animate_double_well(  # noqa: PLR0917
     weeks_per_frame: float = 2.0,
     rng: Seed = None,
     fig: Figure | None = None,
+    spec: EDSSSpec | None = None,
 ) -> FuncAnimation:
-    """Animate one simulated record as the particle, the weekly series and the burden.
+    """Animate one simulated record as the particle, the weekly series and the EDSS.
 
     The figure holds three panels. The potential at the top left carries the
     particle at the current x(t), with the two wells named as the paper names
     the two states and the barrier top between them marked. The weekly record
     at the top right is the step plot of Figure 2, the plus one and minus one
     series against the week, drawn up to the current week and marked there. The
-    panel across the bottom is the cumulative number of weeks spent in the no
-    health state, which grows by the duration of every relapse and never falls.
+    panel across the bottom is the illustrative EDSS trajectory of
+    [`msrelapse.edss`][msrelapse.edss] that the same weekly series drives,
+    drawn as a thin continuous line with the displayed half point score
+    stepping over it and the baseline marked.
 
-    The article prints no such figure. What the animation shows is the model of
-    the article at work, and every number behind it is one the package computes
-    from the two mean durations the article reports.
+    The article prints no such figure. What the two top panels show is the
+    model of the article at work, and every number behind them is one the
+    package computes from the two mean durations the article reports.
 
-    The bottom panel is an illustrative proxy for disability and nothing more.
-    The model carries no disability scale, and no clinical score is computed
-    anywhere in this package: what the curve shows is the stepwise accumulation
-    picture of relapsing-remitting disease, in which each relapse adds its own
-    duration to a running total.
+    The bottom panel is an illustrative extension and not part of the article,
+    which reports no disability score for any of its patients. Its parameters
+    come from a separate literature synthesis, which
+    [`msrelapse.edss.EVIDENCE`][msrelapse.edss.EVIDENCE] records with a source
+    and a DOI for each one. A trace is one draw and never a prognosis.
 
     Parameters
     ----------
@@ -956,6 +970,10 @@ def animate_double_well(  # noqa: PLR0917
     fig : matplotlib.figure.Figure, optional
         The figure to lay the three panels out on, which is added to rather
         than cleared. The default creates one.
+    spec : msrelapse.edss.EDSSSpec, optional
+        The parameters of the disability trace across the bottom. The default
+        is the published one,
+        [`msrelapse.edss.EDSSSpec`][msrelapse.edss.EDSSSpec] as it comes.
 
     Returns
     -------
@@ -991,12 +1009,26 @@ def animate_double_well(  # noqa: PLR0917
     every week the path touches a state as a whole week of it, the rounding rule
     the study applies to its own records.
 
+    The disability trace is drawn from the same generator as the path, after
+    it, so a seed that gave a record gives that same record still and only the
+    bottom panel is new. Its peak and its residual are drawn once per episode
+    and the whole trace is computed before the first frame, so what the panel
+    does as it plays is uncover a curve rather than draw a new one.
+
+    What the bottom panel looks like is one draw and changes from seed to seed.
+    A relapse that draws a residual of zero leaves a spike that decays back to
+    where it started; a relapse that draws a residual equal to its peak leaves
+    a step with no visible transient at all, since the trace never comes back
+    down; and a record whose relapses happen to leave a residual more often
+    than the published 42 percent climbs faster than a typical one. Read a
+    trace as one draw of the model rather than as the shape it usually makes.
+
     Every axis is given its limits before the first frame, the two of the
     potential from the figures of the paper and the time axes from the whole
-    record, so that nothing moves during playback except the three pieces that
-    are meant to.
+    record, so that nothing moves during playback except the pieces that are
+    meant to.
     """
-    record = _animation_record(well, sigma, n_weeks, dt, band_fraction, rng)
+    record = _animation_record(well, sigma, n_weeks, dt, band_fraction, rng, spec)
     weeks = _animation_weeks(int(record.weekly.size), weeks_per_frame)
     # Everything that can be refused has been refused by now, so a figure
     # created here is a figure the call will hand back.
@@ -1984,16 +2016,23 @@ class _AnimationRecord:
         [`msrelapse.simulate.simulate_paths`][msrelapse.simulate.simulate_paths].
     weekly : numpy.ndarray
         The weekly states, one entry per whole week of the record.
-    burden : numpy.ndarray
-        The cumulative number of weeks spent in the no health state, of the
-        same length as `weekly`.
+    edss : numpy.ndarray
+        The continuous illustrative EDSS of
+        [`msrelapse.edss`][msrelapse.edss], of the same length as `weekly`.
+    edss_display : numpy.ndarray
+        That same score on the half point grid of the scale.
+    baseline : float
+        The score the trace opens at, which the panel marks with a reference
+        line.
     """
 
     well: DoubleWell
     dt: float
     x: _Vector
     weekly: _States
-    burden: _States
+    edss: _Vector
+    edss_display: _Vector
+    baseline: float
 
 
 def _animation_record(  # noqa: PLR0917
@@ -2003,6 +2042,7 @@ def _animation_record(  # noqa: PLR0917
     dt: float,
     band_fraction: float,
     rng: Seed,
+    spec: EDSSSpec | None,
 ) -> _AnimationRecord:
     """Simulate the one record the animation plays back.
 
@@ -2020,22 +2060,33 @@ def _animation_record(  # noqa: PLR0917
         Position of the two hysteresis thresholds.
     rng : numpy.random.Generator or int or None
         Generator to draw the noise from, or a seed.
+    spec : EDSSSpec or None
+        The parameters of the illustrative disability trace, or None for the
+        published defaults.
 
     Returns
     -------
     _AnimationRecord
-        The path, the weekly states and the cumulative relapse weeks.
+        The path, the weekly states and the disability trace they drive.
 
     Raises
     ------
     ValueError
         If `n_weeks` is below one, or if any argument of the integration or of
         the mapping to states is out of range.
+
+    Notes
+    -----
+    One generator serves the whole record, and the path is drawn from it first,
+    so that the two top panels hold what they held before the bottom one drew
+    anything: a seed that gave a path gives that same path still.
     """
     if n_weeks < 1:
         raise ValueError(f"n_weeks must be at least 1, got {n_weeks!r}")
+    parameters = EDSSSpec() if spec is None else spec
+    generator = _generator(rng)
     potential, amplitude = _animation_parameters(well, sigma)
-    paths = simulate_paths(potential, amplitude, float(n_weeks) * _WEEK, dt=dt, rng=rng)
+    paths = simulate_paths(potential, amplitude, float(n_weeks) * _WEEK, dt=dt, rng=generator)
     # The same reading of an episode simulate_weekly applies: the hysteresis
     # band, with the Brownian bridge shift that removes the bias of a crossing
     # tested only at the grid points.
@@ -2046,12 +2097,15 @@ def _animation_record(  # noqa: PLR0917
         level_shift=BRIDGE_CONSTANT * amplitude * math.sqrt(dt),
     )
     weekly = to_weekly(states, dt)
+    trace = edss_trajectory(weekly, parameters, generator)
     return _AnimationRecord(
         well=potential,
         dt=dt,
         x=paths.x[0],
         weekly=weekly,
-        burden=_relapse_burden(weekly),
+        edss=trace["edss"].to_numpy(),
+        edss_display=trace["edss_display"].to_numpy(),
+        baseline=parameters.baseline,
     )
 
 
@@ -2112,26 +2166,6 @@ def _animation_weeks(n_weeks: int, weeks_per_frame: float) -> list[int]:
     return [min(n_weeks, math.ceil((frame + 1) * weeks_per_frame)) for frame in range(n_frames)]
 
 
-def _relapse_burden(weekly: _States) -> _States:
-    """Return the running count of the weeks spent in the no health state.
-
-    This is the illustrative disability proxy of the animation. It is not a
-    clinical score: the model carries no disability scale, and the curve only
-    adds the duration of each relapse to a total that never falls.
-
-    Parameters
-    ----------
-    weekly : numpy.ndarray
-        The weekly states of one record.
-
-    Returns
-    -------
-    numpy.ndarray
-        The cumulative count, of the same length as `weekly`.
-    """
-    return np.cumsum(weekly == _NO_HEALTH, dtype=np.int64)
-
-
 def _draw_animation(
     figure: Figure,
     record: _AnimationRecord,
@@ -2157,11 +2191,11 @@ def _draw_animation(
     grid = figure.add_gridspec(2, 2, height_ratios=_ANIMATION_HEIGHT_RATIOS)
     potential_panel = figure.add_subplot(grid[0, 0])
     series_panel = figure.add_subplot(grid[0, 1])
-    burden_panel = figure.add_subplot(grid[1, :])
+    edss_panel = figure.add_subplot(grid[1, :])
     n_weeks = int(record.weekly.size)
     particle = _draw_animated_potential(potential_panel, record.well)
     step, current = _draw_animated_series(series_panel, n_weeks)
-    curve = _draw_animated_burden(burden_panel, record.burden, n_weeks)
+    curve, displayed = _draw_animated_edss(edss_panel, record, n_weeks)
 
     def update(frame: int) -> None:
         drawn = weeks[frame]
@@ -2174,7 +2208,8 @@ def _draw_animation(
         # that point the week the marker sits on would have no width at all.
         step.set_data(np.append(numbers, float(drawn)), np.append(states, states[-1]))
         current.set_data([numbers[-1]], [states[-1]])
-        curve.set_data(numbers, record.burden[:drawn])
+        curve.set_data(numbers, record.edss[:drawn])
+        displayed.set_data(numbers, record.edss_display[:drawn])
         series_panel.set_title(f"Weekly record, week {drawn} of {n_weeks}")
 
     update(0)
@@ -2258,31 +2293,62 @@ def _draw_animated_series(ax: Axes, n_weeks: int) -> tuple[Line2D, Line2D]:
     return step, current
 
 
-def _draw_animated_burden(ax: Axes, burden: _States, n_weeks: int) -> Line2D:
-    """Set the cumulative panel up and return the curve that grows across it.
+def _draw_animated_edss(ax: Axes, record: _AnimationRecord, n_weeks: int) -> tuple[Line2D, Line2D]:
+    """Set the disability panel up and return the two traces that grow across it.
 
     Parameters
     ----------
     ax : matplotlib.axes.Axes
         The panel to draw on.
-    burden : numpy.ndarray
-        The cumulative relapse weeks of the whole record, which fixes the
-        height of the panel.
+    record : _AnimationRecord
+        The record being played back, which fixes the height of the panel and
+        the level the baseline is marked at.
     n_weeks : int
         Length of the whole record, in weeks, which fixes the time axis.
 
     Returns
     -------
-    matplotlib.lines.Line2D
-        The curve, empty until the first frame.
+    tuple of matplotlib.lines.Line2D
+        The continuous score and the displayed half point score, both empty
+        until the first frame.
+
+    Notes
+    -----
+    The panel is the illustrative EDSS trajectory of
+    [`msrelapse.edss`][msrelapse.edss]. It is an extension of this package and
+    not a quantity the article reports.
+
+    It is the one panel of the figure that carries a legend, because it is the
+    one holding three lines a reader has to tell apart. The two panels above it
+    hold a single curve each and name what it is in the title or the axis.
     """
-    (curve,) = ax.plot([], [], linewidth=1.2, color=_CURVE_COLOUR)
+    (curve,) = ax.plot([], [], linewidth=0.9, color=_CURVE_COLOUR, label=_EDSS_LABEL)
+    (displayed,) = ax.plot(
+        [],
+        [],
+        drawstyle="steps-post",
+        linewidth=1.6,
+        color="tab:red",
+        label=_EDSS_DISPLAY_LABEL,
+    )
+    ax.axhline(
+        record.baseline,
+        linestyle=":",
+        linewidth=1.0,
+        color=_GUIDE_COLOUR,
+        label=_EDSS_BASELINE_LABEL,
+    )
     ax.set_xlim(0.0, float(n_weeks))
-    # A record holding no relapse at all still needs a panel with a height.
-    ax.set_ylim(0.0, _BURDEN_HEADROOM * max(1.0, float(burden[-1])))
+    # A quiet record keeps the whole of the lower half of the scale, so that a
+    # small rise is not drawn as a large one by an axis fitted to it.
+    top = max(_EDSS_PANEL_FLOOR, math.ceil(float(record.edss.max()) + _EDSS_HEADROOM))
+    ax.set_ylim(0.0, top)
     ax.set_xlabel("Time (week)")
-    ax.set_ylabel(_BURDEN_AXIS_LABEL)
-    return curve
+    ax.set_ylabel(_EDSS_AXIS_LABEL)
+    # The key sits in the upper left, which the trace reaches only on a record
+    # that has climbed most of the drawn scale.
+    ax.legend(loc="upper left", ncols=_EDSS_LEGEND_COLUMNS, fontsize="small", framealpha=1.0)
+    return curve, displayed
 
 
 def _sample_at(record: _AnimationRecord, weeks: int) -> int:

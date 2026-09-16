@@ -74,7 +74,12 @@ BIB_KEYS = ("bordi2013", "benzi1983", "kramers1940", "day1983", "zhu2014", "keen
 # example broken with every gate green: mkdocs renders a block without running
 # it, and ruff is pointed away from docs/ so that the prose keeps its own
 # spelling.
-RUNNABLE_DOCS_PAGES = ("docs/index.md", "docs/citing.md", "docs/data.md")
+RUNNABLE_DOCS_PAGES = (
+    "docs/index.md",
+    "docs/citing.md",
+    "docs/data.md",
+    "docs/disability.md",
+)
 
 # The pages holding a Python block that is deliberately not run, with the
 # reason each one is left out, so that the omission is a decision on the page.
@@ -112,6 +117,11 @@ ANIMATION_GIF = "docs/assets/double_well.gif"
 ANIMATION_CONTACT_SHEET = "docs/assets/double_well_frames.png"
 MAX_GIF_BYTES = 3 * 1024 * 1024
 MAX_CONTACT_SHEET_BYTES = 1024 * 1024
+
+# The published page of the illustrative disability extension. The README ships
+# as the package long description, where a relative link breaks, so its caption
+# reaches that page by its address on the site.
+DISABILITY_URL = f"{DOCUMENTATION}disability/"
 
 # Every action the workflows are allowed to call, at the version the repository
 # standardised on. A new action, or a bumped version, is named here first.
@@ -536,6 +546,13 @@ def test_readme_links_nothing_by_a_relative_path() -> None:
 def test_readme_shows_the_animation() -> None:
     assert f"]({ANIMATION_GIF})" in read("README.md")
     assert (ROOT / ANIMATION_GIF).is_file()
+
+
+def test_readme_caption_sends_the_reader_to_the_disability_page() -> None:
+    """The caption names the bottom panel and links the page that explains it."""
+    readme = flatten(read("README.md"))
+    assert "illustrative EDSS trajectory" in readme
+    assert f"]({DISABILITY_URL})" in readme
 
 
 def test_the_animation_and_its_contact_sheet_stay_small_enough_to_commit() -> None:

@@ -16,6 +16,7 @@ import os
 import re
 import shutil
 import subprocess
+from collections import Counter
 from collections.abc import Callable
 from importlib.util import find_spec
 from pathlib import Path
@@ -66,9 +67,49 @@ API_PAGES = {
     "io": "msrelapse.io",
     "plots": "msrelapse.plots",
     "datasets": "msrelapse.datasets",
+    "edss": "msrelapse.edss",
     "cli": "msrelapse.cli",
     "params": "msrelapse._params",
 }
+
+# The page of the illustrative disability extension and the page it follows in
+# the nav, so that a reader meets the article first and the extension after it.
+DISABILITY_PAGE = "disability.md"
+THEORY_PAGE = "theory.md"
+
+# A DOI, as a page of this site and an evidence record of ``msrelapse.edss``
+# both write one. Case is not significant in a DOI, so the checks below compare
+# them in lower case.
+DOI = re.compile(r"10\.\d{4,9}/\S+")
+
+# The header of the parameter table of the disability page, and a short
+# citation as the Sources column of that table writes one: a surname, a year,
+# and, where two references share both, the words in brackets that tell them
+# apart, which have to be read off the entry they point at.
+PARAMETER_TABLE_HEADER = "| Parameter | Central value | Range | Unit | Sources |"
+SHORT_CITATION = re.compile(r"([A-Z][A-Za-z]+) ((?:19|20)\d{2})(?: \(([^)]+)\))?")
+
+# The phrases the caption under the animation carries in the README and on the
+# home page alike, so that the two describe the bottom panel the same way.
+CAPTION_PHRASES = (
+    "illustrative EDSS trajectory",
+    "six months",
+    "42 percent",
+    "residual of at least 0.5",
+    "not a typical one",
+)
+
+# Where one sentence of a caption ends and the next begins: a full stop, then
+# the space before a capital or an opening bracket. A decimal point is followed
+# by a digit, so 2.0 and 4.3 stay whole.
+SENTENCE_BREAK = re.compile(r"(?<=\.)\s+(?=[A-Z\[])")
+
+# What a Markdown link looks like in the middle of a sentence. The README ships
+# as the package long description, where a relative link breaks, so its caption
+# reaches the disability page by its address on the site while the home page
+# reaches the file beside it. Those sentences are the ones the two captions are
+# allowed to differ on.
+MARKDOWN_LINK = "]("
 
 # Pages that live under docs/ but are not part of the published site.
 EXCLUDED = ("plan1.md", "paper/", "pull_request_template.md")
@@ -166,6 +207,144 @@ def summary_sentence() -> str:
                 end += 1
             return flatten("\n".join(lines[start:end]))
     raise AssertionError(f"{SUMMARY_SOURCE} no longer holds the summary sentence to quote")
+
+
+def page_dois(text: str) -> list[str]:
+    """Return every DOI written in one page, in lower case and in reading order.
+
+    The punctuation that can close a sentence is dropped from the end of a
+    match, since no DOI of this project ends in one.
+
+    Parameters
+    ----------
+    text : str
+        The page to read.
+
+    Returns
+    -------
+    list of str
+        One entry per DOI written, duplicates kept.
+    """
+    return [match.group(0).rstrip(".,;").lower() for match in DOI.finditer(text)]
+
+
+def references_of(text: str) -> str:
+    """Return the references section of a page, from its heading to the end.
+
+    Parameters
+    ----------
+    text : str
+        The page to read.
+
+    Returns
+    -------
+    str
+        The text under the references heading.
+
+    Raises
+    ------
+    AssertionError
+        If the page has no references section.
+    """
+    marker = "\n## References\n"
+    if marker not in text:
+        raise AssertionError("the page has no references section to resolve its citations in")
+    return text[text.index(marker) + len(marker) :]
+
+
+def reference_entries(text: str) -> list[str]:
+    """Return the entries of the references section of a page, one line each.
+
+    An entry is a paragraph of that section carrying a DOI, which leaves out the
+    sentence that introduces the list.
+
+    Parameters
+    ----------
+    text : str
+        The page to read.
+
+    Returns
+    -------
+    list of str
+        One flattened entry per reference, in the order the page lists them.
+    """
+    blocks = [flatten(block) for block in references_of(text).split("\n\n")]
+    return [block for block in blocks if "doi:" in block]
+
+
+def parameter_table_citations(text: str) -> list[tuple[str, str, str, str]]:
+    """Return every short citation of the Sources column of the parameter table.
+
+    Parameters
+    ----------
+    text : str
+        The disability page.
+
+    Returns
+    -------
+    list of tuple of str
+        One entry per citation written, in reading order, each holding the short
+        form as the page writes it, the surname, the year, and the words in
+        brackets that tell two references of the same surname and year apart,
+        which is empty where the citation carries none.
+
+    Raises
+    ------
+    AssertionError
+        If the page holds no parameter table.
+    """
+    lines = text.splitlines()
+    if PARAMETER_TABLE_HEADER not in lines:
+        raise AssertionError("the page has no parameter table to read the citations of")
+    citations: list[tuple[str, str, str, str]] = []
+    for row in lines[lines.index(PARAMETER_TABLE_HEADER) + 2 :]:
+        if not row.startswith("|"):
+            break
+        sources = row.strip().strip("|").split("|")[-1]
+        citations.extend(
+            (match.group(0), match.group(1), match.group(2), match.group(3) or "")
+            for match in SHORT_CITATION.finditer(sources)
+        )
+    return citations
+
+
+def caption_of(text: str) -> list[str]:
+    """Return the sentences of the caption written under the animation.
+
+    The caption is the paragraph under the line that shows the GIF. It comes
+    back flattened and split into sentences, without the sentences that carry a
+    Markdown link, since the README and the home page link the disability page
+    differently and are free to differ there.
+
+    Parameters
+    ----------
+    text : str
+        The README or the home page.
+
+    Returns
+    -------
+    list of str
+        One entry per sentence of the caption, in reading order.
+
+    Raises
+    ------
+    AssertionError
+        If the page does not show the animation or writes no caption under it.
+    """
+    lines = text.splitlines()
+    shown = [index for index, line in enumerate(lines) if f"{ANIMATION_IMAGE})" in line]
+    if not shown:
+        raise AssertionError("the page does not show the animation, so it captions nothing")
+    start = shown[0] + 1
+    while start < len(lines) and not lines[start].strip():
+        start += 1
+    end = start
+    while end < len(lines) and lines[end].strip():
+        end += 1
+    caption = flatten("\n".join(lines[start:end]))
+    if not caption:
+        raise AssertionError("the page shows the animation and writes no caption under it")
+    return [sentence for sentence in SENTENCE_BREAK.split(caption) if MARKDOWN_LINK not in sentence]
 
 
 def package_modules() -> set[str]:
@@ -791,6 +970,96 @@ def test_the_home_page_quotes_the_summary_sentence_word_for_word() -> None:
 def test_the_home_page_shows_the_animation() -> None:
     assert f"]({ANIMATION_IMAGE})" in read(DOCS / "index.md")
     assert (DOCS / ANIMATION_IMAGE).is_file()
+
+
+def test_the_animation_caption_describes_the_bottom_panel_the_same_way_twice() -> None:
+    """The README and the home page say the same thing about the EDSS trace.
+
+    The two captions are written out in full in their own pages, so nothing but
+    this check stops one of them from drifting away from the other. They are
+    compared sentence by sentence, with the sentences carrying a link left out,
+    since only the address of the disability page differs between the two.
+    """
+    readme = caption_of(read(SUMMARY_SOURCE))
+    home = caption_of(read(DOCS / "index.md"))
+    assert readme == home, "README.md and docs/index.md caption the animation differently"
+    for phrase in CAPTION_PHRASES:
+        assert any(phrase in sentence for sentence in home), (
+            f"the caption no longer says {phrase!r} about the bottom panel"
+        )
+
+
+def test_the_disability_page_follows_the_theory_page_in_the_nav() -> None:
+    targets = nav_targets(load_config()["nav"])
+    assert DISABILITY_PAGE in targets, "mkdocs.yml navigates to no disability page"
+    assert targets.index(DISABILITY_PAGE) == targets.index(THEORY_PAGE) + 1
+
+
+def test_the_disability_page_opens_by_saying_it_is_not_the_article() -> None:
+    """The warning stands above everything else a reader of that page meets."""
+    text = read(DOCS / DISABILITY_PAGE)
+    assert text.startswith("# Disability trajectory (illustrative extension)")
+    opening = text[: text.index("\n## ")]
+    assert "!!! warning" in opening
+    for phrase in ("no disability score", "prognosis", "clinical"):
+        assert phrase in opening, f"the opening warning does not mention {phrase!r}"
+
+
+def test_every_doi_of_the_evidence_records_is_cited_on_the_disability_page() -> None:
+    """``msrelapse.edss.EVIDENCE`` and the page rest on the same literature.
+
+    The module carries the numbers and the page explains them, so a source that
+    reaches one of the two and not the other is a source a reader cannot check.
+    """
+    cited = set(page_dois(read(DOCS / DISABILITY_PAGE)))
+    missing = sorted({record.doi.lower() for record in msrelapse.EVIDENCE} - cited)
+    assert missing == [], f"docs/{DISABILITY_PAGE} cites none of these evidence DOIs: {missing}"
+
+
+def test_every_doi_of_the_disability_page_is_listed_once_in_its_references() -> None:
+    """Every DOI the page writes stands in its reference list exactly once.
+
+    The body of the page cites by surname and year and writes no DOI of its
+    own, so what this covers is that the list itself holds no entry twice. That
+    the short citations reach the entries is the check below.
+    """
+    text = read(DOCS / DISABILITY_PAGE)
+    listed = Counter(page_dois(references_of(text)))
+    unresolved = sorted(doi for doi in set(page_dois(text)) if listed[doi] != 1)
+    assert unresolved == [], (
+        "each of these DOIs is cited on the page and is listed in its references "
+        f"either not at all or more than once: {unresolved}"
+    )
+
+
+def test_every_short_citation_of_the_parameter_table_names_one_reference() -> None:
+    """The Sources column cites by surname and year, and each form reaches one entry.
+
+    The references at the foot of the page carry the DOIs, so a short form that
+    names no entry, or two of them, is a source a reader cannot follow. Two
+    surnames appear twice with the same year and are told apart by the words in
+    brackets, which have to be read off the entry they point at.
+    """
+    text = read(DOCS / DISABILITY_PAGE)
+    entries = reference_entries(text)
+    assert entries, f"docs/{DISABILITY_PAGE} lists no references"
+    citations = parameter_table_citations(text)
+    assert citations, "the parameter table cites nothing"
+    unresolved = set()
+    for written, surname, year, bracketed in citations:
+        named = [
+            entry
+            for entry in entries
+            if entry.startswith(f"{surname} ")
+            and year in entry
+            and bracketed.lower() in entry.lower()
+        ]
+        if len(named) != 1:
+            unresolved.add(f"{written} names {len(named)} of them")
+    assert unresolved == set(), (
+        "each of these citations of the parameter table reaches no reference of "
+        f"the page or more than one: {sorted(unresolved)}"
+    )
 
 
 def test_the_animation_assets_are_never_read_as_prose() -> None:

@@ -546,6 +546,15 @@ $\alpha$; and no goodness of fit statistic of any kind, anywhere. Section 13 of
 [Paper facts](paper_facts.md) records each of them with the search that
 established it.
 
+Disability is the largest of those silences. The article reports two states and
+their durations, and no EDSS, no disability score and no clinical outcome for
+any of its 70 patients, so nothing on this page says how a record of relapses
+turns into a level of impairment. The package answers that question outside the
+article, in `msrelapse.edss`, from the literature that followed it, and
+[Disability trajectory](disability.md) sets out that extension, its evidence
+and its limits. It is an illustration, not a result of the article, and this
+page stays about the article.
+
 ## References
 
 Bordi I, Umeton R, Ricigliano VAG, Annibali V, Mechelli R, Ristori G, Grassi F,

@@ -51,10 +51,16 @@ follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
   directory says which release wrote it.
 - An animation of the model at work, `msrelapse.plots.animate_double_well` and
   the `animate` subcommand behind it: the particle in the calibrated double
-  well, the weekly relapse and remission series it produces, and the cumulative
-  weeks in relapse, which is an illustrative disability proxy and not a
-  clinical score. The README and the home page of the site show the file it
-  writes.
+  well, the weekly relapse and remission series it produces, and the
+  illustrative EDSS trajectory that series drives, which is not a clinical
+  score. The README and the home page of the site show the file it writes.
+- `msrelapse.edss`: an illustrative EDSS trajectory driven by the weekly
+  relapse series, with a baseline, a peak deficit and a residual drawn per
+  episode and an optional independent progression term, every parameter taken
+  from the literature that followed the article and carried with its source in
+  an evidence record. The article reports no disability score, so this is an
+  extension and not a reproduction, and the Disability trajectory page sets out
+  the model, its evidence, its validation anchors and its caveats.
 - Four notebooks: the reproduction, the approach of the exit times to an
   exponential, the Poisson to negative binomial story, and a two arm virtual
   trial.

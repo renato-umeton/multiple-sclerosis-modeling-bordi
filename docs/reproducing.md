@@ -197,9 +197,18 @@ record. The command writes `docs/assets/double_well.gif`, 260 frames of about
 1.4 MB in all, and the contact sheet beside it, which is four evenly spaced
 frames of the finished file as a static PNG for a reader who would rather not
 play it. `--weeks`, `--fps` and `--dpi` change how long the animation runs and
-how large the file is. The bottom panel of the animation is an illustrative
-disability proxy, the running count of weeks spent in relapse, and no clinical
-disability score is modelled anywhere in this package.
+how large the file is.
+
+The bottom panel is the EDSS trace of `msrelapse.edss_trajectory`, an
+illustrative trajectory driven by the same weekly series and built from the
+literature that followed the article rather than from the article, which
+reports no disability score of any kind. The seed is unchanged: 4 is still the
+seed the committed file is written under, and it still gives the same path, the
+same weekly series and the same two upper panels as it did when the bottom
+panel was the running count of weeks spent in relapse. What the trace is, what
+each of its parameters rests on and what it cannot be used for are on
+[Disability trajectory](disability.md). Nothing in that panel is a clinical
+score.
 
 ## The four notebooks
 

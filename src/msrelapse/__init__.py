@@ -32,6 +32,12 @@ follow up helper
 lives in [`msrelapse.plots`][msrelapse.plots], which is imported explicitly, so
 that importing this package needs no matplotlib.
 
+One group of exports is an extension rather than a reproduction:
+[`msrelapse.edss`][msrelapse.edss] turns a weekly relapse series into an
+illustrative EDSS trajectory from published relapse recovery data, a quantity
+the article reports for none of its patients, and its ``EVIDENCE`` carries the
+source and the DOI of every number that model uses.
+
 Examples
 --------
 >>> import msrelapse
@@ -74,6 +80,17 @@ from msrelapse.datasets import (
     provenance,
     regenerate_synthetic_bordi2013,
     reproduction_table,
+)
+from msrelapse.edss import (
+    EVIDENCE,
+    EDSSSpec,
+    Evidence,
+    edss_trajectory,
+    episode_draws,
+    expected_peak,
+    expected_residual,
+    relapse_episodes,
+    summarise,
 )
 from msrelapse.fit import (
     Family,
@@ -164,6 +181,7 @@ if _TYPE_CHECKING:  # pragma: no cover - the name is needed only by the type che
 __version__ = "0.1.0"
 
 __all__ = [
+    "EVIDENCE",
     "HAS_NUMBA",
     "PAPER",
     "SYNTHETIC_SEED",
@@ -176,7 +194,9 @@ __all__ = [
     "CriticalPoints",
     "Curvatures",
     "DoubleWell",
+    "EDSSSpec",
     "Engine",
+    "Evidence",
     "Family",
     "FitResult",
     "GammaFit",
@@ -209,10 +229,14 @@ __all__ = [
     "discrete_hazard",
     "durations",
     "durations_to_weekly",
+    "edss_trajectory",
     "effective_onset_rate",
     "empirical",
+    "episode_draws",
     "events_to_weekly",
     "exit_times",
+    "expected_peak",
+    "expected_residual",
     "fit_durations",
     "fit_gamma_rates",
     "fit_nb_counts",
@@ -237,6 +261,7 @@ __all__ = [
     "read_weekly",
     "regenerate_synthetic_bordi2013",
     "relapse_counts",
+    "relapse_episodes",
     "relapse_free",
     "relapse_free_curve",
     "reproduction_table",
@@ -244,6 +269,7 @@ __all__ = [
     "short_citation",
     "simulate_paths",
     "simulate_weekly",
+    "summarise",
     "test_memoryless",
     "test_periodicity",
     "to_states",

@@ -26,20 +26,28 @@ duration fits, the trial statistics and a cohort generator, and it keeps every
 number the article reports in one module together with the sentence each one
 comes from, so that no reported value is written down twice.
 
-![One simulated patient over ten years: the particle in the double well, the weekly relapse and remission series, and the cumulative weeks in relapse](docs/assets/double_well.gif)
+![One simulated patient over ten years: the particle in the double well, the weekly relapse and remission series, and an illustrative EDSS trajectory](docs/assets/double_well.gif)
 
 The three panels are one simulated record of 520 weeks: the particle in the
 asymmetric double well, the weekly series of relapses and remissions that path
-produces, and the running total of weeks spent in relapse, all at the asymmetry
-and the noise calibrated to the two mean durations the article reports, about
-100 weeks in remission and about 4.3 weeks in relapse, although the episodes
-drawn run longer than those two means, since the calibration times the passage
-from the bottom of a well to the saddle and every week the path touches the
-relapse state counts as a whole relapse week. That running total is an
-illustrative disability proxy and nothing more: each relapse adds its own
-duration to it, which is the stepwise accumulation picture of
-relapsing-remitting disease, and no clinical disability score is modelled
-anywhere in this package.
+produces, and an illustrative EDSS trajectory the same series drives, the first
+two at the asymmetry and the noise calibrated to the two mean durations the
+article reports, about 100 weeks in remission and about 4.3 weeks in relapse,
+although the episodes drawn run longer than those two means, since the
+calibration times the passage from the bottom of a well to the saddle and every
+week the path touches the relapse state counts as a whole relapse week. The
+bottom panel is an extension and not part of the article, which reports no
+disability score for any of its patients. It opens at a baseline of 2.0 after
+the first attack, gives every relapse a nadir deficit drawn from the published
+distribution and mostly recovered within six months, and leaves a residual of
+at least 0.5 after 42 percent of them, every number of it taken from the
+literature with its source. The record drawn here is one draw of that model and
+not a typical one: four of its five relapses leave a residual, and the first
+three leave the whole of the deficit they peaked at, so they step up without
+the spike a relapse recovered from leaves behind. The
+[disability page](https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/disability/)
+explains the model, the evidence behind it and what it cannot do, and no trace
+it draws is a prognosis.
 
 ## What it gives you
 
