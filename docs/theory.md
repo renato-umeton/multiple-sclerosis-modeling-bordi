@@ -42,7 +42,8 @@ The article fixes this in three places: the encoding of the clinical series,
 the sentence that names $x_1$ health and $x_2$ no health, and the axis labels
 of its Figure 2. The package follows it everywhere, and the two codes are held
 in `PAPER.state_health` and `PAPER.state_no_health` rather than written into
-any module.
+any module, although every figure it draws labels the no health state *Flare*,
+the word a clinic uses for it.
 
 ## The deterministic core, equation (1)
 

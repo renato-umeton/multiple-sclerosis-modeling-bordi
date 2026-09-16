@@ -60,6 +60,7 @@ import msrelapse
 from msrelapse import _citation, datasets, fit, plots
 from msrelapse._params import PAPER
 from msrelapse.cohort import CohortSpec, Engine, bordi2013_spec, generate
+from msrelapse.edss import DEFAULT_SPEC
 from msrelapse.fit import Family, MemorylessMethod, PeriodicityMethod
 from msrelapse.io import (
     Schema,
@@ -395,9 +396,16 @@ def _add_animate(subcommands: argparse._SubParsersAction[argparse.ArgumentParser
         description=(
             "Simulate one record on the potential calibrated to the two mean durations "
             "the article reports and write it as an animated GIF of three panels: the "
-            "particle in the double well, the weekly relapse and remission series, and "
-            "the cumulative weeks in relapse, which is an illustrative disability proxy "
-            "and not a clinical score. Needs matplotlib, the plot extra."
+            "particle in the double well, the weekly flare and remission series, and an "
+            "illustrative EDSS trajectory the same series drives. That third panel opens "
+            f"at a baseline of {DEFAULT_SPEC.baseline:.1f} after the first attack, gives every "
+            "flare a nadir deficit drawn from the published distribution and mostly "
+            "recovered within six months, and carries the residuals left behind for the "
+            "rest of the record, where they accumulate. It is an extension of this "
+            "package and not part of the article, which reports no disability score: the "
+            "disability page of the documentation says what each of its parameters rests "
+            "on and why no trace it draws is a prognosis. Needs matplotlib, the plot "
+            "extra."
         ),
     )
     parser.add_argument(

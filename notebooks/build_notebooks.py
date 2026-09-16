@@ -189,7 +189,7 @@ N_BOOT = 2000
 
 RELAPSE = msrelapse.PAPER.state_no_health.value
 HEALTH = msrelapse.PAPER.state_health.value
-STATE_NAMES = {RELAPSE: "no health", HEALTH: "health"}
+STATE_NAMES = {RELAPSE: "flare", HEALTH: "health"}
 
 pd.set_option("display.width", 100)
 print(f"msrelapse {msrelapse.__version__}")
@@ -376,7 +376,7 @@ tau_relapse = msrelapse.fit_durations(durations, RELAPSE).mean
 beta, sigma = msrelapse.calibrate(tau_health, tau_relapse, passage="bottom_to_saddle")
 well = msrelapse.DoubleWell(msrelapse.PAPER.alpha_reference.value, beta)
 
-print(f"fitted means: {tau_health:.1f} weeks in health, {tau_relapse:.2f} weeks in no health")
+print(f"fitted means: {tau_health:.1f} weeks in health, {tau_relapse:.2f} weeks in flare")
 print(f"beta {beta:.4f}, sigma {sigma:.4f}, so epsilon = sigma^2 is {sigma**2:.4f}")
 print(f"the article prints epsilon = {msrelapse.PAPER.epsilon_noise_variance.value}")
 print(well.barriers())

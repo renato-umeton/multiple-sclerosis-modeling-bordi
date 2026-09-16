@@ -33,6 +33,10 @@ paper does not fix, and what is therefore chosen here, is the resolution of the
 potential curves, the time step of the simulated paths of Figure 7 and the
 placement of the labels and arrows inside a panel.
 
+The figures label the no health state of the article as Flare, the clinical
+word for it, while the code keeps the names of the article, the state code
+``PAPER.state_no_health`` among them.
+
 Two of the figures are not in the article at all.
 [`fig_survival_vs_exponential`][msrelapse.plots.fig_survival_vs_exponential]
 puts the observed survival of one state beside the exponential fitted to it,
@@ -99,6 +103,11 @@ _States = npt.NDArray[np.int64]
 _NO_HEALTH: Final = PAPER.state_no_health.value
 _HEALTH: Final = PAPER.state_health.value
 _WEEK: Final = PAPER.time_resolution_weeks.value
+
+# What a panel calls the two states. The article writes the plus one state as
+# no health; a figure of this module says flare, the clinical word for it.
+_HEALTH_LABEL: Final = "Health"
+_FLARE_LABEL: Final = "Flare"
 
 _X_LIMITS: Final = PAPER.potential_plot_x_limits.value
 _V_LIMITS: Final = PAPER.potential_plot_v_limits.value
@@ -192,10 +201,10 @@ def fig2_sample_patients(
     """Draw the weekly record of a few patients as step functions, Figure 2.
 
     Each panel holds the plus one and minus one series of one patient against
-    the week, with the two levels named as the paper names the two states,
-    health at minus one and no health at plus one. The tick labels are written
-    out without the printed typo of the article, whose Figure 2 ticks read
-    "Health state" and "No health sate".
+    the week. The minus one level is ticked Health, as the article ticks it,
+    and the plus one level Flare, the clinical word for the state the article
+    calls no health. Neither tick carries the printed typo of the article,
+    whose own Figure 2 reads "Health state" and "No health sate".
 
     Parameters
     ----------
@@ -242,7 +251,7 @@ def fig2_sample_patients(
         )
         panel.set_xlim(float(weeks[0]), end)
         panel.set_yticks([_HEALTH, _NO_HEALTH])
-        panel.set_yticklabels(["Health", "No health"])
+        panel.set_yticklabels([_HEALTH_LABEL, _FLARE_LABEL])
         panel.set_ylim(_HEALTH - _STATE_MARGIN, _NO_HEALTH + _STATE_MARGIN)
         panel.set_xlabel("Time (week)")
         panel.set_title(patient)
@@ -923,11 +932,11 @@ def animate_double_well(  # noqa: PLR0917
     """Animate one simulated record as the particle, the weekly series and the EDSS.
 
     The figure holds three panels. The potential at the top left carries the
-    particle at the current x(t), with the two wells named as the paper names
-    the two states and the barrier top between them marked. The weekly record
-    at the top right is the step plot of Figure 2, the plus one and minus one
-    series against the week, drawn up to the current week and marked there. The
-    panel across the bottom is the illustrative EDSS trajectory of
+    particle at the current x(t), with the two wells labelled Health and Flare
+    and the barrier top between them marked. The weekly record at the top right
+    is the step plot of Figure 2, the plus one and minus one series against the
+    week, drawn up to the current week and marked there. The panel across the
+    bottom is the illustrative EDSS trajectory of
     [`msrelapse.edss`][msrelapse.edss] that the same weekly series drives,
     drawn as a thin continuous line with the displayed half point score
     stepping over it and the baseline marked.
@@ -1058,7 +1067,7 @@ def save_double_well_gif(
     dpi : int, optional
         Dots per inch of each frame. With the figure of about nine by six
         inches this module animates, the default gives a frame of 720 by 480
-        pixels and a default run of a couple of megabytes.
+        pixels and a default run under a megabyte.
     contact_sheet : pathlib.Path, optional
         Where to write a PNG of four evenly spaced frames side by side, so that
         the result can be read without playing it. The default writes none.
@@ -1293,7 +1302,7 @@ def _generator(rng: Seed) -> np.random.Generator:
 
 
 def _state_name(state: int) -> str:
-    """Return the clinical name of a state code.
+    """Return the name a panel of this module writes a state code as.
 
     Parameters
     ----------
@@ -1303,9 +1312,11 @@ def _state_name(state: int) -> str:
     Returns
     -------
     str
-        'no health' or 'health', as the paper names the two states.
+        'flare' or 'health'. The article calls the plus one state no health;
+        every label, title and note drawn here says flare instead, the word a
+        clinic uses for it.
     """
-    return "no health" if state == _NO_HEALTH else "health"
+    return _FLARE_LABEL.lower() if state == _NO_HEALTH else _HEALTH_LABEL.lower()
 
 
 def _chosen_patients(weekly: pd.DataFrame, patient_ids: Sequence[str] | None) -> list[str]:
@@ -2244,7 +2255,7 @@ def _draw_animated_potential(ax: Axes, well: DoubleWell) -> Line2D:
         label=_SADDLE_LABEL,
     )
     ax.text(points.saddle, top + _LABEL_OFFSET, _SADDLE_LABEL, ha="center", va="bottom")
-    for position, name in ((points.health, "Health"), (points.relapse, "No health")):
+    for position, name in ((points.health, _HEALTH_LABEL), (points.relapse, _FLARE_LABEL)):
         ax.text(position, float(well.V(position)) - _LABEL_OFFSET, name, ha="center", va="top")
     ax.set_title("The particle in the double well")
     (particle,) = ax.plot(
@@ -2287,7 +2298,7 @@ def _draw_animated_series(ax: Axes, n_weeks: int) -> tuple[Line2D, Line2D]:
     )
     ax.set_xlim(0.0, float(n_weeks))
     ax.set_yticks([_HEALTH, _NO_HEALTH])
-    ax.set_yticklabels(["Health", "No health"])
+    ax.set_yticklabels([_HEALTH_LABEL, _FLARE_LABEL])
     ax.set_ylim(_HEALTH - _STATE_MARGIN, _NO_HEALTH + _STATE_MARGIN)
     ax.set_xlabel("Time (week)")
     return step, current

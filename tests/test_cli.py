@@ -15,7 +15,7 @@ import pandas as pd
 import pytest
 
 import msrelapse.cli
-from msrelapse import plots
+from msrelapse import edss, plots
 from msrelapse._params import PAPER
 from msrelapse.cli import main
 from msrelapse.cohort import CohortSpec, generate
@@ -887,6 +887,27 @@ def test_animate_writes_the_contact_sheet_when_it_is_asked_for(
 
     assert sheet.read_bytes()[: len(PNG_MAGIC)] == PNG_MAGIC
     assert str(sheet) in capsys.readouterr().out
+
+
+def test_animate_help_describes_the_disability_panel(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # The bottom panel is the illustrative EDSS trajectory, so the help has to
+    # describe that panel and send the reader to the page that explains it.
+    with pytest.raises(SystemExit) as raised:
+        main(["animate", "--help"])
+
+    assert raised.value.code == 0
+    printed = " ".join(capsys.readouterr().out.split())
+    assert "illustrative EDSS trajectory" in printed
+    assert f"baseline of {edss.DEFAULT_SPEC.baseline:.1f} after the first attack" in printed
+    assert "nadir deficit drawn from the published distribution" in printed
+    assert "residuals" in printed
+    assert "accumulate" in printed
+    assert "disability page" in printed
+    # The panel used to be the running count of weeks spent in relapse, and the
+    # help described that instead.
+    assert "cumulative weeks in relapse" not in printed
 
 
 def test_animate_writes_where_the_readme_looks_for_the_animation() -> None:

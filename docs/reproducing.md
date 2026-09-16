@@ -188,25 +188,33 @@ is one simulated record on the potential calibrated to the two mean durations
 of the article, written as a GIF:
 
 ```bash
-msrelapse animate --seed 4 --contact-sheet docs/assets/double_well_frames.png
+msrelapse animate --seed 6 --contact-sheet docs/assets/double_well_frames.png
 ```
 
-The seed is what makes it repeatable, and 4 is the one the committed file was
-written under: it gives 520 weeks holding five relapses spread over the whole
-record. The command writes `docs/assets/double_well.gif`, 260 frames of about
-1.4 MB in all, and the contact sheet beside it, which is four evenly spaced
-frames of the finished file as a static PNG for a reader who would rather not
-play it. `--weeks`, `--fps` and `--dpi` change how long the animation runs and
-how large the file is.
+The seed is what makes it repeatable, and 6 is the one the committed file was
+written under: it gives 520 weeks holding five flares spread over the whole
+record, a first flare whose deficit peaks well above the residual it leaves, so
+the spike and the slow decay after it are both there to see, and a trace that
+settles at a new level only where a flare left a residual behind and ends at
+2.5 after ten years, near the anchor of about 3 that
+[Disability trajectory](disability.md) records. The command writes
+`docs/assets/double_well.gif`, 260 frames of about 0.9 MB in all, and the
+contact sheet beside it, which is four evenly spaced frames of the finished
+file as a static PNG for a reader who would rather not play it. `--weeks`,
+`--fps` and `--dpi` change how long the animation runs and how large the file
+is.
 
 The bottom panel is the EDSS trace of `msrelapse.edss_trajectory`, an
 illustrative trajectory driven by the same weekly series and built from the
 literature that followed the article rather than from the article, which
-reports no disability score of any kind. The seed is unchanged: 4 is still the
-seed the committed file is written under, and it still gives the same path, the
-same weekly series and the same two upper panels as it did when the bottom
-panel was the running count of weeks spent in relapse. What the trace is, what
-each of its parameters rests on and what it cannot be used for are on
+reports no disability score of any kind. The seed was chosen for that panel.
+The earlier 4 drew a residual equal to the peak at each of its first three
+flares, so the trace was a plain staircase for the first 380 weeks and stood at
+4.5 after ten years, well above the anchor; 6 is the smallest seed from 1 to
+300 whose record holds between four and seven flares, whose first flare is over
+within twelve weeks, recovers visibly from that first flare, and ends the ten
+years between 2.5 and 3.5. What the trace is,
+what each of its parameters rests on and what it cannot be used for are on
 [Disability trajectory](disability.md). Nothing in that panel is a clinical
 score.
 

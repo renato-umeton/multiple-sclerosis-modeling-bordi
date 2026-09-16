@@ -4,7 +4,7 @@ import dataclasses
 import sys
 from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple, cast
 
 import numpy as np
 import pandas as pd
@@ -30,6 +30,16 @@ image_module = pytest.importorskip("PIL.Image")
 
 NO_HEALTH = PAPER.state_no_health.value
 HEALTH = PAPER.state_health.value
+
+# What a figure calls the two states. The article writes the plus one state as
+# no health, and that wording belongs to no figure of this package.
+HEALTH_LABEL = "Health"
+FLARE_LABEL = "Flare"
+# The same word inside a sentence a panel writes: an axis label of Figure 4,
+# the note in its corner and the title of the survival figure.
+FLARE_WORD = FLARE_LABEL.lower()
+ARTICLE_STATE_WORDING = "No health"
+
 ALPHA = PAPER.alpha_reference.value
 FIG5_ALPHAS = (PAPER.alpha_reference.value, PAPER.alpha_illustrative_low.value)
 PATIENT_BETAS = (
@@ -154,6 +164,46 @@ def texts_of(ax: Axes) -> list[str]:
     return [text.get_text() for text in ax.texts]
 
 
+def figure_texts(figure: Figure) -> list[str]:
+    """Return every piece of text a reader can see on a figure.
+
+    The figure is drawn first, so that the tick labels a formatter writes are
+    read as the reader sees them rather than as the empty strings they are
+    before the first draw.
+    """
+    figure.canvas.draw()
+    found = [figure.get_suptitle()]
+    for ax in figure.axes:
+        found += [ax.get_title(), ax.get_xlabel(), ax.get_ylabel()]
+        found += [label.get_text() for label in ax.get_xticklabels()]
+        found += [label.get_text() for label in ax.get_yticklabels()]
+        found += texts_of(ax)
+        found += [str(line.get_label()) for line in ax.lines]
+        legend = ax.get_legend()
+        if legend is not None:
+            found += [entry.get_text() for entry in legend.get_texts()]
+    return found
+
+
+def says_article_wording(texts: list[str]) -> bool:
+    """Return whether any of the texts carries the article's name of the plus one state.
+
+    Case is ignored, since a tick label writes a name with a capital while an
+    axis label writes it in the middle of a sentence.
+
+    Parameters
+    ----------
+    texts : list of str
+        The visible text of a figure, as `figure_texts` returns it.
+
+    Returns
+    -------
+    bool
+        True if any entry holds the wording of the article.
+    """
+    return any(ARTICLE_STATE_WORDING.casefold() in text.casefold() for text in texts)
+
+
 def label_positions(ax: Axes) -> dict[str, float]:
     """Return where along x each labelled piece of text sits.
 
@@ -195,6 +245,11 @@ def durations_frame(rows: list[tuple[str, int, int, int, bool]]) -> pd.DataFrame
 def relapse_only() -> pd.DataFrame:
     """Return a frame of one relapse and no remission at all."""
     return durations_frame([("p0001", 0, NO_HEALTH, 3, False)])
+
+
+def remission_only() -> pd.DataFrame:
+    """Return a frame of one remission and no relapse at all."""
+    return durations_frame([("p0001", 0, HEALTH, 3, True)])
 
 
 def four_relapses() -> pd.DataFrame:
@@ -255,8 +310,19 @@ def test_fig2_labels_the_two_states(weekly: pd.DataFrame) -> None:
     ax = plots.fig2_sample_patients(weekly)[0]
 
     labels = [label.get_text() for label in ax.get_yticklabels()]
-    assert labels == ["Health", "No health"]
+    assert labels == [HEALTH_LABEL, FLARE_LABEL]
     assert list(ax.get_yticks()) == [HEALTH, NO_HEALTH]
+
+
+def test_fig2_never_writes_the_article_wording_on_a_panel(weekly: pd.DataFrame) -> None:
+    # The article calls the plus one state no health; every figure of this
+    # package says flare, the clinical word, instead.
+    figure = cast("Figure", plots.fig2_sample_patients(weekly)[0].get_figure())
+
+    texts = figure_texts(figure)
+    # The panel the sweep reads, so that an empty sweep fails rather than passes.
+    assert FLARE_LABEL in texts
+    assert not says_article_wording(texts)
 
 
 def test_fig2_plots_the_named_patients(weekly: pd.DataFrame) -> None:
@@ -375,6 +441,31 @@ def test_fig4_bins_the_cohort_durations(runs: pd.DataFrame) -> None:
     assert second.containers[0][0].get_width() == pytest.approx(PAPER.fig4b_bin_width_weeks.value)
     assert str(relapses.size) in texts_of(first)[0]
     assert "This cohort" in first.get_title()
+
+
+def test_fig4_names_the_plus_one_panel_flare() -> None:
+    # The labels and the note of the first panel are written from the name of
+    # the state, which the article writes as no health and a figure here as
+    # flare.
+    first, _second = plots.fig4_duration_histograms()
+
+    assert first.get_xlabel() == f"Duration of {FLARE_WORD} events (week)"
+    assert first.get_ylabel() == f"Counts (no. of {FLARE_WORD} events)"
+    assert texts_of(first)[0].startswith(f"{FLARE_LABEL} events")
+
+
+def test_fig4_never_writes_the_article_wording_on_a_panel(runs: pd.DataFrame) -> None:
+    figure = cast("Figure", plots.fig4_duration_histograms(runs)[0].get_figure())
+
+    texts = figure_texts(figure)
+    # The panels the sweep reads, so that an empty sweep fails rather than passes.
+    assert any(FLARE_WORD in text.casefold() for text in texts)
+    assert not says_article_wording(texts)
+
+
+def test_fig4_names_the_flare_panel_when_it_has_nothing_to_bin() -> None:
+    with pytest.raises(ValueError, match=f"{FLARE_WORD} panel"):
+        plots.fig4_duration_histograms(remission_only())
 
 
 def test_fig5_draws_one_symmetric_potential_per_alpha() -> None:
@@ -612,6 +703,15 @@ def test_survival_overlays_the_fitted_exponential(runs: pd.DataFrame) -> None:
     # exp(-t / mean), which is the same law rounded a second time.
     fitted = fit.fit_durations(runs, NO_HEALTH)
     assert ydata(fitted_line) == pytest.approx((1.0 - fitted.rate) ** xdata(fitted_line))
+
+
+def test_survival_titles_the_plus_one_state_flare(runs: pd.DataFrame) -> None:
+    ax = plots.fig_survival_vs_exponential(runs, NO_HEALTH)
+    figure = cast("Figure", ax.get_figure())
+
+    texts = figure_texts(figure)
+    assert ax.get_title() == f"Duration of {FLARE_WORD} events"
+    assert not says_article_wording(texts)
 
 
 def test_survival_curve_stays_closer_to_the_step_than_the_twice_rounded_law(
@@ -881,8 +981,8 @@ def test_the_animation_runs_one_frame_per_step_of_weeks(playback: Playback) -> N
 def test_the_animation_draws_a_potential_a_series_and_an_edss_panel(playback: Playback) -> None:
     assert (playback.potential.get_xlabel(), playback.potential.get_ylabel()) == ("x", "V(x)")
     assert [label.get_text() for label in playback.series.get_yticklabels()] == [
-        "Health",
-        "No health",
+        HEALTH_LABEL,
+        FLARE_LABEL,
     ]
     # The words of the label, whatever line the panel has to break them over.
     assert playback.edss.get_ylabel().split() == EDSS_AXIS_LABEL.split()
@@ -894,7 +994,16 @@ def test_the_edss_panel_says_it_is_an_illustrative_model(playback: Playback) -> 
 
 
 def test_the_potential_panel_names_the_two_wells_and_the_saddle(playback: Playback) -> None:
-    assert {"Health", "No health", "saddle"} <= set(texts_of(playback.potential))
+    assert {HEALTH_LABEL, FLARE_LABEL, "saddle"} <= set(texts_of(playback.potential))
+
+
+def test_no_panel_of_the_animation_writes_the_article_wording(playback: Playback) -> None:
+    # The article calls the plus one state no health; every panel of the
+    # animation says flare, the clinical word, instead.
+    texts = figure_texts(playback.figure)
+    # The panels the sweep reads, so that an empty sweep fails rather than passes.
+    assert FLARE_LABEL in texts
+    assert not says_article_wording(texts)
 
 
 def test_the_saddle_is_marked_where_the_potential_has_its_barrier_top(
