@@ -44,7 +44,7 @@ _UNINSTALLED_VERSION: Final = "0+unknown"
 _ZENODO_PLACEHOLDER: Final = "10.5281/zenodo.XXXXXXX"
 """Stand-in for the archive DOI, which is minted at the first release."""
 
-_REPOSITORY: Final = "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi"
+_REPOSITORY: Final = "https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi"
 
 _TITLE: Final = (
     "A mechanistic, stochastic model helps understand multiple sclerosis course and pathogenesis"

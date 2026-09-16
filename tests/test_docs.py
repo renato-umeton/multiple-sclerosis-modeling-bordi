@@ -357,7 +357,7 @@ def build_site(site_dir: Path) -> subprocess.CompletedProcess[str]:
 def test_site_is_named_after_the_package() -> None:
     config = load_config()
     assert config["site_name"] == "msrelapse"
-    assert "renato-umeton/multiple-sclerosiss-modeling-bordi" in config["repo_url"]
+    assert "renato-umeton/multiple-sclerosis-modeling-bordi" in config["repo_url"]
     assert config["docs_dir"] == "docs"
 
 

@@ -24,8 +24,8 @@ import msrelapse
 from _helpers import ROOT, WORKFLOWS, flatten, load_json, load_workflow, load_yaml, read, text_files
 from msrelapse._params import PAPER
 
-REPOSITORY = "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi"
-DOCUMENTATION = "https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/"
+REPOSITORY = "https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi"
+DOCUMENTATION = "https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/"
 
 # The files this module reads. The sdist ships the suite, so every one of them
 # has to be on the sdist include list of pyproject.toml as well: the packaged

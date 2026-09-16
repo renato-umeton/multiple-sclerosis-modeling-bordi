@@ -1,7 +1,7 @@
 # msrelapse
 
-[![CI](https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi/actions/workflows/ci.yml/badge.svg)](https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi/blob/main/LICENSE)
+[![CI](https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi/actions/workflows/ci.yml/badge.svg)](https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi/blob/main/LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%20to%203.14-blue.svg)](https://www.python.org/downloads/)
 
 <!-- Enable these two badges at the first release, once the project exists on
@@ -70,8 +70,8 @@ Until then, and for any work on the package itself, install from source with
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
-git clone https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi
-cd multiple-sclerosiss-modeling-bordi
+git clone https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi
+cd multiple-sclerosis-modeling-bordi
 uv sync
 ```
 
@@ -201,7 +201,7 @@ the shipped twin or on any record in the weekly schema.
 
 The user guide, the theory notes, the reproduction walkthrough and the API
 reference live at
-<https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/>. The site
+<https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/>. The site
 goes live once the maintainer enables GitHub Pages for the repository; until
 then it builds locally with `uv run --group docs mkdocs serve`.
 
@@ -216,7 +216,7 @@ Please cite both the article and the software.
 
 > Umeton R. msrelapse: a reference implementation of the Bordi et al. 2013
 > double well model of multiple sclerosis. Version 0.1.0. 2026.
-> https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi
+> https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi
 
 `msrelapse.cite()` prints the article reference followed by a BibTeX entry for
 each of the two, and `msrelapse.citation()` returns the same text as a string.
@@ -227,6 +227,6 @@ Zenodo at the first release and added to both files then.
 ## License
 
 MIT, see
-[LICENSE](https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi/blob/main/LICENSE).
+[LICENSE](https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi/blob/main/LICENSE).
 The article is open access under CC BY, which is what allows its equations,
 figures and numbers to be reused here with citation.

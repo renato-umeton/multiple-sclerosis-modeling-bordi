@@ -1,8 +1,8 @@
 site_name: msrelapse
 site_description: Stochastic double-well model of relapsing-remitting multiple sclerosis (Bordi et al. 2013)
-site_url: https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/
-repo_url: https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi
-repo_name: renato-umeton/multiple-sclerosiss-modeling-bordi
+site_url: https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/
+repo_url: https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi
+repo_name: renato-umeton/multiple-sclerosis-modeling-bordi
 edit_uri: edit/main/docs/
 
 docs_dir: docs

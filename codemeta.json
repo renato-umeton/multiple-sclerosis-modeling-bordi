@@ -5,9 +5,9 @@
   "description": "A reference implementation of the Bordi et al. 2013 stochastic double well model of relapsing-remitting multiple sclerosis: the asymmetric potential, the stochastic equation of motion, the mean exit time estimators, the duration fits, the relapse rate statistics and a virtual cohort generator.",
   "version": "0.1.0",
   "license": "https://spdx.org/licenses/MIT",
-  "codeRepository": "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi",
-  "url": "https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/",
-  "issueTracker": "https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi/issues",
+  "codeRepository": "https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi",
+  "url": "https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/",
+  "issueTracker": "https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi/issues",
   "programmingLanguage": "Python",
   "runtimePlatform": [
     "Python 3.10",

@@ -103,7 +103,7 @@ the archive comes from the same file rather than being typed again.
              well model of multiple sclerosis},
   year    = {2026},
   version = {0.1.0},
-  url     = {https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi},
+  url     = {https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi},
   doi     = {10.5281/zenodo.XXXXXXX}
 }
 ```

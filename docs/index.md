@@ -43,8 +43,8 @@ There has been no release yet, so until the first one the package installs from
 a clone of the repository:
 
 ```bash
-git clone https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi
-cd multiple-sclerosiss-modeling-bordi
+git clone https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi
+cd multiple-sclerosis-modeling-bordi
 uv sync --all-extras
 uv run --all-extras pytest
 ```

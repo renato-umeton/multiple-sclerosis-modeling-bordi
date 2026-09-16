@@ -9,8 +9,8 @@ about any change is whether it keeps the implementation faithful to the source.
 The project is managed with [uv](https://docs.astral.sh/uv/).
 
 ```bash
-git clone https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi
-cd multiple-sclerosiss-modeling-bordi
+git clone https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi
+cd multiple-sclerosis-modeling-bordi
 uv sync --all-extras --all-groups
 uv run pre-commit install
 ```
