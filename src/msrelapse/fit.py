@@ -18,8 +18,8 @@ counts
     :func:`fit_gamma_rates` fits the gamma distribution of the per patient
     onset rates that would produce them.
 rhythm
-    :func:`test_periodicity` looks for a period in each weekly record and
-    combines the per patient evidence.
+    :func:`test_periodicity` looks for a period in the relapse onsets of each
+    weekly record and combines the per patient evidence.
 barrier
     :func:`barrier_ratio` applies equation (7) to the observed durations.
 
@@ -49,7 +49,7 @@ from typing import Final, Literal, overload
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from scipy import optimize, signal, special, stats
+from scipy import optimize, special, stats
 
 from msrelapse import _citation
 from msrelapse._params import PAPER
@@ -104,15 +104,20 @@ _MIN_HAZARD_TIMES: Final = 3
 # to say anything, so it is skipped and counted.
 _MIN_PERIODICITY_WEEKS: Final = 8
 
-# Share of the power of a record below which the ordinates the g test reads hold
-# nothing but the rounding error of the transform. Only a record that alternates
-# state every week falls that low, at 1e-32 or less, and only because the test
-# leaves out the one frequency such a record has power at. Any other record keeps
-# at least a part in a few thousand outside that frequency.
+# Fewest relapse onsets a record needs before its rhythm can be read. Two onsets
+# leave a single gap, and any two relapses are one cycle apart whatever the
+# cycle, so three is the first count that carries evidence of a period.
+_MIN_ONSETS: Final = 3
+
+# Share of the power of an onset series below which the ordinates the g test
+# reads hold nothing but the rounding error of the transform. Only a series whose
+# onsets fall in every other week falls that low, at 1e-32 or less, and only
+# because the test leaves out the one frequency such a series has power at. Any
+# other series keeps at least a part in a few thousand outside that frequency.
 _SPECTRUM_FLOOR: Final = 1e-12
 
-# Frequencies per Nyquist interval of the Lomb-Scargle grid. Five is the usual
-# oversampling of an evenly spaced record.
+# Frequencies per Nyquist interval of the onset frequency grid. Five is the usual
+# oversampling of a record of this length.
 _LOMB_OVERSAMPLING: Final = 5
 
 _DEFAULT_CI: Final = 0.95
@@ -157,7 +162,14 @@ _LARGEST_SQUARABLE: Final = math.sqrt(float(np.finfo(np.float64).max))
 # A p value of exactly zero has no logarithm, so the combination floors it here.
 _SMALLEST_P_VALUE: Final = 1e-300
 
-_PER_PATIENT_COLUMNS: Final = ("patient_id", "n_weeks", "statistic", "p_value", "period_weeks")
+_PER_PATIENT_COLUMNS: Final = (
+    "patient_id",
+    "n_weeks",
+    "statistic",
+    "p_value",
+    "period_weeks",
+    "n_onsets",
+)
 
 
 @dataclass(frozen=True, repr=False)
@@ -287,8 +299,9 @@ class PeriodicityResult:
     ----------
     per_patient : pandas.DataFrame
         One row per patient, with the columns ``patient_id``, ``n_weeks``,
-        ``statistic``, ``p_value`` and ``period_weeks``. A patient that was
-        skipped keeps its row, with a missing statistic, p value and period.
+        ``statistic``, ``p_value``, ``period_weeks`` and ``n_onsets``. A patient
+        that was skipped keeps its row, with its week and onset counts and a
+        missing statistic, p value and period.
     pooled : TestResult
         Fisher's combined probability test over the p values of the patients
         that were not skipped. Its ``details`` report how many patients there
@@ -646,13 +659,14 @@ def test_periodicity(
     n_perm: int = 200,
     rng: Seed = None,
 ) -> PeriodicityResult:
-    """Look for a period in each weekly record and combine the evidence.
+    """Look for a period in the relapse onsets of each record and pool the evidence.
 
     The paper states that relapses have no typical periodicity, and this is the
-    test of that statement. Each patient's +1 and -1 series has its mean removed
-    and is turned into a periodogram; the largest ordinate is compared with what
-    the null hypothesis of the method allows, and the per patient p values are
-    combined by Fisher's method.
+    test of that statement. What is tested is the series of relapse onsets, one
+    impulse in every week in which a relapse starts, and not the +1 and -1 state
+    series itself. Each patient's onsets are turned into a periodogram, the
+    largest ordinate is compared with what the null hypothesis of the method
+    allows, and the per patient p values are combined by Fisher's method.
 
     Parameters
     ----------
@@ -660,10 +674,14 @@ def test_periodicity(
         A frame in the weekly schema of :mod:`msrelapse.io`. It is validated
         before use.
     method : {'fisher_g', 'lombscargle'}, optional
-        ``fisher_g`` takes the discrete Fourier periodogram and Fisher's exact g
-        test; ``lombscargle`` takes the normalised Lomb-Scargle periodogram on a
-        grid from two cycles per record to the weekly Nyquist frequency, and a
-        permutation p value.
+        ``fisher_g`` takes the discrete Fourier periodogram of the mean removed
+        onset series and Fisher's exact g test; ``lombscargle`` takes the
+        Rayleigh power of the onset times on a frequency grid from one cycle per
+        record to the weekly Nyquist frequency, and a permutation p value. The
+        Rayleigh power is the periodogram of the train of impulses the onsets
+        form, which is what the Lomb-Scargle periodogram the option is named
+        after becomes once the series read is a set of event times rather than a
+        measurement taken at each of them.
     n_perm : int, optional
         Number of permutations behind the ``lombscargle`` p value. Unused by
         ``fisher_g``, whose p value is exact.
@@ -684,21 +702,63 @@ def test_periodicity(
 
     Notes
     -----
-    A patient of fewer than eight weeks is skipped, and so is a patient whose
-    record never changes state, since a flat series has no periodogram at all.
-    Under ``fisher_g`` a patient whose record changes state every single week is
-    skipped as well: all of its power sits at the two week Nyquist limit, which
-    that test does not read. Every count is reported in the ``details`` of the
-    pooled result.
+    Why the onsets and not the states. Fisher's g test asks whether the largest
+    ordinate of a periodogram stands out from the rest, and its null hypothesis
+    is white noise, a series whose weeks are independent of one another. The
+    state series of a relapsing-remitting record is nothing like white noise: it
+    stays in remission for about a hundred weeks and in relapse for about four,
+    so its spectrum is concentrated at the low frequencies and its largest
+    ordinate is large whatever the rhythm of the relapses is. Applied to the
+    state series the test therefore rejects a record with no periodicity at all,
+    which is a fault of the statistic and not a finding about the record. Under
+    the memoryless hypothesis of the paper the relapse onsets are a renewal
+    process with geometric gaps, and the weekly onset indicator is close to a
+    Bernoulli series, whose spectrum is flat; periodic relapses put a peak in
+    it. That is the series both methods read.
 
-    The null hypothesis of ``fisher_g`` is white noise, that is a record whose
-    weeks are independent of one another. A relapsing-remitting record is not
-    white noise while a relapse lasts more than about a week: a relapse of
-    several weeks puts power at the low frequencies on its own, and the g test
-    then reports a period that is only the width of a relapse. Read a small g
-    test p value as evidence that the record is not white, and look at the
-    period it names before calling it a rhythm. The permutation p value of
-    ``lombscargle`` rests on the same null and carries the same caveat.
+    A patient of fewer than eight weeks is skipped, and so is a patient of fewer
+    than three onsets: two onsets leave one gap, and any two relapses are one
+    cycle apart whatever the cycle. Under ``fisher_g`` a patient whose onsets
+    fall in every other week is skipped as well, because all of the power of
+    such a series sits at the two week Nyquist limit, which that test does not
+    read. Every count is reported in the ``details`` of the pooled result.
+
+    The limitation that is left is the refractory period: no relapse can start
+    while the previous one is still running, so the onsets are slightly under
+    dispersed compared with a Bernoulli series, and the test is conservative
+    rather than liberal. At the durations of the paper, gaps of the order of a
+    hundred weeks and relapses of about four, the effect on the size of the test
+    is negligible, and ``tests/test_fit.py`` measures it on cohorts of the shape
+    of the study.
+
+    What a large p value says. Both methods are conservative on a record of few
+    onsets, and a patient followed for a few hundred weeks at the rate of the
+    paper has only a handful. Under ``fisher_g`` the reason is a ceiling: the
+    periodogram of a train of n impulses cannot exceed n squared however the
+    impulses are arranged, while the exponential null behind
+    :func:`_fisher_g_p_value` has no such ceiling, so the largest ordinate of a
+    sparse train falls short of what white noise would produce. Over records of
+    400 weeks with the onsets placed at random, the share of p values at or
+    below 0.05 is 0.000 at six onsets, 0.007 at ten, 0.026 at twenty and 0.039
+    at forty, against the 0.05 a test of the nominal size would give. Read a
+    large p value as no rhythm being visible in these few onsets, and not as
+    evidence that there is none.
+
+    The permutation p value of ``lombscargle`` shuffles the gaps between
+    consecutive onsets, which keeps the distribution of the gaps and destroys
+    any periodic arrangement of them. It is conservative on few onsets for a
+    reason of its own: a patient of few onsets has few distinct shuffles, and a
+    shuffle that reproduces the observed arrangement, or its mirror image, which
+    carries exactly the same power at every frequency, ties with the observed
+    statistic and is counted. Over the same random records the smallest p value
+    a patient can reach is about 0.43 at three onsets, 0.14 at four and 0.05 at
+    five, and only from about six onsets is the test of its nominal size. Such a
+    patient is read for what it is, a record too short to carry evidence, rather
+    than treated as evidence of no rhythm. The frequency grid of ``lombscargle``
+    also keeps the two week limit that ``fisher_g`` drops, and on a record of few
+    onsets the largest power lands near that limit often enough that a reported
+    ``period_weeks`` beside a large p value says nothing; read a period beside
+    the p value of its own row.
     """
     _validate_choice("method", method, _PERIODICITY_METHODS)
     if n_perm < 1:
@@ -706,40 +766,44 @@ def test_periodicity(
     validate(weekly, "weekly")
     generator = _generator(rng)
 
-    rows: list[tuple[str, int, float, float, float]] = []
+    rows: list[tuple[str, int, float, float, float, int]] = []
     p_values: list[float] = []
     n_short = 0
-    n_flat = 0
-    n_alternating = 0
+    n_few_onsets = 0
+    n_flat_spectrum = 0
     for patient, group in weekly.groupby("patient_id", sort=True):
-        series = group["state"].to_numpy(dtype=np.float64)
-        skipped = (str(patient), series.size, math.nan, math.nan, math.nan)
+        series = group["state"].to_numpy(dtype=np.int64)
+        onsets = _onset_indicator(series)
+        n_onsets = int(onsets.sum())
+        skipped = (str(patient), series.size, math.nan, math.nan, math.nan, n_onsets)
         if series.size < _MIN_PERIODICITY_WEEKS:
             n_short += 1
             rows.append(skipped)
             continue
-        centred = series - series.mean()
-        if not np.any(centred):
-            n_flat += 1
+        if n_onsets < _MIN_ONSETS:
+            n_few_onsets += 1
             rows.append(skipped)
             continue
         if method == "fisher_g":
-            read = _fisher_g(centred)
+            read = _fisher_g(onsets)
             if read is None:
-                n_alternating += 1
+                n_flat_spectrum += 1
                 rows.append(skipped)
                 continue
             statistic, p_value, period = read
         else:
-            statistic, p_value, period = _lombscargle(centred, n_perm, generator)
-        rows.append((str(patient), series.size, statistic, p_value, period))
+            statistic, p_value, period = _rayleigh(
+                np.flatnonzero(onsets).astype(np.float64), series.size, n_perm, generator
+            )
+        rows.append((str(patient), series.size, statistic, p_value, period, n_onsets))
         p_values.append(p_value)
 
     if not p_values:
         raise ValueError(
             f"no patient has a record this test can read: {n_short} were shorter than "
-            f"{_MIN_PERIODICITY_WEEKS} weeks, {n_flat} never changed state and "
-            f"{n_alternating} changed state every week"
+            f"{_MIN_PERIODICITY_WEEKS} weeks, {n_few_onsets} had fewer than {_MIN_ONSETS} "
+            f"relapse onsets and {n_flat_spectrum} had their onsets in every other week, "
+            f"which leaves the periodogram of this test no ordinate to read"
         )
     per_patient = pd.DataFrame(rows, columns=list(_PER_PATIENT_COLUMNS))
     pooled = _combine_p_values(
@@ -748,8 +812,8 @@ def test_periodicity(
         details={
             "n_patients": float(len(rows)),
             "n_skipped_short": float(n_short),
-            "n_skipped_flat": float(n_flat),
-            "n_skipped_alternating": float(n_alternating),
+            "n_skipped_few_onsets": float(n_few_onsets),
+            "n_skipped_flat_spectrum": float(n_flat_spectrum),
         },
     )
     return PeriodicityResult(per_patient=per_patient, pooled=pooled)
@@ -1303,13 +1367,35 @@ def _ad_distance(values: _Vector) -> float:
     return float(stats.anderson(values, dist="expon").statistic)
 
 
-def _fisher_g(centred: _Vector) -> tuple[float, float, float] | None:
+def _onset_indicator(series: npt.NDArray[np.int64]) -> _Vector:
+    """Return one impulse per week in which a relapse starts.
+
+    Parameters
+    ----------
+    series : numpy.ndarray
+        The weekly states of one patient, in week order.
+
+    Returns
+    -------
+    numpy.ndarray
+        A series of the same length, 1.0 in a week of no health whose previous
+        week was a week of health and 0.0 everywhere else. Week 0 is an onset
+        when the record opens in no health, which is how the records of the
+        study begin.
+    """
+    relapse = series == _NO_HEALTH
+    previous = np.concatenate(([False], relapse[:-1]))
+    onsets: _Vector = (relapse & ~previous).astype(np.float64)
+    return onsets
+
+
+def _fisher_g(series: _Vector) -> tuple[float, float, float] | None:
     """Return Fisher's g, its exact p value and the period of the largest ordinate.
 
     Parameters
     ----------
-    centred : numpy.ndarray
-        The mean removed weekly series of one patient.
+    series : numpy.ndarray
+        The onset series of one patient, which is mean removed here.
 
     Returns
     -------
@@ -1319,8 +1405,8 @@ def _fisher_g(centred: _Vector) -> tuple[float, float, float] | None:
 
     Notes
     -----
-    The zero frequency is left out because the series has had its mean removed
-    and there is nothing there. The Nyquist ordinate of an even length record is
+    The zero frequency is left out because the series has its mean removed and
+    there is nothing there. The Nyquist ordinate of an even length record is
     left out as well, because it is real rather than complex, so it is not
     distributed like the others and the finite sum behind
     :func:`_fisher_g_p_value` does not describe it: keeping it makes the exact p
@@ -1329,14 +1415,15 @@ def _fisher_g(centred: _Vector) -> tuple[float, float, float] | None:
     left is the classical ``floor((n - 1) / 2)`` ordinates, for a record of
     either parity, which one slice gives for both.
 
-    A record that alternates state every single week carries all of its power at
+    A series whose onsets fall in every other week carries all of its power at
     that Nyquist frequency and none anywhere else, so it has no ordinate this
     test can read and None is returned for it. Its rhythm, of exactly two weeks,
     is the one the g test does not look at. What the transform actually leaves at
-    the other ordinates of such a record is its own rounding error, below 1e-32
-    of the power of the record, which is why the emptiness is read against
+    the other ordinates of such a series is its own rounding error, below 1e-32
+    of the power of the series, which is why the emptiness is read against
     :data:`_SPECTRUM_FLOOR` rather than against an exact zero.
     """
+    centred = series - series.mean()
     spectrum = np.abs(np.fft.rfft(centred)) ** 2
     power = spectrum[1 : (centred.size + 1) // 2]
     total = float(power.sum())
@@ -1399,24 +1486,70 @@ def _fisher_g_p_value(g: float, m: int) -> float:
     return min(max(total, 0.0), 1.0)
 
 
-def _lombscargle(
-    centred: _Vector, n_perm: int, generator: np.random.Generator
+def _rayleigh_power(times: _Vector, frequencies: _Vector) -> _Vector:
+    """Return the Rayleigh power of a set of onset times at each frequency.
+
+    The power at a frequency f is ``abs(sum_k exp(2 pi i f t_k))**2 / n``, the
+    squared length of the sum of one unit phasor per onset, divided by the number
+    of onsets. It is the periodogram of a train of unit impulses: onsets that
+    fall at the same phase of a cycle of 1 / f add up and give a power of up to
+    n, and onsets spread over the cycle cancel and give a power near 1.
+    """
+    phasors = np.exp(2.0j * math.pi * np.outer(frequencies, times))
+    power: _Vector = np.abs(phasors.sum(axis=1)) ** 2 / times.size
+    return power
+
+
+def _rayleigh(
+    times: _Vector, n_weeks: int, n_perm: int, generator: np.random.Generator
 ) -> tuple[float, float, float]:
-    """Return the largest normalised Lomb-Scargle power, its p value and its period."""
-    weeks = np.arange(centred.size, dtype=np.float64)
-    frequencies = np.linspace(
-        2.0 / centred.size, 0.5, max(2, _LOMB_OVERSAMPLING * centred.size // 2)
-    )
-    angular = 2.0 * math.pi * frequencies
+    """Return the largest Rayleigh power of a set of onsets, its p value and its period.
 
-    def largest_power(series: _Vector) -> float:
-        permuted: _Vector = signal.lombscargle(weeks, series, angular, normalize=True)
-        return float(permuted.max())
+    Parameters
+    ----------
+    times : numpy.ndarray
+        The week of every relapse onset of one patient, in ascending order.
+    n_weeks : int
+        Length of the record, which sets the lowest frequency of the grid.
+    n_perm : int
+        Number of gap shuffles behind the p value.
+    generator : numpy.random.Generator
+        Generator the shuffles are drawn from.
 
-    power: _Vector = signal.lombscargle(weeks, centred, angular, normalize=True)
+    Returns
+    -------
+    tuple of float
+        The largest power on the grid, its permutation p value and the period in
+        weeks that goes with it.
+
+    Notes
+    -----
+    The grid runs from one cycle per record to the weekly Nyquist frequency of
+    0.5 cycles per week, oversampled by :data:`_LOMB_OVERSAMPLING`. It therefore
+    keeps the two week limit that :func:`_fisher_g` drops, and on a train of few
+    onsets the largest power lands near that limit often: over three cohorts of
+    seventy memoryless records of four hundred weeks, 86 of the 191 patients read
+    reported a period below three weeks and 19 of them exactly two. The p value
+    is not moved by that, because the surrogates are read on the same grid and
+    lean the same way, but the period beside a large p value is the grid talking
+    rather than the record, and is worth reading only beside a small one.
+
+    The surrogate that the observed maximum is compared with is the same onsets
+    with the gaps between them shuffled, which keeps the first onset, the last
+    onset and the distribution of the gaps, and destroys any periodic arrangement
+    of them. The p value counts a surrogate whose maximum ties with the observed
+    one, so a patient with few gaps, and therefore few distinct shuffles, cannot
+    reach a small p value at all. See the Notes of :func:`test_periodicity`.
+    """
+    frequencies = np.linspace(1.0 / n_weeks, 0.5, max(2, _LOMB_OVERSAMPLING * n_weeks // 2))
+    power = _rayleigh_power(times, frequencies)
     best = int(np.argmax(power))
     observed = float(power[best])
-    exceeded = sum(largest_power(generator.permutation(centred)) >= observed for _ in range(n_perm))
+    gaps = np.diff(times)
+    exceeded = 0
+    for _ in range(n_perm):
+        surrogate = np.concatenate(([times[0]], times[0] + np.cumsum(generator.permutation(gaps))))
+        exceeded += int(float(_rayleigh_power(surrogate, frequencies).max()) >= observed)
     return observed, (1.0 + exceeded) / (n_perm + 1.0), 1.0 / float(frequencies[best])
 
 

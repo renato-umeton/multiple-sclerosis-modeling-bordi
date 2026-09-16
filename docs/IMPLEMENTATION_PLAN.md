@@ -71,11 +71,10 @@ compliance and then for code quality by separate agents before the wave is commi
 least 90 percent; mypy strict clean; ruff clean.
 **Tests**: tests/test_model.py, test_simulate.py, test_renewal.py, test_fit.py,
 test_stats.py, test_io.py, test_cohort.py, test_plots.py, test_cli.py.
-**Status**: In Progress. Done: model, simulate, renewal, io, fit, stats, cohort,
-plots, datasets and the shipped synthetic twin. Remaining: cli, the public API
-with cite(), a doctest harness, and a fix to test_periodicity (it must test
-relapse onsets, whose spectrum is flat under the memoryless null, instead of the
-state series, whose spectrum is red). The closing table's barrier ratio
+**Status**: Complete. All modules, the CLI, the public API with cite(), a
+doctest harness over every module, and the shipped synthetic twin are in place.
+test_periodicity tests relapse onsets (flat spectrum under the memoryless null)
+rather than the state series (red spectrum). The closing table's barrier ratio
 tolerance is 0.2 absolute for the synthetic twin because seventy records carry
 sampling noise in the two naive means; 0.05 applies only to a deterministic
 recomputation from the printed means.
@@ -88,7 +87,8 @@ CHANGELOG, CONTRIBUTING, issue templates, release workflow, JOSS draft.
 CI; mkdocs build passes strict mode; CITATION.cff validates with cffconvert;
 test_reproduce_paper.py green.
 **Tests**: tests/test_reproduce_paper.py, notebook execution job, cffconvert.
-**Status**: Not Started
+**Status**: In Progress. Done: synthetic data files, msrelapse.datasets and
+tests/test_reproduce_paper.py.
 
 ## Stage 5: Reviews and release preparation
 **Goal**: Three independent review rounds over the whole implementation, each

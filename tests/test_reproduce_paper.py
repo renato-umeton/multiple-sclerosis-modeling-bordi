@@ -92,29 +92,25 @@ def test_the_closing_table_has_a_row_for_every_reported_quantity(table: pd.DataF
 
 
 def test_every_row_of_the_closing_table_that_has_a_rule_meets_it(table: pd.DataFrame) -> None:
-    # Eight of the nine rows carry a rule. Six compare a measurement with a
-    # number the article prints; the two Kolmogorov-Smirnov rows compare a
-    # bootstrap p value with the significance level the table is built at,
-    # because the article's claim that the durations carry no typical scale is
-    # made in prose and a p value is the closest thing to a check of it.
+    # All nine rows carry a rule. Six compare a measurement with a number the
+    # article prints; the two Kolmogorov-Smirnov rows compare a bootstrap p value
+    # with the significance level the table is built at, because the article's
+    # claim that the durations carry no typical scale is made in prose and a p
+    # value is the closest thing to a check of it; and the periodicity row does
+    # the same for the article's claim that the relapses carry no period.
     judged = table[table["tolerance"].notna()]
-    assert not judged.empty
+    assert len(judged) == len(table)
     assert judged["within_tolerance"].tolist() == [True] * len(judged)
 
 
-def test_the_periodicity_row_is_the_only_one_with_no_rule(table: pd.DataFrame) -> None:
-    # It carries a number and no verdict on purpose, and this test pins that so
-    # a reader does not put a rule back. The null of Fisher's g test is white
-    # noise and a relapsing-remitting record is not white while a relapse lasts
-    # more than a week, so the pooled p value of the twin underflows and a rule
-    # of "p above 0.05" is out of reach of any record whose relapses last longer
-    # than that, the real series included. Judging it would take a test whose
-    # null is an aperiodic alternating record, which is a change to msrelapse.fit
-    # and not to this table. None rather than False: nothing failed.
-    unjudged = table[table["tolerance"].isna()]
-    assert len(unjudged) == 1
-    assert "periodicity" in str(unjudged["quantity"].iloc[0])
-    assert unjudged["within_tolerance"].isna().all()
+def test_the_twin_shows_no_periodicity_of_its_relapse_onsets(weekly: pd.DataFrame) -> None:
+    # The claim of the article, tested the way msrelapse.fit tests it: the
+    # relapse onsets of a memoryless record are a renewal process with a flat
+    # spectrum, and the twin is such a record, so the pooled p value has to leave
+    # the claim standing.
+    pooled = fit.test_periodicity(weekly, method="fisher_g").pooled
+    assert pooled.p_value > 0.05
+    assert pooled.n > 0
 
 
 def test_the_barrier_ratio_row_lands_near_the_ratio_the_printed_durations_imply(

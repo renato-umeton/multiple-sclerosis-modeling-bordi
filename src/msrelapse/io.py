@@ -608,8 +608,17 @@ def write_csv(df: pd.DataFrame, path: str | os.PathLike[str]) -> None:
     ValueError
         If `df` has a repeated column name, or if its columns match none of
         the three schemas.
+
+    Notes
+    -----
+    Every line ends with a single newline, on every platform. Left to itself
+    pandas ends a line with :data:`os.linesep`, so the same frame would write
+    different bytes on Windows from the ones it writes elsewhere, and two files
+    holding the same records could not be compared byte for byte. Naming the
+    terminator is what makes the shipped files of :mod:`msrelapse.datasets`
+    reproducible from a regeneration on any machine.
     """
-    df[list(_output_columns(df))].to_csv(path, index=False)
+    df[list(_output_columns(df))].to_csv(path, index=False, lineterminator="\n")
 
 
 def _columns_for(schema: Schema) -> tuple[str, ...]:

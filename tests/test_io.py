@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -634,6 +635,21 @@ def test_write_csv_keeps_the_date_columns_of_a_dated_events_frame(tmp_path: Path
     write_csv(dated, path)
     header = path.read_text().splitlines()[0]
     assert header == ",".join(EVENTS_COLUMNS + EVENTS_DATE_COLUMNS)
+
+
+def test_write_csv_ends_every_line_with_a_single_newline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Left to itself pandas ends a line with os.linesep, so the same frame writes
+    # different bytes on different platforms and the files the package ships
+    # could not be compared byte for byte. The terminator is named instead, and
+    # this pins it against a platform whose line ending is the other one.
+    monkeypatch.setattr(os, "linesep", "\r\n")
+    path = tmp_path / "weekly.csv"
+    write_csv(example_weekly(), path)
+    raw = path.read_bytes()
+    assert b"\r" not in raw
+    assert raw.endswith(b"\n")
 
 
 def test_write_csv_rejects_a_repeated_column(tmp_path: Path) -> None:

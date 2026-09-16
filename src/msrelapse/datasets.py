@@ -77,8 +77,9 @@ _SCHEMAS: Final = get_args(Schema)
 _NO_HEALTH: Final = PAPER.state_no_health.value
 _HEALTH: Final = PAPER.state_health.value
 
-# Significance level the two goodness of fit rows are judged at when the caller
-# names none, the conventional one.
+# Significance level the three p value rows are judged at when the caller names
+# none, the two goodness of fit rows and the periodicity row, the conventional
+# one.
 _DEFAULT_ALPHA: Final = 0.05
 
 # Tolerances of the two mean duration rows, each as a fraction of the printed
@@ -352,8 +353,9 @@ def reproduction_table(weekly: pd.DataFrame, alpha: float | None = None) -> pd.D
         A frame in the weekly schema of :mod:`msrelapse.io`. It is validated
         before use.
     alpha : float, optional
-        Significance level the two goodness of fit rows are judged at. The
-        default of None uses 0.05.
+        Significance level the three p value rows are judged at, the two
+        goodness of fit rows and the periodicity row. The default of None uses
+        0.05.
 
     Returns
     -------
@@ -389,7 +391,9 @@ def reproduction_table(weekly: pd.DataFrame, alpha: float | None = None) -> pd.D
     :data:`SYNTHETIC_SEED` and building this table on each of the sixty cohorts,
     every judged row is True on 27 of them. The five percent relapse mean row is
     the one that fails most often, on 24 of the 60, and the ten percent remission
-    mean row on 8, the barrier ratio row on 7 and the relapse range row on 6. A
+    mean row on 8, the barrier ratio row on 7, the relapse range row on 6 and the
+    remission goodness of fit row on 1; the two remaining range rows, the relapse
+    goodness of fit row and the periodicity row are True on all sixty. A
     False row is therefore the sampling noise of seventy records rather than a
     fault of the pipeline that built them, and the source of this module carries
     the sweep beside each tolerance it belongs to. The
@@ -412,27 +416,29 @@ def reproduction_table(weekly: pd.DataFrame, alpha: float | None = None) -> pd.D
     p value above `alpha` means the record is consistent with a memoryless
     duration rather than that it is one.
 
-    The periodicity row is not judged at all, because the test cannot carry a
-    verdict. The null of Fisher's g test is white noise, and a
-    relapsing-remitting record is not white while a relapse lasts more than about
-    a week: several weeks in one state put power at the low frequencies on their
-    own. On the shipped twin the pooled p value underflows to zero, which says
-    only that the record is not white noise, which nobody claims it is. Reading
-    it as evidence of a rhythm would be a mistake, and
-    :func:`msrelapse.fit.test_periodicity` says so at greater length. The row is
-    kept because the article does make the claim, and the honest thing is to show
-    the number beside the reason it settles nothing.
+    The periodicity row is judged at `alpha` in the same way, against the
+    article's other claim in prose: that the relapses carry no typical period.
+    The p value is the pooled Fisher g test of
+    :func:`msrelapse.fit.test_periodicity`, read on the relapse onsets of every
+    patient rather than on the +1 and -1 state series, because the onsets of a
+    memoryless record have the flat spectrum the g test compares against while
+    the state series does not. A p value above `alpha` means the record leaves
+    the claim of the article standing, not that no rhythm exists.
 
-    Those two paragraphs are the other way round from the plan, which asks for
-    the periodicity row to be judged at "p above 0.05" and for the two
-    Kolmogorov-Smirnov rows to carry no rule at all. The swap is deliberate and
-    it is stated here so that it is not read later as an oversight: the
-    periodicity rule is out of reach of any record whose relapses last more than
-    a week, while the article's claim that the durations carry no typical scale
-    is exactly what a goodness of fit p value can speak to, which is also what
-    gives `alpha` a job. Putting the plan's rules back would need a periodicity
-    test whose null is an aperiodic alternating record, which is a change to
-    :mod:`msrelapse.fit` and not to this table.
+    That row says little about the shipped twin, and its own figures say how
+    little: 29 of the 70 records carry fewer than three relapse onsets and are
+    skipped, 28 of the 41 that are read give a per patient p value of exactly 1,
+    the smallest of the 41 is 0.24, and the pooled value is 1.0. At about four
+    onsets per record, that is what a test of almost no power returns rather than
+    a measurement of the cohort; the Notes of
+    :func:`msrelapse.fit.test_periodicity` carry the measured size at a handful
+    of onsets. Putting the claim of the article at any risk needs records
+    followed for longer, not a rule written more tightly.
+
+    None of the three says more than a goodness of fit p value can. Failing to
+    reject is not evidence of the null, and a cohort of seventy records is not
+    a large sample; read the three rows as the record declining to contradict
+    the article rather than as a confirmation of it.
 
     Examples
     --------
@@ -457,7 +463,7 @@ def reproduction_table(weekly: pd.DataFrame, alpha: float | None = None) -> pd.D
         *_range_rows(relapses, remissions, phase),
         _barrier_ratio_row(runs),
         *_memoryless_rows(runs, level),
-        _periodicity_row(weekly),
+        _periodicity_row(weekly, level),
     ]
     # Column by column and as object, so that a column holding both a value and
     # a None keeps the None rather than turning it into a missing float, and so
@@ -674,25 +680,34 @@ def _memoryless_rows(
     return rows
 
 
-def _periodicity_row(weekly: pd.DataFrame) -> tuple[str, object, object, str | None, bool | None]:
+def _periodicity_row(
+    weekly: pd.DataFrame,
+    level: float,
+) -> tuple[str, object, object, str | None, bool | None]:
     """Return the periodicity row of the table.
 
     Parameters
     ----------
     weekly : pandas.DataFrame
         A frame in the weekly schema.
+    level : float
+        Significance level the pooled p value is judged at.
 
     Returns
     -------
     tuple
-        The row, holding the pooled p value of Fisher's g test and no rule. See
-        the Notes of :func:`reproduction_table` for why it carries none.
+        The row, holding the pooled p value of Fisher's g test over the relapse
+        onsets of every patient, judged against the article's claim that the
+        relapses carry no typical period.
     """
     pooled = fit.test_periodicity(weekly, method="fisher_g").pooled
     return _row(
-        "periodicity of the weekly record (pooled Fisher g p value)",
+        "periodicity of the relapse onsets (pooled Fisher g p value)",
         None,
         pooled.p_value,
+        f"pooled p above alpha = {level:g}, so that no periodicity is detected, as the "
+        "article reports",
+        not pooled.reject(level),
     )
 
 

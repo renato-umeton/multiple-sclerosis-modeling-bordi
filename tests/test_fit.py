@@ -29,6 +29,7 @@ COHORT_LAMBDA, COHORT_MU = rates_from_means(
 )
 
 MEMORYLESS_METHODS = ("hazard", "cv", "ks", "ad")
+PERIODICITY_METHODS = ("fisher_g", "lombscargle")
 
 # The three methods whose p value comes from replicates drawn under the rounded
 # exponential null, rather than off a regression.
@@ -62,10 +63,40 @@ EDGE_COUNTS = (
     (12, 14, 11, 14, 9, 3, 9, 6, 11, 7, 8, 12, 10, 7, 12, 5, 9),
 )
 
-# The injected cycle of the periodicity fixtures.
+# The injected cycle of the periodicity fixtures: a four week relapse once a
+# year over ten years of weekly follow up, with a phase of its own per patient
+# and an onset jittered by at most two weeks.
 CYCLE_WEEKS = 52
 RECORD_WEEKS = 520
-FLIP_PROBABILITY = 0.05
+RELAPSE_WEEKS = 4
+ONSET_JITTER_WEEKS = 2
+
+# Patients of the cohort carrying the injected cycle, and of the single
+# memoryless cohort the tests read beside it. How far a reported period may sit
+# from the injected one, as a fraction of it, and how many of the twenty patients
+# have to report a period that close.
+PERIODICITY_PATIENTS = 20
+PERIOD_TOLERANCE = 0.1
+PATIENTS_WITH_THE_RIGHT_PERIOD = 15
+
+# Seeds the injected cycle is drawn at. Both power tests read every one of them,
+# so the margin they clear belongs to the fixture rather than to one lucky draw,
+# and the claim the docstring of yearly_cycle_weekly makes about the jitter is
+# checked at each seed rather than asserted once.
+PERIODICITY_FIXTURE_SEEDS = (SEED, 1, 99)
+
+# The null cohort of the periodicity tests: the seventy records of the study over
+# eight years, which at the durations of the paper is about four relapses each.
+# Ten such cohorts may not be called periodic more than twice at the 0.05 level,
+# which is already more than a correctly sized test produces.
+NULL_PATIENTS = 70
+NULL_WEEKS = 400.0
+NULL_COHORTS = 10
+ALLOWED_PERIODICITY_REJECTIONS = 2
+
+# Permutations behind the lombscargle p value in the tests of this file. The
+# default of the module is the same number and the tests do not vary it.
+N_PERM = 200
 
 # Shortest record the periodicity test reads, and the length at which leaving the
 # Nyquist ordinate in distorts the exact p value the most.
@@ -163,36 +194,56 @@ def negative_binomial_counts(n: int = 2000) -> npt.NDArray[np.int64]:
     )
 
 
-def square_wave_weekly(n_patients: int = 20) -> pd.DataFrame:
-    """Return a weekly cohort carrying a 52 week square wave plus a few flips."""
-    rng = np.random.default_rng(SEED)
-    weeks = np.arange(RECORD_WEEKS)
+def yearly_cycle_weekly(
+    n_patients: int = PERIODICITY_PATIENTS,
+    seed: int = SEED,
+) -> pd.DataFrame:
+    """Return a weekly cohort whose relapses arrive once a year.
+
+    Every patient gets a phase of its own, and every onset is moved by up to
+    :data:`ONSET_JITTER_WEEKS` weeks either way. The jitter is what makes the
+    record a noisy periodic process rather than a deterministic one, and both
+    methods need it. A record whose gaps are all exactly 52 weeks is unchanged
+    by a shuffle of those gaps, so the permutation p value of ``lombscargle``
+    would have nothing to permute and would come back at 1 however periodic the
+    record is; and the periodogram of a train of evenly spaced impulses carries
+    exactly as much power at every harmonic of the cycle as at the cycle itself,
+    so the period ``fisher_g`` reports would be decided by rounding error.
+    """
+    generator = np.random.default_rng(seed)
     records: dict[str, npt.NDArray[np.int64]] = {}
     for index in range(1, n_patients + 1):
-        phase = int(rng.integers(0, CYCLE_WEEKS))
-        cycle = np.where(((weeks + phase) % CYCLE_WEEKS) < CYCLE_WEEKS // 2, RELAPSE, REMISSION)
-        flipped = rng.random(RECORD_WEEKS) < FLIP_PROBABILITY
-        records[f"p{index:04d}"] = np.where(flipped, -cycle, cycle).astype(np.int64)
+        series = np.full(RECORD_WEEKS, REMISSION, dtype=np.int64)
+        phase = int(generator.integers(0, CYCLE_WEEKS))
+        for scheduled in range(phase, RECORD_WEEKS, CYCLE_WEEKS):
+            jitter = int(generator.integers(-ONSET_JITTER_WEEKS, ONSET_JITTER_WEEKS + 1))
+            onset = min(max(scheduled + jitter, 0), RECORD_WEEKS - 1)
+            series[onset : onset + RELAPSE_WEEKS] = RELAPSE
+        records[f"p{index:04d}"] = series
     return weekly_frame(records)
 
 
-def impulse_renewal_weekly(n_patients: int = 20, seed: int = SEED) -> pd.DataFrame:
-    """Return a weekly cohort of memoryless records whose relapses last one week.
-
-    Fisher's g test compares a record with white noise, and a relapse lasting
-    several weeks colours the spectrum on its own, so the null record used to
-    check that no period is flagged keeps every relapse at the one week minimum
-    of the study.
-    """
+def renewal_weekly(n_patients: int, weeks: float, seed: int) -> pd.DataFrame:
+    """Return a weekly cohort of memoryless records at the durations of the paper."""
     events = alternating_renewal(
-        COHORT_LAMBDA,
-        1.0 / PAPER.relapse_duration_min_weeks.value,
-        float(RECORD_WEEKS),
-        n=n_patients,
-        rng=seed,
-        discretise="week",
+        COHORT_LAMBDA, COHORT_MU, weeks, n=n_patients, rng=seed, discretise="week"
     )
     return io.events_to_weekly(events)
+
+
+def onset_weeks(weekly: pd.DataFrame, patient: str) -> list[int]:
+    """Return the weeks in which a relapse starts for one patient of a frame."""
+    series = weekly.loc[weekly["patient_id"] == patient, "state"].to_numpy(dtype=np.int64)
+    relapse = series == RELAPSE
+    started = [week for week in range(series.size) if relapse[week]]
+    return [week for week in started if week == 0 or not relapse[week - 1]]
+
+
+def record_with_onsets(onsets: list[int], n_weeks: int) -> npt.NDArray[np.int64]:
+    """Return a weekly record of one week relapses starting in the given weeks."""
+    series = np.full(n_weeks, REMISSION, dtype=np.int64)
+    series[onsets] = RELAPSE
+    return series
 
 
 @pytest.fixture(scope="module")
@@ -237,6 +288,38 @@ def rejection_counts() -> dict[str, int]:
             )
             counts[method] += int(result.reject(0.05))
     return counts
+
+
+@pytest.fixture(scope="module")
+def periodicity_rejections() -> dict[str, int]:
+    """Return how many of ten memoryless cohorts each method called periodic."""
+    counts = dict.fromkeys(PERIODICITY_METHODS, 0)
+    for seed in range(NULL_COHORTS):
+        weekly = renewal_weekly(NULL_PATIENTS, NULL_WEEKS, seed)
+        for method in PERIODICITY_METHODS:
+            result = fit.test_periodicity(
+                weekly,
+                method=method,  # type: ignore[arg-type]
+                n_perm=N_PERM,
+                rng=seed,
+            )
+            counts[method] += int(result.pooled.reject(0.05))
+    return counts
+
+
+@pytest.fixture(scope="module")
+def injected_cycle_readings() -> dict[tuple[str, int], fit.PeriodicityResult]:
+    """Return the reading of the injected cycle, one per method and fixture seed."""
+    return {
+        (method, seed): fit.test_periodicity(
+            yearly_cycle_weekly(seed=seed),
+            method=method,  # type: ignore[arg-type]
+            n_perm=N_PERM,
+            rng=SEED,
+        )
+        for method in PERIODICITY_METHODS
+        for seed in PERIODICITY_FIXTURE_SEEDS
+    }
 
 
 @pytest.fixture(scope="module")
@@ -587,80 +670,146 @@ def test_hazard_test_needs_enough_times_at_risk() -> None:
         fit.test_memoryless(frame, RELAPSE, method="hazard")
 
 
-def test_injected_cycle_is_detected_by_fisher_g() -> None:
-    result = fit.test_periodicity(square_wave_weekly())
+@pytest.mark.slow
+@pytest.mark.parametrize("method", PERIODICITY_METHODS)
+def test_memoryless_cohorts_are_rarely_called_periodic(
+    periodicity_rejections: dict[str, int], method: str
+) -> None:
+    # The size of the test, measured on ten cohorts of the shape of the study.
+    # Relapse onsets of a memoryless record are a renewal process with a flat
+    # spectrum, which is the null both methods are built against, so a cohort of
+    # them may not be called periodic more often than the level allows.
+    assert periodicity_rejections[method] <= ALLOWED_PERIODICITY_REJECTIONS
+
+
+@pytest.mark.parametrize("method", PERIODICITY_METHODS)
+def test_a_memoryless_cohort_shows_no_periodicity(method: str) -> None:
+    # Twenty memoryless records of ten years, relapses of about four weeks and
+    # all. Read on the state series the g test called this very cohort periodic,
+    # which is the reading this module no longer takes.
+    result = fit.test_periodicity(
+        renewal_weekly(PERIODICITY_PATIENTS, float(RECORD_WEEKS), SEED),
+        method=method,  # type: ignore[arg-type]
+        n_perm=N_PERM,
+        rng=SEED,
+    )
+    assert result.pooled.p_value > 0.05
+
+
+@pytest.mark.parametrize("seed", PERIODICITY_FIXTURE_SEEDS)
+@pytest.mark.parametrize("method", PERIODICITY_METHODS)
+def test_an_injected_yearly_cycle_is_detected(
+    injected_cycle_readings: dict[tuple[str, int], fit.PeriodicityResult],
+    method: str,
+    seed: int,
+) -> None:
+    result = injected_cycle_readings[(method, seed)]
+    assert result.pooled.n == PERIODICITY_PATIENTS
     assert result.pooled.p_value < 0.001
-    assert result.pooled.n == 20
 
 
-def test_injected_cycle_has_a_period_of_exactly_one_year_for_every_patient() -> None:
-    # A record of 520 weeks resolves the injected 52 week cycle on the tenth
-    # Fourier bin exactly, and its neighbours sit at 47.3 and 57.8 weeks, so an
-    # off by one in the index of the largest ordinate is visible only against an
-    # exact bound. Every patient of this fixture reports the same period.
-    result = fit.test_periodicity(square_wave_weekly())
+@pytest.mark.parametrize("seed", PERIODICITY_FIXTURE_SEEDS)
+@pytest.mark.parametrize("method", PERIODICITY_METHODS)
+def test_an_injected_yearly_cycle_reports_a_period_of_about_a_year(
+    injected_cycle_readings: dict[tuple[str, int], fit.PeriodicityResult],
+    method: str,
+    seed: int,
+) -> None:
+    result = injected_cycle_readings[(method, seed)]
     periods = result.per_patient["period_weeks"].to_numpy(dtype=float)
-    assert np.all(periods == CYCLE_WEEKS)
+    close = np.abs(periods - CYCLE_WEEKS) <= PERIOD_TOLERANCE * CYCLE_WEEKS
+    assert int(np.count_nonzero(close)) >= PATIENTS_WITH_THE_RIGHT_PERIOD
 
 
-def test_fisher_g_leaves_the_nyquist_ordinate_out() -> None:
-    # The Nyquist ordinate of an even length record is real rather than complex,
-    # so it is not exchangeable with the others and the finite sum behind the
-    # exact p value does not describe it. This record carries most of its power
-    # there, which makes the two readings differ by a wide margin.
-    series = np.array([1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0])
-    centred = series - series.mean()
-    power = np.abs(np.fft.rfft(centred)) ** 2
-    read = fit._fisher_g(centred)
-    assert read is not None
-    assert read[0] == pytest.approx(float(power[1:5].max() / power[1:5].sum()), rel=1e-12)
-    # The largest ordinate of this record is the Nyquist one, so keeping it would
-    # also report the two week period that goes with it instead of the 2.5 weeks
-    # of the largest ordinate the test does read.
-    assert int(np.argmax(power[1:])) == 4
-    assert read[2] == pytest.approx(2.5, rel=1e-12)
-
-
-def test_a_record_that_alternates_every_week_is_skipped_and_counted() -> None:
-    # All of its power sits at the Nyquist frequency, which the g test does not
-    # read, so there is no ordinate left to compare and the patient is skipped.
-    alternating = np.where(np.arange(RECORD_WEEKS) % 2 == 0, RELAPSE, REMISSION).astype(np.int64)
+@pytest.mark.parametrize("method", PERIODICITY_METHODS)
+def test_a_patient_with_two_onsets_is_skipped_and_counted(method: str) -> None:
+    # Two onsets leave one gap, which says nothing about a rhythm: any two
+    # relapses are one cycle apart, whatever the cycle.
     records = {
-        "p0001": alternating,
-        "p0002": square_wave_weekly(n_patients=1)["state"].to_numpy(dtype=np.int64),
+        "p0001": record_with_onsets([10, 60], RECORD_WEEKS),
+        "p0002": yearly_cycle_weekly(n_patients=1)["state"].to_numpy(dtype=np.int64),
+    }
+    result = fit.test_periodicity(
+        weekly_frame(records),
+        method=method,  # type: ignore[arg-type]
+        n_perm=N_PERM,
+        rng=SEED,
+    )
+    assert result.pooled.details["n_skipped_few_onsets"] == 1.0
+    assert result.pooled.n == 1
+    skipped = result.per_patient[result.per_patient["patient_id"] == "p0001"].iloc[0]
+    assert int(skipped["n_onsets"]) == 2
+    assert math.isnan(float(skipped["p_value"]))
+    assert math.isnan(float(skipped["statistic"]))
+    assert math.isnan(float(skipped["period_weeks"]))
+
+
+@pytest.mark.parametrize("method", PERIODICITY_METHODS)
+def test_a_cohort_in_which_every_patient_is_skipped_is_refused(method: str) -> None:
+    records = {
+        "p0001": np.full(4, REMISSION, dtype=np.int64),
+        "p0002": record_with_onsets([10, 60], RECORD_WEEKS),
+    }
+    with pytest.raises(ValueError, match="no patient has a record this test can read"):
+        fit.test_periodicity(
+            weekly_frame(records),
+            method=method,  # type: ignore[arg-type]
+            n_perm=N_PERM,
+            rng=SEED,
+        )
+
+
+def test_short_records_are_skipped_and_counted() -> None:
+    cycle = yearly_cycle_weekly(n_patients=1)["state"].to_numpy(dtype=np.int64)
+    records = {
+        "p0001": np.full(4, REMISSION, dtype=np.int64),
+        "p0002": cycle,
+        "p0003": cycle,
     }
     result = fit.test_periodicity(weekly_frame(records))
-    assert result.pooled.details["n_skipped_alternating"] == 1.0
-    assert result.pooled.n == 1
-    skipped = result.per_patient[result.per_patient["patient_id"] == "p0001"]
-    assert math.isnan(float(skipped["p_value"].to_numpy()[0]))
+    assert result.pooled.details["n_skipped_short"] == 1.0
+    assert result.pooled.n == 2
+    short = result.per_patient[result.per_patient["patient_id"] == "p0001"].iloc[0]
+    assert math.isnan(float(short["p_value"]))
+    assert int(short["n_weeks"]) == 4
 
 
-def test_white_noise_records_of_even_length_are_not_over_rejected() -> None:
-    # Keeping the Nyquist ordinate inflates the exact p value of the g test by
-    # half again at the eight week minimum: 0.079 of white noise records are
-    # called periodic at the 0.05 level instead of 0.05 of them.
-    generator = np.random.default_rng(SEED)
-    rejected = 0
-    trials = 3000
-    for _ in range(trials):
-        centred = generator.normal(size=_MIN_WEEKS)
-        read = fit._fisher_g(centred - centred.mean())
-        assert read is not None
-        rejected += int(read[1] <= 0.05)
-    assert rejected / trials <= 0.065
+def test_the_per_patient_table_counts_the_onsets_it_read() -> None:
+    weekly = yearly_cycle_weekly(n_patients=2)
+    result = fit.test_periodicity(weekly)
+    counted = result.per_patient.set_index("patient_id")["n_onsets"]
+    assert int(counted.loc["p0001"]) == len(onset_weeks(weekly, "p0001"))
+    assert int(counted.loc["p0002"]) == len(onset_weeks(weekly, "p0002"))
 
 
-def test_memoryless_record_shows_no_periodicity() -> None:
-    # The bound is far above the 0.05 of the specification on purpose: at the
-    # halved degrees of freedom of a mistyped Fisher combination the same
-    # statistic gives 0.945, which a bound of 0.05 would let through.
-    result = fit.test_periodicity(impulse_renewal_weekly())
-    assert result.pooled.p_value > 0.99
+def test_the_onset_of_a_record_that_opens_in_relapse_is_counted() -> None:
+    # Week 0 has no week before it to have been a remission, and the study's
+    # records start at the onset of a relapse, so a record that opens in relapse
+    # opens on an onset.
+    records = {"p0001": record_with_onsets([0, 20, 40], RECORD_WEEKS)}
+    result = fit.test_periodicity(weekly_frame(records))
+    assert int(result.per_patient["n_onsets"].iloc[0]) == 3
+
+
+def test_the_onset_series_removes_the_red_spectrum_of_long_relapses() -> None:
+    # The flaw the onset series exists to remove, on a record of three relapses
+    # of thirty weeks each. Reading the state series, the g test rejects at 1e-29
+    # and names a period of 173 weeks, which is only the spacing of three long
+    # stretches in one state; reading the onsets, three impulses, it sees no
+    # rhythm at all. A relapse counts once however long it goes on.
+    series = np.full(RECORD_WEEKS, REMISSION, dtype=np.int64)
+    for start in (10, 200, 400):
+        series[start : start + 30] = RELAPSE
+    from_states = fit._fisher_g(series.astype(np.float64))
+    assert from_states is not None
+    assert from_states[1] < 0.001
+    result = fit.test_periodicity(weekly_frame({"p0001": series}))
+    assert int(result.per_patient["n_onsets"].iloc[0]) == 3
+    assert result.pooled.p_value > 0.05
 
 
 def test_pooled_result_is_fishers_combination_of_the_per_patient_p_values() -> None:
-    result = fit.test_periodicity(impulse_renewal_weekly(n_patients=6))
+    result = fit.test_periodicity(renewal_weekly(6, float(RECORD_WEEKS), SEED))
     per_patient = result.per_patient["p_value"].dropna().to_numpy(dtype=float)
     assert per_patient.size == result.pooled.n
     statistic = -2.0 * float(np.sum(np.log(per_patient)))
@@ -670,58 +819,58 @@ def test_pooled_result_is_fishers_combination_of_the_per_patient_p_values() -> N
     )
 
 
-def test_fisher_g_flags_multi_week_relapses_because_they_are_not_white_noise() -> None:
-    # Documented limitation: the exact g test compares a record with white
-    # noise, and a relapse of several weeks makes the record red on its own.
-    events = alternating_renewal(
-        COHORT_LAMBDA, COHORT_MU, float(RECORD_WEEKS), n=20, rng=SEED, discretise="week"
-    )
-    result = fit.test_periodicity(io.events_to_weekly(events))
-    assert result.pooled.p_value < 0.05
+def test_fisher_g_leaves_the_nyquist_ordinate_out() -> None:
+    # The Nyquist ordinate of an even length record is real rather than complex,
+    # so it is not exchangeable with the others and the finite sum behind the
+    # exact p value does not describe it. This series carries most of its power
+    # there, which makes the two readings differ by a wide margin.
+    series = np.array([1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0])
+    power = np.abs(np.fft.rfft(series - series.mean())) ** 2
+    read = fit._fisher_g(series)
+    assert read is not None
+    assert read[0] == pytest.approx(float(power[1:5].max() / power[1:5].sum()), rel=1e-12)
+    # The largest ordinate of this series is the Nyquist one, so keeping it would
+    # also report the two week period that goes with it instead of the 2.5 weeks
+    # of the largest ordinate the test does read.
+    assert int(np.argmax(power[1:])) == 4
+    assert read[2] == pytest.approx(2.5, rel=1e-12)
 
 
-def test_lombscargle_agrees_on_the_injected_cycle() -> None:
-    result = fit.test_periodicity(
-        square_wave_weekly(n_patients=5), method="lombscargle", n_perm=40, rng=SEED
-    )
-    periods = result.per_patient["period_weeks"].to_numpy(dtype=float)
-    assert np.all(np.abs(periods - CYCLE_WEEKS) <= 0.1 * CYCLE_WEEKS)
-    assert result.pooled.p_value < 0.001
+def test_white_noise_series_of_even_length_are_not_over_rejected() -> None:
+    # Keeping the Nyquist ordinate inflates the exact p value of the g test by
+    # half again at the eight week minimum: 0.079 of white noise series are
+    # called periodic at the 0.05 level instead of 0.05 of them.
+    generator = np.random.default_rng(SEED)
+    rejected = 0
+    trials = 3000
+    for _ in range(trials):
+        read = fit._fisher_g(generator.normal(size=_MIN_WEEKS))
+        assert read is not None
+        rejected += int(read[1] <= 0.05)
+    assert rejected / trials <= 0.065
 
 
-def test_short_records_are_skipped_and_counted() -> None:
-    cycle = square_wave_weekly(n_patients=1)["state"].to_numpy(dtype=np.int64)
+def test_a_record_that_relapses_every_other_week_is_skipped_by_fisher_g() -> None:
+    # Its onsets fall in every other week, so all the power of the onset series
+    # sits at the Nyquist frequency, which the g test does not read, and there is
+    # no ordinate left to compare.
     records = {
-        "p0001": np.full(4, REMISSION, dtype=np.int64),
-        "p0002": cycle,
-        "p0003": cycle,
+        "p0001": record_with_onsets(list(range(0, RECORD_WEEKS, 2)), RECORD_WEEKS),
+        "p0002": yearly_cycle_weekly(n_patients=1)["state"].to_numpy(dtype=np.int64),
     }
     result = fit.test_periodicity(weekly_frame(records))
-    assert result.pooled.details["n_skipped_short"] == 1.0
-    assert result.pooled.n == 2
-    short = result.per_patient[result.per_patient["patient_id"] == "p0001"]
-    assert math.isnan(float(short["p_value"].to_numpy()[0]))
-    assert int(short["n_weeks"].to_numpy()[0]) == 4
-
-
-def test_a_flat_record_is_skipped_and_counted() -> None:
-    records = {
-        "p0001": np.full(RECORD_WEEKS, REMISSION, dtype=np.int64),
-        "p0002": square_wave_weekly(n_patients=1)["state"].to_numpy(dtype=np.int64),
-    }
-    result = fit.test_periodicity(weekly_frame(records))
-    assert result.pooled.details["n_skipped_flat"] == 1.0
+    assert result.pooled.details["n_skipped_flat_spectrum"] == 1.0
     assert result.pooled.n == 1
 
 
 def test_periodicity_rejects_an_unknown_method() -> None:
     with pytest.raises(ValueError, match="method"):
-        fit.test_periodicity(square_wave_weekly(n_patients=2), method="welch")  # type: ignore[arg-type]
+        fit.test_periodicity(yearly_cycle_weekly(n_patients=2), method="welch")  # type: ignore[arg-type]
 
 
 def test_periodicity_rejects_an_empty_permutation_count() -> None:
     with pytest.raises(ValueError, match="n_perm"):
-        fit.test_periodicity(square_wave_weekly(n_patients=2), method="lombscargle", n_perm=0)
+        fit.test_periodicity(yearly_cycle_weekly(n_patients=2), method="lombscargle", n_perm=0)
 
 
 def test_periodicity_needs_a_long_enough_record() -> None:
