@@ -70,7 +70,7 @@ Until then, and for any work on the package itself, install from source with
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
-git clone git@github.com:renato-umeton/multiple-sclerosiss-modeling-bordi.git
+git clone https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi
 cd multiple-sclerosiss-modeling-bordi
 uv sync
 ```
@@ -164,11 +164,11 @@ reports.
 The clinical series of the study was never released: the article carries no
 data availability statement, no supplementary material and no deposited
 records. What this package ships instead is a **synthetic twin**, 70 generated
-records whose mean durations match the printed ones, in the three schemas the
-package reads. `msrelapse.load_synthetic_bordi2013()` returns it and
-`msrelapse.provenance()` returns the full note, which names the generator, the
-seed and the generative durations. Every command that touches it says so on
-standard output.
+records whose mean durations are aimed at the printed ones and land within
+about five percent of them, in the three schemas the package reads.
+`msrelapse.load_synthetic_bordi2013()` returns it and `msrelapse.provenance()`
+returns the full note, which names the generator, the seed and the generative
+durations. Every command that touches it says so on standard output.
 
 The twin is not the cohort of the study and no clinical claim can be read off
 it. It exists so that the analysis pipeline can be run end to end by anyone. A

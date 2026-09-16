@@ -1,5 +1,5 @@
-# Tag driven release: build the distribution, publish it to PyPI by trusted
-# publishing, and attach it to a GitHub release.
+# Tag driven release: run the suite, build the distribution, publish it to PyPI
+# by trusted publishing, and attach it to a GitHub release.
 #
 # ONE TIME SETUP, to be done by the maintainer before the first tag is pushed:
 #
@@ -52,8 +52,35 @@ permissions:
   contents: read
 
 jobs:
+  test:
+    # A tag can sit on any commit, including one CI never ran, so the suite runs
+    # here as well rather than being assumed green. Everything below waits for
+    # it, so a red tag stops before anything is built, published or archived.
+    # This is the one leg of the CI matrix, not the whole of it: a tag on a
+    # commit that passed CI has already been through the other fourteen.
+    name: Run the suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          python-version: "3.13"
+      - name: Install the project
+        run: uv sync --locked --all-extras --group dev
+      - name: Run tests
+        # The step above is the install; this one uses it as it stands.
+        run: uv run --no-sync pytest -m "not slow"
+        env:
+          # The numba kernels are handed back as plain Python functions, which
+          # keeps the compilation out of a step that is holding up a release.
+          # The kernels themselves are compared with the numpy ones in the
+          # notebooks job of ci.yml, where numba really compiles.
+          NUMBA_DISABLE_JIT: "1"
+
   build:
     name: Build the distribution
+    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

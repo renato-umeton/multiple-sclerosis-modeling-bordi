@@ -85,6 +85,14 @@ ROLE_MARKERS = tuple(f":{name}:" for name in ROLE_NAMES)
 # that a build which stops failing on it is still caught.
 UNRESOLVED_REFERENCE = "Could not find cross-reference target"
 
+# The variable an environment sets to say that it is meant to be able to build
+# the site. The check that reads the built pages back is skipped where mkdocs is
+# absent, which is right on a machine that never installed the documentation
+# group and wrong in a job that is meant to have it: a silent skip there is how
+# a guard stops guarding without anyone noticing. Set this to any value in such
+# a job and the skip becomes a failure naming what is missing.
+REQUIRE_DOCS = "MSRELAPSE_REQUIRE_DOCS"
+
 # A line of hyphens, built rather than written, so that this file keeps the
 # rule it checks. The same goes for the two fence markers below.
 HYPHEN_LINE = "-" * 3
@@ -194,6 +202,29 @@ def role_markers(text: str) -> list[str]:
     return [marker for marker in ROLE_MARKERS if marker in text]
 
 
+def missing_build_tools(mkdocs: bool, uv: bool) -> list[str]:
+    """Return the names of the tools a site build needs that are not present.
+
+    Parameters
+    ----------
+    mkdocs : bool
+        Whether mkdocs can be imported.
+    uv : bool
+        Whether the uv executable is on the path.
+
+    Returns
+    -------
+    list of str
+        The missing names, empty when the site can be built here.
+    """
+    return [name for name, present in (("mkdocs", mkdocs), ("uv", uv)) if not present]
+
+
+def site_build_tools_missing() -> list[str]:
+    """Return what this environment lacks for a site build, empty when it lacks nothing."""
+    return missing_build_tools(find_spec("mkdocs") is not None, shutil.which("uv") is not None)
+
+
 def build_site(site_dir: Path) -> subprocess.CompletedProcess[str]:
     """Build the documentation site into a directory and return the finished run."""
     environment = dict(os.environ)
@@ -283,9 +314,16 @@ def test_no_module_of_the_package_holds_a_sphinx_role() -> None:
     assert found == {}, f"a Sphinx role reaches the site as literal text: {found}"
 
 
+def test_missing_build_tools_names_only_what_is_absent() -> None:
+    assert missing_build_tools(mkdocs=True, uv=True) == []
+    assert missing_build_tools(mkdocs=False, uv=True) == ["mkdocs"]
+    assert missing_build_tools(mkdocs=True, uv=False) == ["uv"]
+    assert missing_build_tools(mkdocs=False, uv=False) == ["mkdocs", "uv"]
+
+
 @pytest.mark.slow
 @pytest.mark.skipif(
-    find_spec("mkdocs") is None or shutil.which("uv") is None,
+    bool(site_build_tools_missing()) and not os.environ.get(REQUIRE_DOCS),
     reason="mkdocs or uv is missing here, so the site cannot be built",
 )
 def test_the_built_api_pages_carry_no_role_and_no_unresolved_reference(tmp_path: Path) -> None:
@@ -294,7 +332,17 @@ def test_the_built_api_pages_carry_no_role_and_no_unresolved_reference(tmp_path:
     The check above reads the sources; this one reads what a visitor of the site
     is served, so a role that survives the handler, and a cross reference that
     resolves to nothing, are both caught on the page itself.
+
+    The build needs mkdocs, so the check is skipped where the documentation group
+    is not installed. An environment that is meant to have it sets
+    ``MSRELAPSE_REQUIRE_DOCS``, and the skip turns into the failure below, which
+    names what is missing.
     """
+    missing = site_build_tools_missing()
+    assert missing == [], (
+        f"{REQUIRE_DOCS} is set, so this environment has to be able to build the "
+        f"site, and it is missing {', '.join(missing)}"
+    )
     site = tmp_path / "site"
 
     completed = build_site(site)
@@ -599,6 +647,44 @@ def test_ci_builds_the_docs_and_runs_the_notebooks_after_the_lint_job() -> None:
     assert "--group docs" in docs_run
     notebook_run = " ".join(step.get("run", "") for step in jobs["notebooks"]["steps"])
     assert "pytest -m notebook" in notebook_run
+
+
+def test_ci_builds_and_checks_the_distribution_on_every_change() -> None:
+    """The build job is what keeps the sdist include list and the metadata honest.
+
+    docs/CONTRIBUTING.md promises a contributor that a change to the version, the
+    classifiers, the sdist include list or the README rendering fails there, so
+    the steps that make the promise true are named here rather than left to
+    review.
+    """
+    jobs = load_workflow("ci.yml")["jobs"]
+    assert "build" in jobs, "ci.yml no longer builds the distribution"
+    run = " ".join(step.get("run", "") for step in jobs["build"]["steps"])
+    assert "uv build" in run
+    assert "twine check --strict" in run
+    # The shipped suite runs from the unpacked archive, so a file the include
+    # list forgets fails here rather than after a download.
+    assert "unpacked/msrelapse-*/tests" in run
+    # And the wheel is installed away from the checkout, so a missing module or
+    # a missing packaged data file fails here too.
+    assert "--with dist/*.whl msrelapse cite" in run
+
+
+def test_ci_hands_its_jobs_a_read_only_token() -> None:
+    """These jobs run project code and third party code, and none of them writes.
+
+    The workflow states the permissions rather than inheriting them, and the
+    other two workflows state theirs, so the mapping is pinned the way
+    tests/test_metadata.py pins the one in release.yml.
+    """
+    assert load_workflow("ci.yml")["permissions"] == {"contents": "read"}
+
+
+def test_the_test_matrix_covers_the_platforms_and_versions_the_guide_promises() -> None:
+    """docs/CONTRIBUTING.md tells a contributor which platforms the suite runs on."""
+    matrix = load_workflow("ci.yml")["jobs"]["test"]["strategy"]["matrix"]
+    assert matrix["os"] == ["ubuntu-latest", "macos-latest", "windows-latest"]
+    assert matrix["python-version"] == ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
 
 def test_the_docs_workflow_publishes_the_site_from_main() -> None:

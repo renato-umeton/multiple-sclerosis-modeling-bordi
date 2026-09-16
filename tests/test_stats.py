@@ -553,6 +553,24 @@ def test_the_interval_covers_the_simulated_rate_ratio(
     assert result.converged
 
 
+@pytest.mark.filterwarnings("error::RuntimeWarning")
+def test_a_rate_ratio_fit_raises_no_runtime_warning(
+    two_arms: tuple[pd.DataFrame, pd.DataFrame],
+) -> None:
+    # The linear predictor of either model is a matrix by vector product, and
+    # on the numpy the lock resolves for the oldest supported Python that
+    # product raises a divide by zero, an overflow and an invalid value warning
+    # on the finite 0/1 design and finite coefficients of an ordinary
+    # comparison. Three of them reached the user of a plain call there. The
+    # marker pins that they stay silenced where they are raised, so a full run
+    # carries no warnings summary to hide a new one.
+    negative_binomial = compare_arr(two_arms[0], None, two_arms[1], None)
+    poisson = compare_arr(two_arms[0], None, two_arms[1], None, model="poisson")
+
+    assert negative_binomial.converged
+    assert poisson.converged
+
+
 def test_a_small_cohort_still_reports_a_converged_fit() -> None:
     # The refinement of the fit differences its Hessian, so its step cannot
     # shrink past the error of that difference. Judging convergence at the

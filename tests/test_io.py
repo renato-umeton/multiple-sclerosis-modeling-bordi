@@ -626,14 +626,14 @@ def test_censoring_marks_exactly_the_patients_ending_in_remission(
 def test_write_csv_uses_the_schema_column_order(tmp_path: Path) -> None:
     path = tmp_path / "weekly.csv"
     write_csv(example_weekly()[["state", "week", "patient_id"]], path)
-    assert path.read_text().splitlines()[0] == "patient_id,week,state"
+    assert path.read_text(encoding="utf-8").splitlines()[0] == "patient_id,week,state"
 
 
 def test_write_csv_keeps_the_date_columns_of_a_dated_events_frame(tmp_path: Path) -> None:
     path = tmp_path / "events.csv"
     dated = weekly_to_events(example_weekly(), origin=pd.Timestamp("2001-01-01"))
     write_csv(dated, path)
-    header = path.read_text().splitlines()[0]
+    header = path.read_text(encoding="utf-8").splitlines()[0]
     assert header == ",".join(EVENTS_COLUMNS + EVENTS_DATE_COLUMNS)
 
 
@@ -693,27 +693,30 @@ def test_read_events_round_trips_a_written_frame(tmp_path: Path) -> None:
 
 def test_read_weekly_puts_the_columns_in_schema_order(tmp_path: Path) -> None:
     path = tmp_path / "weekly.csv"
-    path.write_text("state,week,patient_id\n1,0,p1\n-1,1,p1\n")
+    path.write_text("state,week,patient_id\n1,0,p1\n-1,1,p1\n", encoding="utf-8")
     assert list(read_weekly(path).columns) == list(WEEKLY_COLUMNS)
 
 
 def test_read_durations_puts_the_columns_in_schema_order(tmp_path: Path) -> None:
     path = tmp_path / "durations.csv"
-    path.write_text("censored,duration_w,state,run_index,patient_id\nTrue,3,-1,0,p1\n")
+    path.write_text(
+        "censored,duration_w,state,run_index,patient_id\nTrue,3,-1,0,p1\n", encoding="utf-8"
+    )
     assert list(read_durations(path).columns) == list(DURATIONS_COLUMNS)
 
 
 def test_read_events_puts_the_columns_in_schema_order(tmp_path: Path) -> None:
     path = tmp_path / "events.csv"
     path.write_text(
-        "relapse_end,relapse_onset,followup_end,followup_start,patient_id\n2.0,1.0,5.0,0.0,p1\n"
+        "relapse_end,relapse_onset,followup_end,followup_start,patient_id\n2.0,1.0,5.0,0.0,p1\n",
+        encoding="utf-8",
     )
     assert list(read_events(path).columns) == list(EVENTS_COLUMNS)
 
 
 def test_read_weekly_validates_what_it_reads(tmp_path: Path) -> None:
     path = tmp_path / "weekly.csv"
-    path.write_text("patient_id,week,state\np1,0,1\np1,2,-1\n")
+    path.write_text("patient_id,week,state\np1,0,1\np1,2,-1\n", encoding="utf-8")
     with pytest.raises(ValueError, match="'week' must run contiguously from 0"):
         read_weekly(path)
 
@@ -725,7 +728,8 @@ def test_read_events_converts_dates_to_weeks(tmp_path: Path) -> None:
     path.write_text(
         "patient_id,entry,exit,onset,recovery\n"
         "p1,2001-01-01,2001-03-12,2001-01-15,2001-01-29\n"
-        "p2,2002-06-03,2002-07-08,,\n"
+        "p2,2002-06-03,2002-07-08,,\n",
+        encoding="utf-8",
     )
     events = read_events(path, date_cols=("entry", "exit", "onset", "recovery"))
     assert_frame_equal(
@@ -743,7 +747,8 @@ def test_read_events_converts_dates_to_weeks(tmp_path: Path) -> None:
 def test_read_events_honours_the_week_length(tmp_path: Path) -> None:
     path = tmp_path / "registry.csv"
     path.write_text(
-        "patient_id,entry,exit,onset,recovery\np1,2001-01-01,2001-01-11,2001-01-03,2001-01-06\n"
+        "patient_id,entry,exit,onset,recovery\np1,2001-01-01,2001-01-11,2001-01-03,2001-01-06\n",
+        encoding="utf-8",
     )
     events = read_events(path, date_cols=("entry", "exit", "onset", "recovery"), week_length_days=5)
     assert events["followup_end"].tolist() == [2.0]
@@ -760,7 +765,7 @@ def test_read_events_rejects_dates_that_are_not_iso(tmp_path: Path) -> None:
     # day is above 12 and 'onset' month first because its day is not, so one
     # file would be read with two conventions.
     path = tmp_path / "registry.csv"
-    path.write_text(DAY_FIRST_REGISTRY)
+    path.write_text(DAY_FIRST_REGISTRY, encoding="utf-8")
     with pytest.raises(ValueError, match="ISO8601"):
         read_events(path, date_cols=("entry", "exit", "onset", "recovery"))
 
@@ -769,7 +774,7 @@ def test_read_events_reads_a_day_first_file_when_its_format_is_named(tmp_path: P
     # Every column is read with the one named format, so the onset is 3 February,
     # 33 days after the entry, and not 2 March, which is 60 days after it.
     path = tmp_path / "registry.csv"
-    path.write_text(DAY_FIRST_REGISTRY)
+    path.write_text(DAY_FIRST_REGISTRY, encoding="utf-8")
     events = read_events(
         path,
         date_cols=("entry", "exit", "onset", "recovery"),
@@ -782,14 +787,18 @@ def test_read_events_reads_a_day_first_file_when_its_format_is_named(tmp_path: P
 
 def test_read_events_rejects_a_missing_date_column(tmp_path: Path) -> None:
     path = tmp_path / "registry.csv"
-    path.write_text("patient_id,entry,exit,onset\np1,2001-01-01,2001-03-12,2001-01-15\n")
+    path.write_text(
+        "patient_id,entry,exit,onset\np1,2001-01-01,2001-03-12,2001-01-15\n", encoding="utf-8"
+    )
     with pytest.raises(ValueError, match="missing column"):
         read_events(path, date_cols=("entry", "exit", "onset", "recovery"))
 
 
 def test_read_events_rejects_a_week_length_of_zero(tmp_path: Path) -> None:
     path = tmp_path / "registry.csv"
-    path.write_text("patient_id,entry,exit,onset,recovery\np1,2001-01-01,2001-03-12,,\n")
+    path.write_text(
+        "patient_id,entry,exit,onset,recovery\np1,2001-01-01,2001-03-12,,\n", encoding="utf-8"
+    )
     with pytest.raises(ValueError, match="week_length_days must be positive"):
         read_events(path, date_cols=("entry", "exit", "onset", "recovery"), week_length_days=0)
 

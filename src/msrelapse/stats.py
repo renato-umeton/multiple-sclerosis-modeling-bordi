@@ -930,19 +930,53 @@ def _standard_errors(covariance: _Matrix, model: ModelName) -> _Vector:
     return np.sqrt(variances)
 
 
+def _fitted_mean(design: _Matrix, coefficients: _Vector, exposure: _Vector) -> _Vector:
+    """Return the mean count a log linear model fits to each patient.
+
+    The linear predictor is a matrix by vector product, and on the numpy the
+    lock resolves for the oldest supported Python that product reports
+    floating point flags its own arithmetic never raised: an ordinary call
+    with the finite 0/1 design of ``compare_arr`` and finite coefficients
+    raises a divide by zero, an overflow and an invalid value warning at once
+    and still returns the right answer. Three warnings per call reached the
+    user of a plain comparison on that leg. They are silenced here, at the one
+    place they are raised rather than through a filter over the whole run, in
+    the manner of ``msrelapse.simulate.simulate_paths``. The exponential is
+    left outside the guard, so an overflow of the mean itself is still
+    reported.
+
+    Parameters
+    ----------
+    design : numpy.ndarray
+        The design matrix, one row per patient.
+    coefficients : numpy.ndarray
+        The coefficients of the linear predictor, one per column of `design`.
+    exposure : numpy.ndarray
+        Follow up in years per patient, the offset of the model.
+
+    Returns
+    -------
+    numpy.ndarray
+        The fitted mean count of each patient.
+    """
+    with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+        linear = design @ coefficients
+    return exposure * np.exp(linear)
+
+
 def _fit_poisson(design: _Matrix, counts: _Vector, exposure: _Vector) -> _Fit:
     """Fit a log linear Poisson model by Newton iteration on the exact score."""
     coefficients = np.zeros(design.shape[1])
     coefficients[0] = math.log(counts.sum() / exposure.sum())
     converged = False
     for _ in range(_NEWTON_STEPS):
-        fitted = exposure * np.exp(design @ coefficients)
+        fitted = _fitted_mean(design, coefficients, exposure)
         step = np.linalg.solve(design.T @ (design * fitted[:, None]), design.T @ (counts - fitted))
         coefficients = coefficients + step
         if np.max(np.abs(step)) < _NEWTON_TOLERANCE:
             converged = True
             break
-    fitted = exposure * np.exp(design @ coefficients)
+    fitted = _fitted_mean(design, coefficients, exposure)
     covariance = np.linalg.inv(design.T @ (design * fitted[:, None]))
     errors = _standard_errors(covariance, "poisson")
     return _Fit(coefficients, errors, 0.0, converged)
@@ -950,7 +984,7 @@ def _fit_poisson(design: _Matrix, counts: _Vector, exposure: _Vector) -> _Fit:
 
 def _moment_dispersion(design: _Matrix, counts: _Vector, exposure: _Vector, fit: _Fit) -> float:
     """Return the method of moments NB2 dispersion around a fitted Poisson mean."""
-    fitted = exposure * np.exp(design @ fit.coefficients)
+    fitted = _fitted_mean(design, fit.coefficients, exposure)
     return float(np.sum((counts - fitted) ** 2 - counts) / np.sum(fitted**2))
 
 
@@ -975,7 +1009,7 @@ def _nb_negative_loglik(
     log_dispersion = _bounded_log_dispersion(float(parameters[-1]))
     dispersion = math.exp(log_dispersion)
     size = 1.0 / dispersion
-    fitted = exposure * np.exp(design @ parameters[:-1])
+    fitted = _fitted_mean(design, parameters[:-1], exposure)
     terms = (
         special.gammaln(counts + size)
         - special.gammaln(size)
@@ -992,7 +1026,7 @@ def _nb_negative_score(
     """Return the gradient of ``_nb_negative_loglik``, computed analytically."""
     dispersion = math.exp(_bounded_log_dispersion(float(parameters[-1])))
     size = 1.0 / dispersion
-    fitted = exposure * np.exp(design @ parameters[:-1])
+    fitted = _fitted_mean(design, parameters[:-1], exposure)
     residual = (counts - fitted) / (1.0 + dispersion * fitted)
     by_coefficient = design.T @ residual
     by_dispersion = np.sum(

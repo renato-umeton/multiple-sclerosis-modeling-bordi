@@ -56,6 +56,14 @@ def test_health_histogram_counts_sum_to_the_printed_total(paper: Bordi2013) -> N
     assert sum(paper.fig4b_counts.value) == paper.n_health_events.value
 
 
+def test_health_histogram_source_records_the_measured_shortfall(paper: Bordi2013) -> None:
+    assert "sum to 265 against the printed total 266" in paper.fig4b_counts.source
+
+
+def test_health_histogram_source_records_the_uncertain_first_bins(paper: Bordi2013) -> None:
+    assert "first two bins are uncertain by about one count" in paper.fig4b_counts.source
+
+
 def test_cohort_size_is_seventy(paper: Bordi2013) -> None:
     assert paper.n_patients.value == 70
 

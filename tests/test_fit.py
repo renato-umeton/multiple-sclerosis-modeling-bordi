@@ -778,6 +778,39 @@ def test_runs_that_all_lasted_one_week_still_get_a_p_value(method: str) -> None:
     assert 0.0 < result.p_value <= 1.0
 
 
+def test_the_ks_distance_is_the_largest_gap_from_the_fitted_exponential() -> None:
+    # The statistic is read off scipy with the asymptotic p value asked for,
+    # because the p value it computes is thrown away and the exact one is the
+    # expensive half of the call. What is reported has to stay the largest gap
+    # between the empirical step function and the exponential of the sample
+    # mean, read on both sides of every step.
+    values = np.array([1.0, 2.0, 3.0, 5.0, 8.0, 13.0, 21.0, 34.0])
+    n = values.size
+    fitted = stats.expon(scale=float(values.mean())).cdf(np.sort(values))
+    above = np.arange(1, n + 1) / n
+    expected = max(np.max(above - fitted), np.max(fitted - (above - 1.0 / n)))
+
+    assert fit._ks_distance(values) == pytest.approx(expected, rel=1e-12)
+
+
+@pytest.mark.filterwarnings("error::RuntimeWarning")
+def test_the_ks_bootstrap_over_long_remissions_raises_no_runtime_warning() -> None:
+    # The remissions of the study run to about a hundred weeks, and the exact p
+    # value scipy computes by default for a sample of that size and scale
+    # overflows on the numpy the lock resolves for the oldest supported Python.
+    # One call raised hundreds of runtime warnings there, six of which reached
+    # the user of the reproduce command. Asking for the asymptotic p value stops
+    # them, and this guard fails if the exact one ever comes back.
+    values = rounded_exponential(
+        PAPER.tau_health_cohort_weeks.value, 191, np.random.default_rng(SEED)
+    )
+    frame = one_run_per_patient(values, REMISSION)
+
+    result = fit.test_memoryless(frame, REMISSION, method="ks", n_boot=200, rng=SEED)
+
+    assert 0.0 < result.p_value <= 1.0
+
+
 def test_cv_details_name_the_null_it_is_compared_with(memoryless_frame: pd.DataFrame) -> None:
     # A rounded exponential of mean m has a coefficient of variation near
     # m / (m + 0.5), not the 1 of an unrounded one, so the null value the sample

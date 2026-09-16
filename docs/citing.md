@@ -23,8 +23,9 @@ DOI and the repository URL is the stable reference.
 
 ## From inside a session
 
-Every module prints where its numbers come from, which is the point: a reader
-who imports the package meets the citation.
+Every result the package hands back names where its numbers come from, which is
+the point: a number copied out of a session carries its source with it.
+Importing the package itself prints nothing.
 
 ```python
 import msrelapse as ms

@@ -626,7 +626,7 @@ SHIFT_FRACTIONS = st.floats(min_value=0.0, max_value=0.45, allow_nan=False, allo
 """How far the bridge shift brings each threshold in, as a fraction of the band width.
 
 Below half the width the two thresholds stay apart, which is what
-:func:`to_states` requires of the shift it is handed.
+``to_states`` requires of the shift it is handed.
 """
 
 
@@ -640,7 +640,7 @@ def band_path(
     The positions arrive in units of the band width, so a generated path covers
     both states and the band between them whatever potential it is mapped on.
     What comes back with it is the level shift in units of x and the two
-    thresholds that shift leaves, spelled the way :func:`to_states` spells them
+    thresholds that shift leaves, spelled the way ``to_states`` spells them
     so that the comparisons here and the ones inside it round alike.
     """
     low, high = passage_endpoints(well, "health", "band", BAND_FRACTION)
@@ -992,7 +992,7 @@ def rounding_pair(
 ) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
     """Return a cohort of state series and the weekly record rounded from it.
 
-    The series carry the same bridge shift that :func:`simulate_weekly` applies,
+    The series carry the same bridge shift that ``simulate_weekly`` applies,
     so what the two tests below measure is the rounding rule alone.
     """
     well, sigma = band_well

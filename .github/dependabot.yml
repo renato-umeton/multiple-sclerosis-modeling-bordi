@@ -1,8 +1,11 @@
-# Every action used by the workflows is pinned to an exact version, and
-# tests/test_metadata.py asserts three of those strings word for word, so a bump
-# is a deliberate, gated edit rather than something that drifts. This file is
-# what says when one is due: it opens a pull request when a pinned action
-# publishes a new release, and the usual gates decide whether it lands.
+# Five of the six actions used by the workflows are pinned to an exact version,
+# and tests/test_metadata.py asserts three of those strings word for word, so a
+# bump is a deliberate, gated edit rather than something that drifts. This file
+# is what says when one is due: it opens a pull request when a pinned action
+# publishes a new release, and the usual gates decide whether it lands. The
+# sixth, pypa/gh-action-pypi-publish, rides its maintained release/v1 branch,
+# which is what PyPA asks for; nothing here watches a branch, so that one is
+# reviewed with the release rather than on a schedule.
 #
 # Only the actions are watched. The Python dependencies are locked in uv.lock,
 # which uv writes and nothing else should.

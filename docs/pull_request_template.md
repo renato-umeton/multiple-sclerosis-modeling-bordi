@@ -16,9 +16,11 @@ Paste the commands you ran and their last lines.
 - [ ] `uv run ruff check .` and `uv run ruff format --check .` are clean.
 - [ ] `uv run mypy` is clean under strict mode.
 - [ ] `docs/CHANGELOG.md` has an entry under the unreleased heading.
-- [ ] No number from the article is written outside `src/msrelapse/_params.py`;
-      the code imports `PAPER` instead.
+- [ ] No module computes with a number from the article outside
+      `src/msrelapse/_params.py`; the code imports `PAPER` instead.
 - [ ] Public functions and classes carry a numpy style docstring.
-- [ ] Notebooks that were touched have been rebuilt and their outputs are
-      current.
+- [ ] Notebooks that were touched have been rebuilt with
+      `notebooks/build_notebooks.py` and execute cleanly under
+      `uv run --group notebooks pytest -m notebook`; their outputs stay
+      stripped, which `nbstripout` enforces.
 - [ ] Documentation updated where the change is visible to a reader.

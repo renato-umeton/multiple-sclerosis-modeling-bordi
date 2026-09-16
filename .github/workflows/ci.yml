@@ -140,7 +140,12 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install the project
-        run: uv sync --locked --all-extras --group dev
+        # The notebooks group as well as the dev one, because the packaged
+        # suite run below holds tests/test_notebooks.py, which skips the whole
+        # module when nbformat and nbclient are missing. Without the group the
+        # notebook checks of the archive would be skipped rather than run, and
+        # the step would report success without having looked at them.
+        run: uv sync --locked --all-extras --group dev --group notebooks
       - name: Build the wheel and the sdist
         run: uv build
       - name: Check the metadata
@@ -160,4 +165,12 @@ jobs:
       - name: Install the wheel on its own and run the command line
         # Nothing of the checkout is on the path of that environment, so this
         # fails if the wheel is missing a module or a packaged data file.
-        run: uv run --no-project --with dist/*.whl msrelapse cite
+        # `cite` reads the distribution metadata, and `reproduce` reads the
+        # packaged CSV files and runs the analysis end to end, so between them
+        # the two commands reach everything the wheel has to carry.
+        # `--no-figures` keeps matplotlib out of it: the plot extra is not
+        # installed here, and drawing is not what this step is checking.
+        run: |
+          uv run --no-project --with dist/*.whl msrelapse cite
+          uv run --no-project --with dist/*.whl msrelapse reproduce \
+            --no-figures --out "$RUNNER_TEMP/reproduce"

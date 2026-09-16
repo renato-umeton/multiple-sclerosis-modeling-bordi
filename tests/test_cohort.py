@@ -732,6 +732,26 @@ def test_per_patient_params_leaves_an_undefined_ratio_missing() -> None:
     assert math.isnan(only_value(params, "beta"))
 
 
+def test_per_patient_params_keeps_a_ratio_below_one_and_leaves_only_beta_missing() -> None:
+    # A patient whose mean remission is shorter than the mean relapse has a
+    # perfectly good barrier ratio below one, which no beta at or above zero
+    # delivers. The ratio is reported and beta alone is missing.
+    frame = pd.DataFrame(
+        {
+            "patient_id": pd.Series(["p0001"] * 3, dtype=object),
+            "run_index": pd.Series([0, 1, 2], dtype=np.int64),
+            "state": pd.Series([HEALTH, RELAPSE, HEALTH], dtype=np.int64),
+            "duration_w": pd.Series([2, 50, 3], dtype=np.int64),
+            "censored": pd.Series([False, False, False], dtype=bool),
+        }
+    )
+    params = per_patient_params(frame)
+    expected = barrier_ratio_from_durations(2.5, 50.0)
+    assert expected < 1.0
+    assert only_value(params, "barrier_ratio") == pytest.approx(expected)
+    assert math.isnan(only_value(params, "beta"))
+
+
 def test_paper_patients_has_the_three_worked_examples() -> None:
     frame = paper_patients()
     assert len(frame) == 3

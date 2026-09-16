@@ -32,6 +32,7 @@ OWNED_FILES = (
     ".github/ISSUE_TEMPLATE/bug_report.yml",
     ".github/ISSUE_TEMPLATE/feature_request.yml",
     ".github/ISSUE_TEMPLATE/config.yml",
+    ".github/dependabot.yml",
     ".github/workflows/release.yml",
     "docs/pull_request_template.md",
     "docs/paper/paper.md",
@@ -625,6 +626,25 @@ def test_every_workflow_calls_only_the_pinned_actions() -> None:
     assert unpinned == []
 
 
+def test_dependabot_watches_the_workflow_actions_and_nothing_else() -> None:
+    """The pinned versions above are bumped by a pull request, not by a drift.
+
+    The actions are pinned word for word, so nothing bumps them on its own. This
+    file is what says when a bump is due. The Python dependencies are locked in
+    uv.lock, which uv writes, so exactly one ecosystem is watched and it is the
+    actions one.
+    """
+    config = load_yaml(".github/dependabot.yml")
+    assert config["version"] == 2
+    updates = config["updates"]
+    assert len(updates) == 1
+    assert updates[0]["package-ecosystem"] == "github-actions"
+    # The workflows live under the repository root, which is where the actions
+    # ecosystem looks for them.
+    assert updates[0]["directory"] == "/"
+    assert updates[0]["schedule"]["interval"]
+
+
 def test_release_workflow_opens_with_the_one_time_setup() -> None:
     lines = read(".github/workflows/release.yml").splitlines()
     header = " ".join(line for line in lines[: lines.index("name: Release")]).lower()
@@ -646,7 +666,7 @@ def test_paper_header_is_a_fenced_yaml_block() -> None:
     assert header["tags"]
 
 
-def test_paper_notes_that_submission_waits_for_the_first_release() -> None:
+def test_paper_notes_that_submission_waits_for_v1() -> None:
     comments = re.findall(r"<!--(.*?)-->", read("docs/paper/paper.md"), re.DOTALL)
     joined = " ".join(comments).lower()
     assert "v1.0.0" in joined

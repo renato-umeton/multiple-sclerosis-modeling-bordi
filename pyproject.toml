@@ -110,8 +110,12 @@ include = [
     "CITATION.cff",
     "codemeta.json",
 ]
-# The publisher copy of the article is not ours to redistribute, and the two
-# planning documents are working notes that the published site leaves out too.
+# The publisher copy of the article is a half megabyte download carrying a
+# publisher stamp, no test reads it and no page links to it, so the archive has
+# no use for it; a reader reaches the article itself through the DOI on the
+# citing page, and it is open access under CC BY, as docs/citing.md records. The
+# two planning documents are working notes that the published site leaves out
+# too, as the exclude list of mkdocs.yml says.
 exclude = [
     "docs/*.pdf",
     "docs/plan1.md",
@@ -189,7 +193,12 @@ source = ["msrelapse"]
 branch = true
 
 [tool.coverage.report]
-fail_under = 90
+# The floor is set close to what the suite measures, so that a module that stops
+# being exercised fails the run rather than being absorbed by slack. The two
+# numbers it was chosen against: 99.97 percent under NUMBA_DISABLE_JIT=1, which
+# is how CI runs the suite, and 98.5 percent without it, where the three
+# compiled kernel bodies report as uncovered because numba has replaced them.
+fail_under = 97
 show_missing = true
 exclude_also = [
     "if TYPE_CHECKING:",

@@ -26,9 +26,11 @@ table included, comes from one seed, which is the one ``--seed`` names or
 [`msrelapse.datasets.SYNTHETIC_SEED`][msrelapse.datasets.SYNTHETIC_SEED] when
 it names none, and the file it writes carries that seed beside the numbers. Two
 runs of the same command therefore write the same ``numbers.json``, byte for
-byte. Each of the two goodness of fit rows is measured once and reported twice,
-in the closing table and in the memorylessness block of the written record,
-where the statistic and the sample size stand beside the p value: the run
+byte. That file also carries the version of this package that wrote it, the one
+``msrelapse --version`` prints, so a reproduction directory says which release
+produced it. Each of the two goodness of fit rows is measured once and reported
+twice, in the closing table and in the memorylessness block of the written
+record, where the statistic and the sample size stand beside the p value: the run
 measures the test itself and hands it to
 [`msrelapse.datasets.reproduction_table`][msrelapse.datasets.reproduction_table],
 so the two readings are one number rather than two draws of one bootstrap.
@@ -53,6 +55,7 @@ from typing import TYPE_CHECKING, Final, get_args
 import numpy as np
 import pandas as pd
 
+import msrelapse
 from msrelapse import _citation, datasets, fit, plots
 from msrelapse._params import PAPER
 from msrelapse.cohort import CohortSpec, Engine, bordi2013_spec, generate
@@ -213,8 +216,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     Raises
     ------
     SystemExit
-        With code 2 when the arguments do not parse, which argparse raises after
-        writing the reason to standard error.
+        With code 0 when ``--version`` or ``--help`` was given, which argparse
+        raises once it has printed, and with code 2 when the arguments do not
+        parse, which argparse raises after writing the reason to standard error.
 
     Examples
     --------
@@ -245,6 +249,16 @@ def _build_parser() -> argparse.ArgumentParser:
             "Reproduce and extend the stochastic double well model of "
             "relapsing-remitting multiple sclerosis of Bordi et al. 2013."
         ),
+    )
+    # The installed version, printed on its own so that a reader holding a
+    # reproduction directory can hold it against the msrelapse_version key
+    # numbers.json carries. The action exits during parsing, before the required
+    # subcommand is missed, so the flag stands on its own.
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"msrelapse {msrelapse.__version__}",
+        help="print the version of this package and exit",
     )
     subcommands = parser.add_subparsers(dest="subcommand", required=True, metavar="SUBCOMMAND")
     _add_reproduce(subcommands)
@@ -581,6 +595,9 @@ def _run_reproduce(args: argparse.Namespace) -> int:
         "effective_seed": effective_seed,
         "engine": record.engine,
         "citation": _citation.short_citation(),
+        # Which release wrote this directory, so that a file found later can be
+        # held against the package that produced it.
+        "msrelapse_version": msrelapse.__version__,
         "closing_table": table.to_dict(orient="records"),
         "all_within_tolerance": met,
         "fits": [

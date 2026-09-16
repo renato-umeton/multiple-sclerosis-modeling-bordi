@@ -383,6 +383,19 @@ def test_fig6_marks_both_barriers() -> None:
     assert by_label[r"$x_2$"] == pytest.approx(points.relapse)
 
 
+def test_the_reproduction_draws_both_panels_of_figure_6() -> None:
+    # The article prints Figure 6 at the two control parameters of its Figure 5,
+    # so the file the reproduction writes has to hold both of them.
+    panels = plots._fig6_panels()
+
+    assert len(panels) == len(FIG5_ALPHAS)
+    assert len({id(panel.get_figure()) for panel in panels}) == 1
+    for panel, alpha in zip(panels, FIG5_ALPHAS, strict=True):
+        line = solid_lines(panel)[0]
+        well = DoubleWell(alpha, PAPER.beta_illustrative.value)
+        assert ydata(line) == pytest.approx(well.V(xdata(line)))
+
+
 def test_fig6_draws_the_asymmetry_it_is_given() -> None:
     ax = plots.fig6_asymmetric_potential(beta=PAPER.beta_patient_53.value)
 

@@ -8,6 +8,7 @@ from types import ModuleType
 import pytest
 
 import msrelapse
+from _helpers import ROOT, load_yaml
 
 try:
     import nbformat
@@ -20,10 +21,13 @@ except ImportError:  # pragma: no cover - the notebooks dependency group is opti
     )
 
 # Every test here belongs to the notebook job of CI, which selects on this
-# marker. Only the two tests that start a kernel are slow; the rest are file
-# checks of a few milliseconds and are left selectable, so that the sdist step,
-# which runs the packaged suite with -m "not slow", still checks the notebooks
-# it ships.
+# marker and is the only job that installs the notebooks group. Only the two
+# tests that start a kernel are marked slow; the rest are file checks of a few
+# milliseconds and carry the marker alone, so a local run of -m notebook gets
+# them without waiting for a kernel. Nowhere else are they run: every other job,
+# the build step that unpacks the sdist and runs the packaged suite with
+# -m "not slow" included, syncs without the notebooks group, so nbformat is
+# missing there and the guard above skips this module whole.
 pytestmark = [pytest.mark.notebook]
 
 # nbformat.read and nbformat.writes carry no annotations, so they are named once
@@ -50,6 +54,20 @@ TOLERANCE_COLUMN = "within_tolerance"
 # One of these has to appear in the opening cells of every notebook, which is the
 # rule that the provenance of the data is stated before anything is computed.
 PROVENANCE_PHRASES = ("synthetic", "no clinical data")
+
+# The hook that clears the outputs and rewrites the cell identifiers, and the
+# file that declares it. That file is not part of the sdist, so the check below
+# reads it only where it is present.
+PRE_COMMIT_CONFIG = ".pre-commit-config.yaml"
+STRIP_HOOK = "nbstripout"
+
+# The Sphinx cross reference roles, built from their names so that this file
+# holds none of its own. tests/test_docs.py keeps them out of the package, where
+# mkdocstrings renders one as the literal text a reader of the site sees; the
+# builder is swept here, because the same docstring convention covers it and no
+# other test reads it.
+ROLE_NAMES = ("func", "class", "meth", "attr", "mod", "data", "const", "obj", "ref")
+ROLE_MARKERS = tuple(f":{name}:" for name in ROLE_NAMES)
 
 NBFORMAT_VERSION = 4
 TIMEOUT_SECONDS = 900
@@ -168,14 +186,30 @@ def test_builder_reproduces_the_committed_file(name: str, builder: ModuleType) -
     assert _writes(built, NBFORMAT_VERSION).rstrip("\n") == committed.rstrip("\n")
 
 
+def test_the_strip_hook_the_identifiers_come_from_is_configured() -> None:
+    """The test below rests on that hook, so a configuration without it fails here.
+
+    nbstripout is what clears the outputs and rewrites the identifier of every
+    cell to its position before a notebook is committed. Drop it and the two
+    checks below keep passing on the notebooks that were stripped already, while
+    the next notebook committed with output in it fails the rebuild test
+    instead, a long way from the cause.
+    """
+    if not (ROOT / PRE_COMMIT_CONFIG).is_file():
+        pytest.skip(f"{PRE_COMMIT_CONFIG} is not shipped in the sdist, so it cannot be read here")
+    config = load_yaml(PRE_COMMIT_CONFIG)
+    hooks = [hook["id"] for repo in config["repos"] for hook in repo.get("hooks", [])]
+    assert STRIP_HOOK in hooks, f"{PRE_COMMIT_CONFIG} no longer runs {STRIP_HOOK}"
+
+
 @pytest.mark.parametrize("name", NOTEBOOK_NAMES)
 def test_committed_cell_ids_are_the_ones_the_strip_hook_leaves(name: str) -> None:
     """The identifiers have to be the sequential ones nbstripout writes.
 
-    The hook of the repository rewrites the identifier of every cell to its
-    position before a notebook is committed, so a builder that stamped anything
-    else would be undone by the first commit and the rebuild test above would
-    then fail for good.
+    The hook checked above rewrites the identifier of every cell to its position
+    before a notebook is committed, so a builder that stamped anything else
+    would be undone by the first commit and the rebuild test above would then
+    fail for good.
     """
     cells = read_notebook(name).cells
     assert [str(cell.id) for cell in cells] == [str(index) for index in range(len(cells))]
@@ -199,6 +233,19 @@ def test_notebook_closes_with_the_citation(name: str) -> None:
     last = read_notebook(name).cells[-1]
     assert last.cell_type == "markdown"
     assert msrelapse.PAPER.paper_doi.value in str(last.source)
+
+
+def test_the_builder_holds_no_sphinx_role() -> None:
+    """The builder keeps the docstring convention the package keeps.
+
+    A cross reference is written ``[`name`][msrelapse.module.name]`` and
+    anything else as a code span, which is what mkdocstrings reads. Nothing
+    publishes this file, so a role here breaks no page; it is the one script of
+    the repository outside the package, and the convention is the same for it.
+    """
+    text = BUILDER_PATH.read_text(encoding="utf-8")
+    found = [marker for marker in ROLE_MARKERS if marker in text]
+    assert found == [], f"{BUILDER_PATH.name} holds a Sphinx role: {found}"
 
 
 def test_the_suite_covers_every_notebook(builder: ModuleType) -> None:

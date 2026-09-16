@@ -1,11 +1,11 @@
 """The double well potential of Bordi et al. 2013 and the times to cross it.
 
 The model is a single particle in a tilted double well, equation (4) of the
-paper::
+paper:
 
     dx = [x (1 - alpha x^2) - beta] dt + sigma dW
 
-whose drift is the negative gradient of the potential of equations (2) and (3)::
+whose drift is the negative gradient of the potential of equations (2) and (3):
 
     V(x) = -x^2 / 2 + alpha x^4 / 4 + beta x
 
@@ -113,8 +113,10 @@ _FOLD_MARGIN: Final = 1e-9
 
 # Calibration search: bounds, starting points and the accepted mismatch.
 _CALIBRATION_MARGIN: Final = 1e-6
-# Below this relative gap between the two targets the calibration cannot
-# separate them, because the search keeps beta strictly positive.
+# Below this relative gap between the two targets a failed calibration is worth
+# explaining with the positive floor the search keeps on beta. The gap is set
+# wider than the floor of about 3e-5 that the Notes of calibrate record, so the
+# explanation is offered a little before the targets become unreachable.
 _SYMMETRIC_TARGET_GAP: Final = 1e-3
 _CALIBRATION_BETA_STARTS: Final = (0.05, 0.15, 0.3)
 _CALIBRATION_SIGMA_START: Final = 0.5
@@ -1013,12 +1015,12 @@ def mfpt(
     For ``dx = -V'(x) dt + sigma dW`` with an absorbing point at `x_absorb` and
     a reflecting boundary far out on the other side, the mean first passage
     time from `x0` is a double integral. For a health passage, which runs
-    towards increasing x::
+    towards increasing x:
 
         T = (2 / sigma^2) int_{x0}^{x_absorb} dy e^{2 V(y) / sigma^2}
                           int_{-L}^{y} dz e^{-2 V(z) / sigma^2}
 
-    and for a relapse passage, which runs towards decreasing x::
+    and for a relapse passage, which runs towards decreasing x:
 
         T = (2 / sigma^2) int_{x_absorb}^{x0} dy e^{2 V(y) / sigma^2}
                           int_{y}^{+L} dz e^{-2 V(z) / sigma^2}
@@ -1319,10 +1321,12 @@ def calibrate(
     Notes
     -----
     The Kramers escape time can never fall below its prefactor, and at the
-    reference alpha that prefactor is never below ``2 pi / sqrt(2)``, about 4.44
-    weeks. A relapse of 4.3 weeks therefore has no ``kramers`` solution at all,
-    and the exact first passage time is the only reading of an episode that can
-    be calibrated to the cohort of the paper.
+    reference alpha the relapse-side prefactor is never below ``2 pi /
+    sqrt(2)``, about 4.44 weeks. A relapse of 4.3 weeks therefore has no
+    ``kramers`` solution at all, and the exact first passage time is the only
+    reading of an episode that can be calibrated to the cohort of the paper.
+    The health-side prefactor has a lower floor, about 4.19 weeks, so the two
+    sides are not interchangeable here.
 
     The search also keeps beta strictly positive, at 1e-6 or above, so the
     exactly symmetric potential sits just outside the box. Two targets that

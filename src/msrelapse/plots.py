@@ -8,13 +8,13 @@ install. [`require_matplotlib`][msrelapse.plots.require_matplotlib] is that
 check on its own, and hands back the pyplot module, for a caller that would
 rather learn of a missing matplotlib before it starts work than at the figure.
 
-Every function takes the axes to draw on and gives them back, so that a caller
-can compose the panels into a figure of their own; passing None instead creates
-a figure of the size the panels want. A figure of several panels takes and
-returns a tuple of axes, one per panel. Whatever a function is given is checked
-before it creates anything, so a call that is refused leaves no figure behind in
-the global registry of pyplot, which the caller has no handle on and would have
-to close by number.
+Every figure function takes the axes to draw on and gives them back, so that a
+caller can compose the panels into a figure of their own; passing None instead
+creates a figure of the size the panels want. A figure of several panels takes
+and returns a tuple of axes, one per panel. Whatever a function is given is
+checked before it creates anything, so a call that is refused leaves no figure
+behind in the global registry of pyplot, which the caller has no handle on and
+would have to close by number.
 
 Numbers taken from the article, the bin edges of Figure 3 and the digitised bar
 heights of Figures 3 and 4 among them, are read from ``PAPER`` in
@@ -372,11 +372,16 @@ def fig6_asymmetric_potential(
     beta: float | None = None,
     ax: Axes | None = None,
 ) -> Axes:
-    """Draw the asymmetric double well and both of its barriers, Figure 6.
+    """Draw one panel of the asymmetric double well and both its barriers, Figure 6.
 
     The panel holds equation (3), with the three stationary points marked, a
     dashed guide through each of them and a double headed arrow for each of the
-    two barriers.
+    two barriers. The article draws that panel twice, at the same two control
+    parameters as its Figure 5: (a) at the reference value, which is the default
+    here, and (b) at the lower illustrative one. A caller who wants panel (b)
+    passes ``alpha=PAPER.alpha_illustrative_low.value``, and
+    [`save_all_paper_figures`][msrelapse.plots.save_all_paper_figures] writes
+    both panels side by side in the one file.
 
     Parameters
     ----------
@@ -781,6 +786,9 @@ def save_all_paper_figures(
 
     Figures 2 to 8 and the two figures of the methods note are drawn in that
     order, written as PNG files of fixed name at 150 dots per inch, and closed.
+    Every figure the article prints as a pair of panels is written as that pair
+    in one file, Figure 6 among them, whose two control parameters are the ones
+    of Figure 5.
 
     Parameters
     ----------
@@ -834,7 +842,7 @@ def save_all_paper_figures(
         ("fig3_rr_phase_histogram", lambda: fig3_rr_phase_histogram(lengths)),
         ("fig4_duration_histograms", lambda: fig4_duration_histograms(durations)[0]),
         ("fig5_symmetric_potentials", lambda: fig5_symmetric_potentials()[0]),
-        ("fig6_asymmetric_potential", fig6_asymmetric_potential),
+        ("fig6_asymmetric_potential", lambda: _fig6_panels()[0]),
         ("fig7_simulated_paths", lambda: fig7_simulated_paths(rng=rng)[0]),
         ("fig8_patient_potentials", lambda: fig8_patient_potentials()[0]),
         ("fig_survival_vs_exponential", lambda: fig_survival_vs_exponential(durations, _NO_HEALTH)),
@@ -884,6 +892,32 @@ def require_matplotlib() -> ModuleType:
             "extra of this package, that is msrelapse[plot]"
         ) from error
     return plt
+
+
+def _fig6_panels() -> tuple[Axes, ...]:
+    """Draw both panels of Figure 6, one per control parameter of the article.
+
+    [`fig6_asymmetric_potential`][msrelapse.plots.fig6_asymmetric_potential]
+    draws a single potential, which is what a caller composing a figure of their
+    own wants. Figure 6 of the paper is that panel at each of the two control
+    parameters its Figure 5 also uses, so the reproduction composes the pair the
+    way the module invites a caller to, by handing the figure function one of the
+    panels it made.
+
+    Returns
+    -------
+    tuple of matplotlib.axes.Axes
+        The panels that were drawn on, in the order of the article.
+
+    Raises
+    ------
+    ImportError
+        If matplotlib is not installed.
+    """
+    panels = _panel_axes(None, len(_FIG5_ALPHAS), stacked=False)
+    for panel, alpha in zip(panels, _FIG5_ALPHAS, strict=True):
+        fig6_asymmetric_potential(alpha=alpha, ax=panel)
+    return panels
 
 
 def _single_axes(ax: Axes | None) -> Axes:

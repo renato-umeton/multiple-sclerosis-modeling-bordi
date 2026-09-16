@@ -54,8 +54,9 @@ remission of the path in five and a half is shorter than a week at a band
 fraction of 0.3, about one in ten at 0.4 and about one in sixteen at 0.5. All
 three figures are of that one calibration;
 [`msrelapse.simulate`][msrelapse.simulate] quotes the same quantity on the
-uncorrected printed pair, where it is about half as frequent. This merging is
-the whole of the residual gap between the two engines now that
+uncorrected printed pair, at a band fraction of 0.3 alone, where it is
+somewhat rarer at one in six. This merging is the whole of the residual gap
+between the two engines now that
 [`msrelapse.simulate.simulate_weekly`][msrelapse.simulate.simulate_weekly]
 carries the Brownian bridge correction, and it is why the default band fraction
 of [`CohortSpec`][msrelapse.cohort.CohortSpec] is
@@ -735,16 +736,14 @@ class CohortSpec:
     ``renewal`` records, which is the fair comparison because both see the same
     censoring. Over the eight seeds 5 to 12, as a fraction of the renewal mean:
 
-    ========  =============  =================  =================
-    ``dt``    band fraction  remission gap      relapse gap
-    ========  =============  =================  =================
-    0.02      0.3            +0.181 to +0.321   +0.216 to +0.278
-    0.02      0.4            +0.094 to +0.198   +0.095 to +0.186
-    0.02      0.5            +0.028 to +0.142   +0.040 to +0.130
-    0.01      0.3            +0.203 to +0.259   +0.197 to +0.294
-    0.01      0.4            +0.104 to +0.147   +0.103 to +0.180
-    0.01      0.5            +0.058 to +0.101   +0.049 to +0.104
-    ========  =============  =================  =================
+    | ``dt`` | band fraction | remission gap    | relapse gap      |
+    | ------ | ------------- | ---------------- | ---------------- |
+    | 0.02   | 0.3           | +0.181 to +0.321 | +0.216 to +0.278 |
+    | 0.02   | 0.4           | +0.094 to +0.198 | +0.095 to +0.186 |
+    | 0.02   | 0.5           | +0.028 to +0.142 | +0.040 to +0.130 |
+    | 0.01   | 0.3           | +0.203 to +0.259 | +0.197 to +0.294 |
+    | 0.01   | 0.4           | +0.104 to +0.147 | +0.103 to +0.180 |
+    | 0.01   | 0.5           | +0.058 to +0.101 | +0.049 to +0.104 |
 
     The band fraction decides the answer and the step no longer does, now that
     [`msrelapse.simulate.simulate_weekly`][msrelapse.simulate.simulate_weekly]
@@ -755,12 +754,13 @@ class CohortSpec:
     remission of the path in five and a half is that short at a band fraction
     of 0.3, one in ten at 0.4 and one in sixteen at 0.5, measured over 20 paths
     of 20000 weeks at a step of 0.02 weeks and the three seeds 3, 7 and 11. The
-    three figures [`msrelapse.simulate`][msrelapse.simulate] quotes are about
-    half as frequent, one in six, one in twelve and one in twenty-five, because
-    that module calibrates to the printed 100 and 4.3 weeks and applies no
-    rounding correction; both series are right about their own potential and
-    neither should be read on the other. The cheaper step is therefore kept and
-    the band widened.
+    same three counts on the uncorrected printed 100 and 4.3 weeks are somewhat
+    rarer, one in six, one in twelve and one in twenty-five.
+    [`msrelapse.simulate`][msrelapse.simulate] calibrates to that printed pair
+    and applies no rounding correction, and it quotes the first of the three
+    alone, at its own default band fraction of 0.3. Both series are right about
+    their own potential and neither should be read on the other. The cheaper
+    step is therefore kept and the band widened.
 
     It is widened to 0.4 and not further, because the band also decides whether
     the calibration exists at all. A wider band is a longer crossing, which
@@ -1069,7 +1069,12 @@ def per_patient_params(durations: pd.DataFrame) -> pd.DataFrame:
         missing for a patient with no run of one of the two states, or whose
         mean duration in either state is one week or shorter, where the
         logarithm of equation (7) is zero or negative and the estimator is
-        undefined.
+        undefined. ``beta`` alone is missing, beside a ratio that is a real
+        number, where that ratio is below one, which is any patient whose mean
+        remission is shorter than the mean relapse: the fitting rule of the
+        paper moves beta up from zero, and a ratio below one would ask for a
+        negative beta, which would make the no health well the deeper of the
+        two.
 
     Raises
     ------

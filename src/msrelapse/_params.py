@@ -406,11 +406,13 @@ class Bordi2013:
     )
     fig4b_counts: Param[tuple[int, ...]] = Param(
         value=(193, 35, 18, 5, 0, 5, 4, 2, 0, 2, 2),
-        unit="health events, sums to the printed total 266",
+        unit="health events, the stored heights sum to the printed total 266",
         source=(
             "Bordi 2013, Figure 4(b) bars, page 5; not printed as numbers, measured from a "
-            "400 dpi render. The first bin measured 192.2 and was rounded up to 193 so that "
-            "the total matches the printed 266"
+            "400 dpi render. The measured heights sum to 265 against the printed total 266; "
+            "the first bin, read between 192 and 193, is stored as 193 so that the stored "
+            "total matches the printed one, and the first two bins are uncertain by about "
+            "one count. Section 9 of docs/paper_facts.md records the same reading"
         ),
     )
     glaciation_forcing_period_years: Param[float] = Param(

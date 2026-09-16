@@ -43,7 +43,7 @@ follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
   three schemas, its provenance note, and the closing table that measures every
   reported aggregate on any weekly record.
 - `msrelapse._params`: every number the article reports, each with its unit and
-  the sentence it comes from. No other module writes a number of the article.
+  the sentence it comes from. No other module computes with one.
 - A command line with seven subcommands: `reproduce`, `simulate`, `fit`,
   `test-memoryless`, `test-periodicity`, `cite` and `params`.
 - Four notebooks: the reproduction, the approach of the exit times to an

@@ -58,12 +58,15 @@ uv build && uvx twine check --strict dist/*    # the distribution
 - **pre-commit** runs ruff, mypy and `nbstripout`, the last of which keeps
   notebook outputs out of the repository. Never bypass the hooks.
 - **House style** is a test rather than a convention left to review. The sweep
-  in `tests/test_docs.py` reads every tracked text file of the repository,
-  source, prose, notebooks and workflow files alike, and fails on an em dash, on
-  a line of three hyphens, or on the name of a generative model or its tooling.
-  A change can therefore fail the suite on a sentence rather than on code, and
-  the fix is to rewrite the sentence: a comma or a colon where an em dash is
-  tempting, a heading or a blank line where a horizontal rule is.
+  in `tests/test_docs.py` reads every text file in your working tree that
+  `.gitignore` does not name outright, source, prose, notebooks and workflow
+  files alike, and fails on an em dash, on a line of three hyphens, or on the
+  name of a generative model or its tooling. A change can therefore fail the
+  suite on a sentence rather than on code, and the fix is to rewrite the
+  sentence: a comma or a colon where an em dash is tempting, a heading or a
+  blank line where a horizontal rule is. The sweep asks git nothing, so a stray
+  untracked file left in the tree, a scratch note or a pasted transcript, is
+  read like any source file; move it out of the tree rather than rewrite it.
 
 ## Working on the code
 
@@ -88,10 +91,18 @@ are preferred over one large one.
 
 Every number the article reports lives in `src/msrelapse/_params.py`, in the
 `PAPER` object, each with its unit and the sentence it came from. **No other
-module or test may write one down.** Import `PAPER` instead. This is what lets
-a reader check the package against the article one field at a time, and it is
-what keeps the same value from drifting between two places. `msrelapse params`
-prints the whole set.
+module computes with one: import `PAPER` instead.** This is what lets a reader
+check the package against the article one field at a time, and it is what keeps
+the same value from drifting between two places. `msrelapse params` prints the
+whole set.
+
+Two ways of writing a printed value down are allowed, and both are in the
+repository already. A docstring or a doctest may quote one as an illustration,
+which several do, because an example reads better with the article's own
+numbers than with an attribute lookup. A test may quote one where quoting it is
+the point: `tests/test_params.py` exists to pin each field against the article,
+and a test that passes a printed value as an ordinary fixture, rather than as a
+claim about the article, is fine as well.
 
 A number derived from the article, rather than reported by it, is also welcome
 in `PAPER`, as long as its source string says it is derived. A number that is
@@ -132,8 +143,20 @@ integration at all. API pages are one file per module under `docs/api/`, each
 holding a short introduction and an mkdocstrings directive, so a new module
 needs a new page and a new navigation entry in `mkdocs.yml`. Prose pages avoid
 em dashes and horizontal rules, which the house style sweep above enforces over
-every tracked file, and the mathematics is written in the article's own
+every file it reaches, and the mathematics is written in the article's own
 convention, $V(x) = -x^2/2 + \alpha x^4/4 + \beta x$.
+
+The suite builds the site once more, in `tests/test_docs.py`, and reads the
+built API pages back. That is the only check on what a visitor is served rather
+than on what the sources say, so it is the one that catches a Sphinx role the
+mkdocstrings handler passes through. It carries the `slow` marker and is
+skipped where the `docs` group is not installed. Set `MSRELAPSE_REQUIRE_DOCS`
+in an environment that is meant to have the group, and that skip becomes a
+failure naming what is missing:
+
+```bash
+MSRELAPSE_REQUIRE_DOCS=1 uv run --group docs pytest -m slow tests/test_docs.py
+```
 
 ## Releasing
 
@@ -148,19 +171,25 @@ Releases are the maintainer's, and the steps are:
    software entry on `docs/citing.md`, which the suite checks against the
    BibTeX the package prints, and the citation sentence near the end of
    `README.md`, which nothing checks.
-3. Check that the whole gate list above is green on a clean checkout.
-4. Tag the commit as `vX.Y.Z` and push the tag. The release workflow builds the
+3. Set the release date in the four places that carry one: `date-released` in
+   `CITATION.cff`, `datePublished` and `dateModified` in `codemeta.json`, and
+   the `year` of the software entry in `src/msrelapse/_citation.py`. The suite
+   pins `date-released`, so moving it is a failing test until the assertion
+   moves with it; the other three are checked by nothing. `dateCreated` is the
+   date the work started and stays where it is.
+4. Check that the whole gate list above is green on a clean checkout.
+5. Tag the commit as `vX.Y.Z` and push the tag. The release workflow builds the
    distributions, checks them with `twine check --strict`, and publishes to
    PyPI through trusted publishing, so no API token exists anywhere in the
    repository. The publishing environment requires the maintainer's approval,
    so an accidental tag cannot publish unattended.
-5. Zenodo archives the GitHub release and mints the archive DOI. Put that DOI
+6. Zenodo archives the GitHub release and mints the archive DOI. Put that DOI
    into `CITATION.cff`, `codemeta.json` and the software BibTeX entry in
    `src/msrelapse/_citation.py`, replacing the placeholder. The same
    placeholder sits in the BibTeX block of `docs/citing.md`, which the suite
    checks against the entry the package prints, and in the badge at the top of
    `README.md`, which nothing checks. Then release the patch that carries them.
-6. Before submitting `docs/paper/paper.md` to the Journal of Open Source
+7. Before submitting `docs/paper/paper.md` to the Journal of Open Source
    Software, fill in the affiliation and the ORCID the header leaves as
    placeholders, and turn the fenced `yaml` block at the top of that file into
    the front matter JOSS asks for. It is fenced in the repository because the

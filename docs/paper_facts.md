@@ -2,7 +2,7 @@
 
 Source: Bordi I, Umeton R, Ricigliano VAG, Annibali V, Mechelli R, Ristori G, Grassi F, Salvetti M, Sutera A. "A Mechanistic, Stochastic Model Helps Understand Multiple Sclerosis Course and Pathogenesis". International Journal of Genomics, Volume 2013, Article ID 910321, 10 pages. DOI 10.1155/2013/910321. Hindawi Publishing Corporation. Received 24 October 2012; Revised 2 January 2013; Accepted 27 January 2013. Academic Editor Brian Wigdahl. Licence CC BY.
 
-Every equation, number and figure value below was checked by me against the PDF: the text layer was extracted and read directly, and every disputed figure was rendered at 300 to 400 dpi and measured with axis calibration. Where a value is measured rather than printed, this document says so.
+Every equation, number and figure value below was checked against the PDF: the text layer was extracted and read directly, and every disputed figure was rendered at 300 to 400 dpi and measured with axis calibration. Where a value is measured rather than printed, this document says so.
 
 ## 1. Sign convention, fixed in three places
 
@@ -32,7 +32,7 @@ Steady states of (1), unnumbered, inline on page 4:
 
     x0 = 0,  x1 = -1/sqrt(a),  x2 = +1/sqrt(a)
 
-The radicand is printed as a Latin italic `a` (U+1D44E), not the Greek alpha (U+1D6FC) used everywhere else. I verified this at the byte level. It is a typesetting slip; implement `1/sqrt(alpha)`.
+The radicand is printed as a Latin italic `a` (U+1D44E), not the Greek alpha (U+1D6FC) used everywhere else. This was verified at the byte level. It is a typesetting slip; implement `1/sqrt(alpha)`.
 
 Equation (2), page 4, symmetric potential:
 
@@ -86,7 +86,7 @@ Evidence that B is correct:
 
 1. Printed equation (2) is convention B verbatim: the alpha multiplies the quartic, and there is no alpha on the quadratic.
 2. The drift in (4) is exactly the negative gradient of (3): `-dV/dx = x - alpha*x^3 - beta = x(1 - alpha*x^2) - beta`. Verified.
-3. Figure 5(b), which I rendered at 300 dpi. At alpha = 0.7 the minima move OUTWARD to about plus or minus 1.2 and DOWN to about -0.357. Convention B predicts wells at `1/sqrt(0.7) = 1.1952` and depth `-1/(4*0.7) = -0.3571`. Convention A would have moved them INWARD to plus or minus 0.837 and UP to -0.1225. The figure is unambiguous.
+3. Figure 5(b), rendered at 300 dpi. At alpha = 0.7 the minima move OUTWARD to about plus or minus 1.2 and DOWN to about -0.357. Convention B predicts wells at `1/sqrt(0.7) = 1.1952` and depth `-1/(4*0.7) = -0.3571`. Convention A would have moved them INWARD to plus or minus 0.837 and UP to -0.1225. The figure is unambiguous.
 
 Consequences, derived and not printed in the paper:
 
@@ -116,7 +116,7 @@ Alpha is never estimated from data. Every patient fit fixes alpha = 1; alpha = 0
 
 ## 5. The asymmetry term
 
-The potential term is `+beta*x`, arising from `-beta` inside the drift. With beta > 0 the potential is lowered for x < 0 and raised for x > 0, so the LEFT well at x1 (health) deepens and the RIGHT well at x2 (no health) becomes shallower. This is exactly what the paper wants (page 5: "the one associated to the health state is deeper than the other, so that it is more difficult to exit from the health condition than from the relapse"), and I confirmed it by measuring Figure 6(a), where the deep well is on the negative x side.
+The potential term is `+beta*x`, arising from `-beta` inside the drift. With beta > 0 the potential is lowered for x < 0 and raised for x > 0, so the LEFT well at x1 (health) deepens and the RIGHT well at x2 (no health) becomes shallower. This is exactly what the paper wants (page 5: "the one associated to the health state is deeper than the other, so that it is more difficult to exit from the health condition than from the relapse"), and measuring Figure 6(a) confirms it: the deep well is on the negative x side.
 
 Parameter values used in the figures:
 
@@ -130,7 +130,7 @@ The noise amplitude multiplying `dw` is `sqrt(0.13) = 0.360555`.
 
 ## 6. Verified numerical values
 
-All computed by me in the paper's own convention with barriers anchored at V(x0), and cross-checked against the rendered figures.
+All computed in the paper's own convention with barriers anchored at V(x0), and cross-checked against the rendered figures.
 
 | alpha | beta | x1 | x0 | x2 | V(x1) | V(x0) | V(x2) | dV1 | dV2 | ratio |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -153,9 +153,9 @@ Equation (7) applied to the printed durations, with natural logarithms:
 
 Note the rounding direction is not uniform: 5.3764 is printed 5.3 rather than 5.4, and 2.6396 is printed 2.7 rather than 2.6.
 
-The beta that would deliver each ratio at alpha = 1: 0.1375 for the cohort's 3.157, 0.2565 for 11.8, 0.1905 for 5.3, 0.1201 for 2.7. So the published beta for patients 32 and 53 is consistent to two decimals, but the published beta = 0.25 for patient 23 delivers only 10.775. I verified this is a real inconsistency in the paper, not a mis-transcription, by rendering Figure 8(a): the plotted curve matches the beta = 0.25 values exactly.
+The beta that would deliver each ratio at alpha = 1: 0.1375 for the cohort's 3.157, 0.2565 for 11.8, 0.1905 for 5.3, 0.1201 for 2.7. So the published beta for patients 32 and 53 is consistent to two decimals, but the published beta = 0.25 for patient 23 delivers only 10.775. That is a real inconsistency in the paper rather than a mis-transcription, which rendering Figure 8(a) settles: the plotted curve matches the beta = 0.25 values exactly.
 
-I also falsified the alternative barrier anchor. Measuring well depths from V = 0 instead of from V(x0) gives ratios 28.04, 6.39 and 2.79 for the three Figure 8 beta values, matching none of the printed values. The V(x0) anchor is correct.
+The alternative barrier anchor was falsified as well. Measuring well depths from V = 0 instead of from V(x0) gives ratios 28.04, 6.39 and 2.79 for the three Figure 8 beta values, matching none of the printed values. The V(x0) anchor is correct.
 
 ## 7. Clinical data
 
@@ -185,9 +185,9 @@ Aggregate statistics:
 | Modal phase length | 25 of 70 patients (about 36 percent) at about 200 weeks | Section 3.1, Fig 3 caption |
 | Cohort barrier ratio | dV1/dV2 about 3.1 | Section 3.4 |
 
-Consistency check of my own: 266 x 100 + 218 x 4.3 is about 27,537 patient-weeks, that is about 393 weeks per patient, matching the bin-weighted mean of Figure 3 (about 394 weeks). The two figures are mutually consistent.
+A consistency check: 266 x 100 + 218 x 4.3 is about 27,537 patient-weeks, that is about 393 weeks per patient, matching the bin-weighted mean of Figure 3 (about 394 weeks). The two figures are mutually consistent.
 
-**There are no statistical fits in this paper.** I searched the full text: no fitted exponential rate, no R squared, no chi square, no Kolmogorov-Smirnov test, no p value, no confidence interval, and no fitted curve overlaid on any histogram. The exponential and no-periodicity claims are purely qualitative, resting on "the absence of any peak in the distributions at some specific time" (page 3). Do not attempt to reproduce a published fit; there is none.
+**There are no statistical fits in this paper.** A search of the full text returns nothing: no fitted exponential rate, no R squared, no chi square, no Kolmogorov-Smirnov test, no p value, no confidence interval, and no fitted curve overlaid on any histogram. The exponential and no-periodicity claims are purely qualitative, resting on "the absence of any peak in the distributions at some specific time" (page 3). Do not attempt to reproduce a published fit; there is none.
 
 ## 8. The three sample patients
 
@@ -201,7 +201,7 @@ Printed in Section 3.4 (Model Solutions), page 6, as a three-line display:
 
 Fitting procedure (page 6): "the potential V associated with each patient can be estimated by fixing alpha = 1 and changing beta so that the two wells are asymmetric in the predetermined ratio."
 
-Time series, measured by me at 400 dpi since the paper prints no numbers on Figure 2:
+Time series, measured at 400 dpi since the paper prints no numbers on Figure 2:
 
 | Patient | Relapse episodes | Approximate onset weeks | Record length |
 |---|---|---|---|
@@ -221,15 +221,15 @@ No age, sex, EDSS, onset date or treatment history is given for any of the three
 
 **Figure 2** (page 4). Three binary step-function series. y-axis two levels only, +1 "No health sate" [sic] and -1 "Health state". x-axis "Time (week)" 0 to 500 ticked every 50. Episode counts and onsets as tabulated in section 8 above.
 
-**Figure 3** (page 4). Histogram of relapsing-remitting phase length. y-axis "Counts (number of patients)" 0 to 30 ticked every 5. x-axis "Period of analysis (week)" with tick labels at the bin edges 40, 199, 358, 517, 676, 835, 994, 1153, 1312, giving 8 bins of 159 weeks. Bar heights, which I measured and which sum to exactly 70: **25, 17, 9, 5, 7, 2, 2, 3**.
+**Figure 3** (page 4). Histogram of relapsing-remitting phase length. y-axis "Counts (number of patients)" 0 to 30 ticked every 5. x-axis "Period of analysis (week)" with tick labels at the bin edges 40, 199, 358, 517, 676, 835, 994, 1153, 1312, giving 8 bins of 159 weeks. Bar heights, measured and summing to exactly 70: **25, 17, 9, 5, 7, 2, 2, 3**.
 
 **Figure 4** (page 5). Two histograms.
-Panel (a): y "Counts (no. of no health events)" 0 to 140 ticked every 20; x "Duration of no health events (week)" ticked 1, 3.5, 6, 8.5, 11, 13.5, 16, 18.5, 21, 23.5, 25, so bins are 2.5 weeks wide starting at 1; in-panel text "No health events: total = 218" and "Duration of no health events: mean = 4.3 weeks". Bar heights I measured, summing to exactly 218: **127, 53, 16, 6, 1, 6, 0, 4, 5**. The last bar is drawn wider than the uniform bin width and ends at about 24 weeks.
-Panel (b): y "Counts (no. of health events)" 0 to 200 ticked at 0, 50, 100, 150, 200; x "Duration of health events (week)" 0 to 1200 ticked every 200, bins 100 weeks wide; in-panel text "Health events: total = 266" and "Duration of health events: mean = 100 weeks". Bar heights I measured: **192 or 193, 35, 18, 5, 0, 5, 4, 2, 0, 2, 2**, summing to 265 against the printed 266. Treat the first two bins as uncertain by plus or minus 1; unlike Figures 3 and 4(a) these cannot be pinned exactly.
+Panel (a): y "Counts (no. of no health events)" 0 to 140 ticked every 20; x "Duration of no health events (week)" ticked 1, 3.5, 6, 8.5, 11, 13.5, 16, 18.5, 21, 23.5, 25, so bins are 2.5 weeks wide starting at 1; in-panel text "No health events: total = 218" and "Duration of no health events: mean = 4.3 weeks". Measured bar heights, summing to exactly 218: **127, 53, 16, 6, 1, 6, 0, 4, 5**. The last bar is drawn wider than the uniform bin width and ends at about 24 weeks.
+Panel (b): y "Counts (no. of health events)" 0 to 200 ticked at 0, 50, 100, 150, 200; x "Duration of health events (week)" 0 to 1200 ticked every 200, bins 100 weeks wide; in-panel text "Health events: total = 266" and "Duration of health events: mean = 100 weeks". Measured bar heights: **192 or 193, 35, 18, 5, 0, 5, 4, 2, 0, 2, 2**, summing to 265 against the printed 266. Treat the first two bins as uncertain by plus or minus 1; unlike Figures 3 and 4(a) these cannot be pinned exactly.
 
 **Figure 5** (page 5). Two plots of the symmetric potential, equation (2). Axes x from -2 to 2 ticked every 1, V from -0.8 to 0.8 ticked every 0.2. Two horizontal dashed lines per panel (upper at V = 0 through x0, lower at the well depth) plus a vertical double-headed arrow labelled delta-V, and point labels x0, x1, x2. Panel (a) alpha = 1: minima at plus or minus 1, V = -0.25, delta-V = 0.25. Panel (b) alpha = 0.7: minima at plus or minus 1.195229, V = -0.357143, delta-V = 0.357143. **This pair is the acceptance test for the potential convention.** Any implementation where lowering alpha moves the wells inward or makes them shallower has the wrong convention.
 
-**Figure 6** (page 7). Two plots of the asymmetric potential, equation (3), same axes. Three horizontal dashed lines per panel (through V(x0), V(x2), V(x1)) and two vertical arrows, dV1 on the left and taller, dV2 on the right and shorter, both anchored at the V(x0) line. Panel titles inside the axes at upper right. (a) alpha = 1, beta = 0.08; (b) alpha = 0.7, beta = 0.08. In both panels the deep well is on the negative x side. One caveat I measured: in panel (a) the x1 and x0 dashed lines match the formula to about 0.001, but the x2 dashed line is drawn at V = -0.1821 against the true -0.1717, about 0.010 too low. Trust the formula.
+**Figure 6** (page 7). Two plots of the asymmetric potential, equation (3), same axes. Three horizontal dashed lines per panel (through V(x0), V(x2), V(x1)) and two vertical arrows, dV1 on the left and taller, dV2 on the right and shorter, both anchored at the V(x0) line. Panel titles inside the axes at upper right. (a) alpha = 1, beta = 0.08; (b) alpha = 0.7, beta = 0.08. In both panels the deep well is on the negative x side. One measured caveat: in panel (a) the x1 and x0 dashed lines match the formula to about 0.001, but the x2 dashed line is drawn at V = -0.1821 against the true -0.1717, about 0.010 too low. Trust the formula.
 
 **Figure 7** (page 8). The key simulation figure. Two noisy traces from solutions of equation (4). y-axis "x" from -2 to 2 ticked at -2, -1, 0, 1, 2; x-axis "Time" 0 to 1000 ticked every 100, with **no unit** and no conversion to weeks; parameters printed as a title above each panel. Panel (a) alpha = 1, beta = 0, epsilon = 0.13: roughly balanced occupancy of the two states with residence times of order 100 to 300 time units. Panel (b) alpha = 1, beta = 0.08, epsilon = 0.13: the trace sits near -1 almost throughout with only two brief excursions to +1 (around Time 135 to 150 and 490 to 505). **These traces cannot be reproduced bit for bit**: no integration scheme, time step, seed, initial condition or realisation count is stated anywhere. Reproduce the qualitative behaviour and the occupancy asymmetry only, and document your own choices.
 
@@ -278,10 +278,10 @@ A second caution. The same numerical check calibrated the exact mean first passa
 
 ## 13. What the paper does not specify
 
-- No integration scheme, time step, random seed, initial condition or number of realisations for Figure 7. I confirmed the words "Euler" and "time step" appear nowhere in the paper.
+- No integration scheme, time step, random seed, initial condition or number of realisations for Figure 7. The words "Euler" and "time step" appear nowhere in the paper.
 - No conversion between the Figure 7 model time axis (0 to 1000, unitless) and clinical weeks.
 - No statement of whether epsilon is a variance per unit time or a per-step variance.
-- No Kramers prefactor, and no Kramers or first-passage-time citation. I grepped for both and got zero hits; equations (5) and (6) are attributed solely to reference [6], Benzi, Parisi, Sutera and Vulpiani, SIAM Journal on Applied Mathematics 43(3):565-578, 1983.
+- No Kramers prefactor, and no Kramers or first-passage-time citation. A search for both returns zero hits; equations (5) and (6) are attributed solely to reference [6], Benzi, Parisi, Sutera and Vulpiani, SIAM Journal on Applied Mathematics 43(3):565-578, 1983.
 - No procedure, formula or tolerance for inverting the barrier ratio to obtain beta.
 - No rule converting a continuous simulated x(t) into a binary plus-or-minus-one episode series, and no quantitative fit of simulated to observed exit-time distributions. The comparison in the paper is purely visual.
 - No procedure for estimating alpha from data.
@@ -300,7 +300,7 @@ Acknowledgments (page 9): "This work was supported by Fondazione Italiana Sclero
 
 Correspondence (page 1): Marco Salvetti, marco.salvetti@uniroma1.it, and Alfonso Sutera, alfonso.sutera@roma1.infn.it.
 
-**Absent from the article.** I searched the complete text of all ten pages for "conflict", "competing", "availab" and "supplement" and got zero hits for every term. There is no data availability statement, no code availability statement, no supplementary material and no conflict of interest statement. The per-patient series are neither deposited nor referenced. A derived package must not claim the paper released data.
+**Absent from the article.** A search of the complete text of all ten pages for "conflict", "competing", "availab" and "supplement" returns zero hits for every term. There is no data availability statement, no code availability statement, no supplementary material and no conflict of interest statement. The per-patient series are neither deposited nor referenced. A derived package must not claim the paper released data.
 
 The local PDF also carries a Wiley Online Library download stamp in the right margin of pages 2 to 10 and a "Check for updates" badge on page 1. These are retrieval artefacts, not part of the published article; strip them when quoting.
 

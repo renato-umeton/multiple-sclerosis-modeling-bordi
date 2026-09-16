@@ -53,6 +53,7 @@ NUMBERS_KEYS = frozenset(
         "effective_seed",
         "engine",
         "citation",
+        "msrelapse_version",
         "closing_table",
         "all_within_tolerance",
         "fits",
@@ -452,6 +453,15 @@ def test_reproduce_names_the_seed_the_caller_gave_as_its_own(tmp_path: Path) -> 
     _, payload = reproduce(tmp_path, "--seed", "1")
     assert payload["seed"] == 1
     assert payload["effective_seed"] == 1
+
+
+def test_reproduce_stamps_the_version_that_wrote_the_directory(
+    reproduction: Reproduction,
+) -> None:
+    # A reproduction directory is read long after the run that made it, and the
+    # seed alone does not say which release drew from it. The stamp is the
+    # version the command line prints, so the two can be held against each other.
+    assert reproduction.payload["msrelapse_version"] == msrelapse.__version__
 
 
 def test_reproduce_names_no_engine_for_a_record_it_was_handed(
@@ -1055,6 +1065,18 @@ def test_no_subcommand_at_all_exits_two() -> None:
     with pytest.raises(SystemExit) as raised:
         main([])
     assert raised.value.code == 2
+
+
+def test_the_version_flag_prints_the_version_and_exits_zero(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # --version stands on its own: it prints and exits before the missing
+    # subcommand above would have been an error, and the line it prints is the
+    # version numbers.json stamps a reproduction directory with.
+    with pytest.raises(SystemExit) as raised:
+        main(["--version"])
+    assert raised.value.code == 0
+    assert capsys.readouterr().out.strip() == f"msrelapse {msrelapse.__version__}"
 
 
 def test_an_argument_error_goes_to_stderr(capsys: pytest.CaptureFixture[str]) -> None:

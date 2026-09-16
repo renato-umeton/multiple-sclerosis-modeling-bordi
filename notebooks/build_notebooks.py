@@ -13,7 +13,7 @@ opening cells whether the data it uses are synthetic.
 
 ``tests/test_notebooks.py`` checks that the committed files still hold the cells
 this script builds, so a change here, and a change to what
-:func:`msrelapse.citation` prints or to the version of the package, which the
+``msrelapse.citation()`` prints or to the version of the package, which the
 closing cell of every notebook carries, both ask for a rebuild.
 
 Examples
@@ -102,7 +102,7 @@ def _citation_cell() -> NotebookNode:
     Returns
     -------
     nbformat.NotebookNode
-        A markdown cell holding what :func:`msrelapse.citation` prints, so that
+        A markdown cell holding what ``msrelapse.citation()`` prints, so that
         a reader who opens one notebook alone still has the article in front of
         them.
     """
@@ -1272,7 +1272,7 @@ def build(name: str) -> NotebookNode:
     Parameters
     ----------
     name : str
-        File name of the notebook, one of :data:`NOTEBOOK_NAMES`.
+        File name of the notebook, one of ``NOTEBOOK_NAMES``.
 
     Returns
     -------
@@ -1347,7 +1347,7 @@ def write(name: str, notebook: NotebookNode, out_dir: Path | None = None) -> Pat
         file on disk carries no output and no run count.
     out_dir : pathlib.Path, optional
         Directory to write into, created if it does not exist. The default is
-        :data:`NOTEBOOK_DIR`.
+        ``NOTEBOOK_DIR``.
 
     Returns
     -------

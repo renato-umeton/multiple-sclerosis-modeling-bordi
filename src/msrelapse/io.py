@@ -3,18 +3,16 @@
 A patient record is held in one of three shapes, all of them plain
 ``pandas.DataFrame`` objects with fixed columns and fixed dtypes.
 
-``weekly``
-    One row per patient-week: ``patient_id``, ``week`` (0-based and contiguous
-    within a patient) and ``state`` (+1 no health, -1 health).
-``durations``
-    The run-length encoding of ``weekly``: ``patient_id``, ``run_index``,
-    ``state``, ``duration_w`` and ``censored``. A final remission is censored
-    by the end of follow up; a final relapse is complete by construction.
-``events``
-    The registry shape, one row per relapse: ``patient_id``,
-    ``followup_start``, ``followup_end``, ``relapse_onset`` and
-    ``relapse_end``, all in weeks. A patient with no relapse keeps a single row
-    with a missing onset and end so that the follow up window survives.
+- ``weekly``: one row per patient-week: ``patient_id``, ``week`` (0-based and
+  contiguous within a patient) and ``state`` (+1 no health, -1 health).
+- ``durations``: the run-length encoding of ``weekly``: ``patient_id``,
+  ``run_index``, ``state``, ``duration_w`` and ``censored``. A final remission
+  is censored by the end of follow up; a final relapse is complete by
+  construction.
+- ``events``: the registry shape, one row per relapse: ``patient_id``,
+  ``followup_start``, ``followup_end``, ``relapse_onset`` and ``relapse_end``,
+  all in weeks. A patient with no relapse keeps a single row with a missing
+  onset and end so that the follow up window survives.
 
 ``weekly`` and ``durations`` convert losslessly in both directions.
 ``events`` to ``weekly`` is lossy because it applies the weekly rounding rule

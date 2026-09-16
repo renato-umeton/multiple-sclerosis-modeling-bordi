@@ -18,9 +18,9 @@ durations
 counts
     [`fit_nb_counts`][msrelapse.fit.fit_nb_counts] fits the negative binomial
     counts of a cohort and tests them against the Poisson counts of a single
-    shared rate, and [`fit_gamma_rates`][msrelapse.fit.fit_gamma_rates] fits
-    the gamma distribution of the per patient onset rates that would produce
-    them.
+    shared rate, and [`fit_gamma_rates`][msrelapse.fit.fit_gamma_rates] fits a
+    gamma distribution to the per patient onset rates themselves, read per week
+    spent in remission.
 rhythm
     [`test_periodicity`][msrelapse.fit.test_periodicity] looks for a period in
     the relapse onsets of each weekly record and combines the per patient
@@ -580,6 +580,18 @@ def fit_durations(  # noqa: PLR0917
     recorded time. Correcting it as well would take half a week of exposure off
     every censored run and bias the fitted mean downwards, which is the
     direction the correction exists to remove.
+
+    A censored run carries that whole time into the geometric likelihood too,
+    which is the continuous convention rather than the strictly discrete one. A
+    remission recorded as k weeks and censored there occupies weeks 1 to k and
+    the record then stops, so what the record supports is that it lasted k weeks
+    or more, of probability ``(1 - rate) ** (k - 1)``, while the exposure used
+    here gives it ``(1 - rate) ** k``. The convention is kept so that the two
+    families read the same runs into the same rate and report the same mean. The
+    strictly discrete maximiser is ``n_complete / (total - n_censored)``, larger
+    in relative terms by about ``n_censored / total``: on the remissions of the
+    cohort shipped with this package that is a quarter of one percent, a mean of
+    142.18 weeks against 142.55, far inside the interval either family reports.
 
     A bootstrap resample that happens to hold only censored runs has no rate and
     is left out of the percentile interval. With a cohort of any size that
@@ -1243,9 +1255,20 @@ def fit_gamma_rates(durations: pd.DataFrame) -> GammaFit:
     those noisy rates as though they were the true ones. The spread it reports
     is therefore the spread of the estimates, which is wider than the spread of
     the rates. [`fit_nb_counts`][msrelapse.fit.fit_nb_counts] is the usual
-    alternative and the better one: it fits the same gamma mixture through the
-    counts themselves, so the Poisson noise of a short record stays where it
-    belongs.
+    alternative and the better one: it fits the same between patient spread
+    through the counts themselves, so the Poisson noise of a short record stays
+    where it belongs.
+
+    The two fits do not put that spread on the same scale. The rate read here is
+    per week spent in remission, while the gamma mixture behind the counts is a
+    rate per week of follow up, and the weeks a patient spends in relapse are
+    weeks in which no onset can start. The two scales differ by the refractory
+    factor of
+    [`msrelapse.renewal.effective_onset_rate`][msrelapse.renewal.effective_onset_rate],
+    about four percent at the 100 and 4.3 week durations of the paper, so the
+    product of ``k`` and ``theta`` here and the mean of
+    [`fit_nb_counts`][msrelapse.fit.fit_nb_counts] over the follow up are not
+    the same number. Only the shape carries across from one fit to the other.
 
     Two kinds of patient are left out. One with no remission run at all
     contributes no rate, since the denominator is the time spent in remission
@@ -1729,8 +1752,17 @@ def _distance_test(values: _Vector, method: str, n_boot: int, rng: Seed) -> Test
 
 
 def _ks_distance(values: _Vector) -> float:
-    """Return the Kolmogorov-Smirnov distance from the fitted exponential."""
-    return float(stats.ks_1samp(values, stats.expon(scale=float(values.mean())).cdf).statistic)
+    """Return the Kolmogorov-Smirnov distance from the fitted exponential.
+
+    Only the statistic is read, and the p value beside it is the bootstrap one,
+    so scipy is asked for the asymptotic p value rather than the exact one. The
+    statistic is the same either way, and the exact p value costs a matrix power
+    that overflows on the numpy the lock resolves for the oldest supported
+    Python: a bootstrap over remissions of about a hundred weeks raises hundreds
+    of runtime warnings there for a number that is then thrown away.
+    """
+    cdf = stats.expon(scale=float(values.mean())).cdf
+    return float(stats.ks_1samp(values, cdf, method="asymp").statistic)
 
 
 def _ad_distance(values: _Vector) -> float:

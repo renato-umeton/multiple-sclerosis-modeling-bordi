@@ -661,6 +661,14 @@ def test_the_band_threshold_defaults_to_the_shared_constant(
     assert signature(function).parameters["band_fraction"].default == DEFAULT_BAND_FRACTION
 
 
+def test_the_band_threshold_constant_holds_its_documented_value() -> None:
+    # The number is quoted in the Notes of CohortSpec, in the module docstrings
+    # and on the plan page, and the wider band the sde engine uses is set
+    # against it. Pinning it here makes a change to it a deliberate edit that
+    # has to move those readings too.
+    assert DEFAULT_BAND_FRACTION == 0.3
+
+
 def test_a_calibration_that_probes_an_unreachable_noise_turns_back() -> None:
     # Targets this long ask for a barrier the search can only reach by driving
     # the noise down until the exponent of the exit time leaves float64. The

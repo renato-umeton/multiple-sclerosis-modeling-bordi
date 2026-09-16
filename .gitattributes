@@ -15,3 +15,8 @@
 *.cff text eol=lf
 *.json text eol=lf
 *.txt text eol=lf
+
+# The publisher copy of the article under docs/ is the one file of the
+# repository that is not text. Saying so keeps it out of the heuristic above,
+# so that it is never line ending normalised and never diffed as text.
+*.pdf binary
