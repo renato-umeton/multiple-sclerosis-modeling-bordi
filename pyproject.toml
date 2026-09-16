@@ -69,6 +69,7 @@ dev = [
     "scipy-stubs; python_version >= '3.12'",
     "statsmodels>=0.14",
     "pre-commit>=4",
+    "pyyaml>=6",
 ]
 docs = [
     "mkdocs-material>=9.7",
@@ -78,7 +79,6 @@ notebooks = [
     "nbformat>=5.10",
     "nbclient>=0.10",
     "ipykernel>=6.29",
-    "papermill>=2.6",
     "matplotlib>=3.8.0",
 ]
 
