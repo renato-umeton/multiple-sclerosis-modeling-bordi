@@ -25,22 +25,26 @@ Time step
     The cubic drift is not globally Lipschitz, so a step that is too long sends
     the path to infinity instead of into a well. A convergence study at the
     calibrated parameters found that a step of half a week blows paths up while
-    steps up to :data:`MAX_DT` produced no non finite path, which is where the
-    ceiling of this module comes from.
+    steps up to [`MAX_DT`][msrelapse.simulate.MAX_DT] produced no non finite
+    path, which is where the ceiling of this module comes from.
 Absorbing level
     Looking for a crossing only at the grid points misses the excursions
     between them, which overestimates an exit time by a term of order
     ``sqrt(dt)``. Moving the absorbing level towards the walker by
-    :data:`BRIDGE_CONSTANT` ``sigma sqrt(dt)``, the Brownian bridge correction,
-    cancels that term and lets a step of 0.02 weeks stand in for one of 0.001.
-    Both :func:`exit_times` and :func:`to_states` carry it, the first on its
+    [`BRIDGE_CONSTANT`][msrelapse.simulate.BRIDGE_CONSTANT] ``sigma sqrt(dt)``,
+    the Brownian bridge correction, cancels that term and lets a step of 0.02
+    weeks stand in for one of 0.001. Both
+    [`exit_times`][msrelapse.simulate.exit_times] and
+    [`to_states`][msrelapse.simulate.to_states] carry it, the first on its
     single absorbing level and the second on both thresholds of the band, and
-    :func:`simulate_weekly` turns it on by default.
+    [`simulate_weekly`][msrelapse.simulate.simulate_weekly] turns it on by
+    default.
 Hysteresis band
     A bare threshold at the saddle counts every wobble of the path across the
     barrier top as a relapse. Two thresholds placed a fraction of the way from
     the saddle towards each well bottom remove those spurious switches, and the
-    same fraction passed to :func:`msrelapse.model.calibrate` with
+    same fraction passed to
+    [`msrelapse.model.calibrate`][msrelapse.model.calibrate] with
     ``passage='band'`` makes the simulated durations approach the calibration
     targets as the step shrinks. Read on the grid alone, both thresholds sit
     further from the walker than they are written, so an episode starts a step
@@ -49,16 +53,18 @@ Hysteresis band
     of 12000 weeks holding about 5700 complete episodes of each side, the mean
     episode ran about 13 percent above its target on the relapse side and about
     11 percent above it on the health side at a step of 0.02 weeks. Passing the
-    same Brownian bridge shift to :func:`to_states` removes them: over twenty
-    seeds of that run the corrected relapse mean stayed between 0.99 and 1.03
-    of its target and the corrected health mean between 0.95 and 1.01, the
-    remaining deficit being the fixed window rather than the grid, since a
-    window of a given length holds fewer of the long episodes than of the short
-    ones and the pooled mean of the complete ones under-weights them.
+    same Brownian bridge shift to [`to_states`][msrelapse.simulate.to_states]
+    removes them: over twenty seeds of that run the corrected relapse mean
+    stayed between 0.99 and 1.03 of its target and the corrected health mean
+    between 0.95 and 1.01, the remaining deficit being the fixed window rather
+    than the grid, since a window of a given length holds fewer of the long
+    episodes than of the short ones and the pooled mean of the complete ones
+    under-weights them.
 
-The optional numba kernels are exactly that, optional: :data:`HAS_NUMBA` says
-whether they are available, a pure numpy implementation runs whenever they are
-not, and a missing numba never breaks the import.
+The optional numba kernels are exactly that, optional:
+[`HAS_NUMBA`][msrelapse.simulate.HAS_NUMBA] says whether they are available, a
+pure numpy implementation runs whenever they are not, and a missing numba never
+breaks the import.
 
 References
 ----------
@@ -129,9 +135,10 @@ The constant is ``-zeta(1/2) / sqrt(2 pi)``. A walk watched only at the grid
 points behaves like a continuously watched walk whose level sits this much
 further away, so bringing a simulated level this much closer to the walker
 cancels the ``sqrt(dt)`` bias of a crossing test evaluated on the grid. Callers
-of :func:`to_states` pass ``BRIDGE_CONSTANT * sigma * sqrt(dt)`` as its
-``level_shift``, which is what :func:`simulate_weekly` and :func:`exit_times` do
-for themselves.
+of [`to_states`][msrelapse.simulate.to_states] pass
+``BRIDGE_CONSTANT * sigma * sqrt(dt)`` as its ``level_shift``, which is what
+[`simulate_weekly`][msrelapse.simulate.simulate_weekly] and
+[`exit_times`][msrelapse.simulate.exit_times] do for themselves.
 """
 
 # Normal draws are generated a block of steps at a time for all paths at once,
@@ -201,7 +208,7 @@ def simulate_paths(  # noqa: PLR0917
         Length of the run, in weeks. Must be positive.
     dt : float, optional
         Time step, in weeks. Must be positive and no larger than
-        :data:`MAX_DT`.
+        [`MAX_DT`][msrelapse.simulate.MAX_DT].
     n_paths : int, optional
         Number of independent paths. Must be at least one.
     x0 : float or numpy.ndarray, optional
@@ -209,7 +216,7 @@ def simulate_paths(  # noqa: PLR0917
         Defaults to the bottom of the health well.
     rng : numpy.random.Generator or int or None, optional
         Generator to draw the normal increments from, or a seed for
-        :func:`numpy.random.default_rng`.
+        ``numpy.random.default_rng``.
     record_every : int, optional
         Keep one record every this many steps. Must be at least one.
     use_numba : bool or None, optional
@@ -224,29 +231,32 @@ def simulate_paths(  # noqa: PLR0917
     Raises
     ------
     ValueError
-        If `dt` is not positive or is larger than :data:`MAX_DT`, if `t_end` is
-        not positive, if `n_paths` or `record_every` is below one, if `sigma`
-        is negative, if `x0` is an array of a length other than `n_paths`, if
-        `use_numba` is True while numba is not installed, or if any path left
-        the finite range during the run.
+        If `dt` is not positive or is larger than
+        [`MAX_DT`][msrelapse.simulate.MAX_DT], if `t_end` is not positive, if
+        `n_paths` or `record_every` is below one, if `sigma` is negative, if
+        `x0` is an array of a length other than `n_paths`, if `use_numba` is
+        True while numba is not installed, or if any path left the finite range
+        during the run.
 
     Notes
     -----
-    :data:`MAX_DT` was measured at one potential and one noise amplitude, so it
-    is not a ceiling that holds for every well and every `sigma`. A step inside
-    it still sends paths to infinity at a larger noise, and a non-finite sample
-    is neither a state nor an error further down the pipeline: it compares
-    False against both hysteresis thresholds, so :func:`to_states` would freeze
-    the state and the weekly record would read as an ordinary clinical one.
-    Every recorded path is therefore checked before it is returned.
+    [`MAX_DT`][msrelapse.simulate.MAX_DT] was measured at one potential and one
+    noise amplitude, so it is not a ceiling that holds for every well and every
+    `sigma`. A step inside it still sends paths to infinity at a larger noise,
+    and a non-finite sample is neither a state nor an error further down the
+    pipeline: it compares False against both hysteresis thresholds, so
+    [`to_states`][msrelapse.simulate.to_states] would freeze the state and the
+    weekly record would read as an ordinary clinical one. Every recorded path
+    is therefore checked before it is returned.
 
     The potential and the noise amplitude are held fixed for the whole run:
-    `well` is one frozen :class:`~msrelapse.model.DoubleWell` and `sigma` is one
-    number, and neither is read as a function of time. A within patient drift of
-    the barrier or of the noise, a slowly varying beta(t) or sigma(t), is
-    therefore outside what this module produces. The over-dispersion the package
-    does carry is the between patient kind, the gamma mixture of relapse rates
-    of :func:`msrelapse.renewal.gamma_rates`.
+    `well` is one frozen [`DoubleWell`][msrelapse.model.DoubleWell] and `sigma`
+    is one number, and neither is read as a function of time. A within patient
+    drift of the barrier or of the noise, a slowly varying beta(t) or sigma(t),
+    is therefore outside what this module produces. The over-dispersion the
+    package does carry is the between patient kind, the gamma mixture of
+    relapse rates of
+    [`msrelapse.renewal.gamma_rates`][msrelapse.renewal.gamma_rates].
 
     Examples
     --------
@@ -306,12 +316,12 @@ def exit_times(  # noqa: PLR0917
     """Measure the first passage time of one episode, once per path.
 
     Every path starts at the first endpoint of
-    :func:`msrelapse.model.passage_endpoints` and is followed until it reaches
-    the second one. A health passage runs towards increasing x and a relapse
-    passage towards decreasing x, and the time recorded is the first grid time
-    at which the absorbing level is crossed. Paths are retired as they are
-    absorbed, so a cohort whose exit times are spread over decades costs little
-    more than its mean.
+    [`msrelapse.model.passage_endpoints`][msrelapse.model.passage_endpoints]
+    and is followed until it reaches the second one. A health passage runs
+    towards increasing x and a relapse passage towards decreasing x, and the
+    time recorded is the first grid time at which the absorbing level is
+    crossed. Paths are retired as they are absorbed, so a cohort whose exit
+    times are spread over decades costs little more than its mean.
 
     Parameters
     ----------
@@ -327,20 +337,23 @@ def exit_times(  # noqa: PLR0917
         Time step, in weeks.
     rng : numpy.random.Generator or int or None, optional
         Generator to draw the normal increments from, or a seed for
-        :func:`numpy.random.default_rng`.
+        ``numpy.random.default_rng``.
     passage : {'bottom_to_saddle', 'bottom_to_bottom', 'band'}, optional
         Which crossing counts as one episode.
     band_fraction : float, optional
         Threshold position of the ``band`` passage, ignored otherwise. The
-        default is :data:`msrelapse.model.DEFAULT_BAND_FRACTION`; the cohort
-        engine cuts its paths at the wider
-        :data:`msrelapse.cohort.SDE_ENGINE_BAND_FRACTION` instead.
+        default is
+        [`msrelapse.model.DEFAULT_BAND_FRACTION`][msrelapse.model.DEFAULT_BAND_FRACTION];
+        the cohort engine cuts its paths at the wider
+        [`msrelapse.cohort.SDE_ENGINE_BAND_FRACTION`][msrelapse.cohort.SDE_ENGINE_BAND_FRACTION]
+        instead.
     bridge_correction : bool, optional
         Whether to move the absorbing level towards the walker by
-        :data:`BRIDGE_CONSTANT` ``sigma sqrt(dt)``, which removes the
-        ``sqrt(dt)`` bias of a crossing test evaluated only at the grid points.
-        Without it a step of 0.1 weeks runs about a fifth long; with it the
-        same step lands within a few percent of the exact answer.
+        [`BRIDGE_CONSTANT`][msrelapse.simulate.BRIDGE_CONSTANT]
+        ``sigma sqrt(dt)``, which removes the ``sqrt(dt)`` bias of a crossing
+        test evaluated only at the grid points. Without it a step of 0.1 weeks
+        runs about a fifth long; with it the same step lands within a few
+        percent of the exact answer.
     max_time : float, optional
         How long, in weeks, a path is followed before the measurement is
         declared a failure.
@@ -449,9 +462,11 @@ def to_states(
     band_fraction : float, optional
         Position of the two thresholds, as a fraction of the distance from the
         saddle to each well bottom. Must lie strictly between 0 and 1. The
-        default is :data:`msrelapse.model.DEFAULT_BAND_FRACTION`; the cohort
-        engine cuts its paths at the wider
-        :data:`msrelapse.cohort.SDE_ENGINE_BAND_FRACTION` instead.
+        default is
+        [`msrelapse.model.DEFAULT_BAND_FRACTION`][msrelapse.model.DEFAULT_BAND_FRACTION];
+        the cohort engine cuts its paths at the wider
+        [`msrelapse.cohort.SDE_ENGINE_BAND_FRACTION`][msrelapse.cohort.SDE_ENGINE_BAND_FRACTION]
+        instead.
     initial : int, optional
         State to start every path in. The default starts a path in health when
         its first sample lies below the saddle and in no health otherwise.
@@ -488,19 +503,20 @@ def to_states(
 
     A threshold tested only at the grid points is crossed a step late, so a
     walk watched that way behaves like a continuously watched walk whose
-    threshold sits :data:`BRIDGE_CONSTANT` ``sigma sqrt(dt)`` further away. Left
-    uncorrected that lengthens both ends of every episode, by about a tenth at
-    the calibrated parameters and a step of 0.02 weeks; see the module
-    docstring for the measurement.
+    threshold sits [`BRIDGE_CONSTANT`][msrelapse.simulate.BRIDGE_CONSTANT]
+    ``sigma sqrt(dt)`` further away. Left uncorrected that lengthens both ends
+    of every episode, by about a tenth at the calibrated parameters and a step
+    of 0.02 weeks; see the module docstring for the measurement.
 
     The shift brings the two thresholds together and does not move them apart,
-    which is the direction :func:`exit_times` already moves its single level in.
-    Measured on 50 records of 12000 weeks at a step of 0.02 weeks on the band
-    calibrated potential, as the ratio of the mean complete episode to the exact
-    first passage time over the same band: 1.113 in health and 1.128 in no health
-    with no shift, 0.988 and 1.005 with the thresholds brought together as they
-    are here, and 1.233 and 1.244 with them moved apart, which roughly doubles
-    the bias the shift is there to remove.
+    which is the direction [`exit_times`][msrelapse.simulate.exit_times]
+    already moves its single level in. Measured on 50 records of 12000 weeks at
+    a step of 0.02 weeks on the band calibrated potential, as the ratio of the
+    mean complete episode to the exact first passage time over the same band:
+    1.113 in health and 1.128 in no health with no shift, 0.988 and 1.005 with
+    the thresholds brought together as they are here, and 1.233 and 1.244 with
+    them moved apart, which roughly doubles the bias the shift is there to
+    remove.
 
     Examples
     --------
@@ -522,13 +538,15 @@ def _to_states(
 ) -> NDArray[np.int64]:
     """Map rows of samples already known to be finite to the two clinical states.
 
-    This is :func:`to_states` without the scan for a sample that is not a finite
-    number. The scan walks the whole integration grid and allocates a boolean
-    temporary of the size of it, which is worth paying once for samples a caller
-    brought from somewhere else and not worth paying twice for samples
-    :func:`simulate_paths` has just checked. The rows come in already converted
-    by :func:`_as_rows`, so that a path is reshaped once per call and one place
-    decides how, and the caller puts the answer back in the shape it asked with.
+    This is [`to_states`][msrelapse.simulate.to_states] without the scan for a
+    sample that is not a finite number. The scan walks the whole integration
+    grid and allocates a boolean temporary of the size of it, which is worth
+    paying once for samples a caller brought from somewhere else and not worth
+    paying twice for samples
+    [`simulate_paths`][msrelapse.simulate.simulate_paths] has just checked. The
+    rows come in already converted by ``_as_rows``, so that a path is reshaped
+    once per call and one place decides how, and the caller puts the answer
+    back in the shape it asked with.
 
     Parameters
     ----------
@@ -664,8 +682,8 @@ def durations(
     Returns
     -------
     pandas.DataFrame
-        A frame in the durations schema of :mod:`msrelapse.io`, in which
-        ``censored`` is True only on a final remission.
+        A frame in the durations schema of [`msrelapse.io`][msrelapse.io], in
+        which ``censored`` is True only on a final remission.
 
     Raises
     ------
@@ -698,8 +716,10 @@ def simulate_weekly(  # noqa: PLR0917
 ) -> pd.DataFrame:
     """Simulate a cohort and return its weekly record.
 
-    This is :func:`simulate_paths`, :func:`to_states` and :func:`to_weekly` in
-    a row, and it is the entry point a cohort engine calls.
+    This is [`simulate_paths`][msrelapse.simulate.simulate_paths],
+    [`to_states`][msrelapse.simulate.to_states] and
+    [`to_weekly`][msrelapse.simulate.to_weekly] in a row, and it is the entry
+    point a cohort engine calls.
 
     Parameters
     ----------
@@ -717,12 +737,13 @@ def simulate_weekly(  # noqa: PLR0917
         Time step, in weeks.
     rng : numpy.random.Generator or int or None, optional
         Generator to draw the normal increments from, or a seed for
-        :func:`numpy.random.default_rng`.
+        ``numpy.random.default_rng``.
     band_fraction : float, optional
         Position of the two hysteresis thresholds. The default is
-        :data:`msrelapse.model.DEFAULT_BAND_FRACTION`; the cohort engine cuts
-        its paths at the wider
-        :data:`msrelapse.cohort.SDE_ENGINE_BAND_FRACTION` instead.
+        [`msrelapse.model.DEFAULT_BAND_FRACTION`][msrelapse.model.DEFAULT_BAND_FRACTION];
+        the cohort engine cuts its paths at the wider
+        [`msrelapse.cohort.SDE_ENGINE_BAND_FRACTION`][msrelapse.cohort.SDE_ENGINE_BAND_FRACTION]
+        instead.
     x0 : float or numpy.ndarray, optional
         Starting position of each path. Defaults to the bottom of the health
         well, so every patient starts in remission.
@@ -730,28 +751,32 @@ def simulate_weekly(  # noqa: PLR0917
         One identifier per patient. Defaults to p0001, p0002 and so on.
     use_numba : bool or None, optional
         Whether to run the compiled integration kernel. The default uses it
-        when numba is importable. The hysteresis kernel of :func:`to_states` is
-        always the compiled one when numba is importable, because
-        :func:`to_states` takes no such argument.
+        when numba is importable. The hysteresis kernel of
+        [`to_states`][msrelapse.simulate.to_states] is always the compiled one
+        when numba is importable, because
+        [`to_states`][msrelapse.simulate.to_states] takes no such argument.
     bridge_correction : bool, optional
-        Whether to hand :func:`to_states` the Brownian bridge shift
-        :data:`BRIDGE_CONSTANT` ``sigma sqrt(dt)`` computed from this call's own
-        `sigma` and `dt`, which removes the ``sqrt(dt)`` bias of a crossing
-        tested only at the grid points. On by default; see Notes for what it is
-        worth and for what it does not cover.
+        Whether to hand [`to_states`][msrelapse.simulate.to_states] the
+        Brownian bridge shift
+        [`BRIDGE_CONSTANT`][msrelapse.simulate.BRIDGE_CONSTANT]
+        ``sigma sqrt(dt)`` computed from this call's own `sigma` and `dt`,
+        which removes the ``sqrt(dt)`` bias of a crossing tested only at the
+        grid points. On by default; see Notes for what it is worth and for what
+        it does not cover.
 
     Returns
     -------
     pandas.DataFrame
-        A frame in the weekly schema of :mod:`msrelapse.io`, holding `n_weeks`
-        rows per patient.
+        A frame in the weekly schema of [`msrelapse.io`][msrelapse.io], holding
+        `n_weeks` rows per patient.
 
     Raises
     ------
     ValueError
-        If `n_weeks` is below one, if any argument of :func:`simulate_paths` is
-        out of range, if `patient_ids` does not have one entry per patient, or
-        if the bridge correction is wide enough to close the hysteresis band.
+        If `n_weeks` is below one, if any argument of
+        [`simulate_paths`][msrelapse.simulate.simulate_paths] is out of range,
+        if `patient_ids` does not have one entry per patient, or if the bridge
+        correction is wide enough to close the hysteresis band.
 
     Notes
     -----
@@ -759,27 +784,29 @@ def simulate_weekly(  # noqa: PLR0917
     this returns, and a caller correcting the record back to the calibration
     targets has to allow for both.
 
-    The rounding rule of :func:`to_weekly` lengthens every relapse: a relapse
-    of continuous length L is marked in every week it touches and so occupies
-    L + 1 whole weeks on average, and the remissions around it lose that week.
-    A weekly record therefore reports a relapse burden shifted by about a week
-    per relapse from the continuous durations the potential was calibrated to.
+    The rounding rule of [`to_weekly`][msrelapse.simulate.to_weekly] lengthens
+    every relapse: a relapse of continuous length L is marked in every week it
+    touches and so occupies L + 1 whole weeks on average, and the remissions
+    around it lose that week. A weekly record therefore reports a relapse
+    burden shifted by about a week per relapse from the continuous durations
+    the potential was calibrated to.
 
     Two relapses separated by less than a week fall in the same week and merge
     into a single weekly episode, which is why a weekly record holds fewer and
     longer episodes than the path it came from. The hysteresis band removes the
     chatter of a path wobbling across the barrier top, but it cannot remove a
     genuine short return to health. On the potential
-    :func:`msrelapse.model.calibrate` returns for 100 and 4.3 weeks with
-    ``passage='band'`` and a band fraction of 0.3, the default here, about one
-    remission in six is shorter than a week: measured over 20 paths of 20000
-    weeks at a step of 0.02 weeks and the three seeds 3, 7 and 11, one in 6.1 to
-    6.6 of the complete remissions of the path. A wider band leaves fewer of
-    them, which is why :class:`msrelapse.cohort.CohortSpec` widens it; the table
-    is in the Notes of that class. The mean weekly episode duration is inflated
-    by that merging while the weekly relapse burden is not, so a caller
-    comparing durations with the paper should compare burdens rather than per
-    episode means.
+    [`msrelapse.model.calibrate`][msrelapse.model.calibrate] returns for 100
+    and 4.3 weeks with ``passage='band'`` and a band fraction of 0.3, the
+    default here, about one remission in six is shorter than a week: measured
+    over 20 paths of 20000 weeks at a step of 0.02 weeks and the three seeds 3,
+    7 and 11, one in 6.1 to 6.6 of the complete remissions of the path. A wider
+    band leaves fewer of them, which is why
+    [`msrelapse.cohort.CohortSpec`][msrelapse.cohort.CohortSpec] widens it; the
+    table is in the Notes of that class. The mean weekly episode duration is
+    inflated by that merging while the weekly relapse burden is not, so a
+    caller comparing durations with the paper should compare burdens rather
+    than per episode means.
 
     A third effect used to sit beside them and no longer does. Read on the
     integration grid alone the two band thresholds are crossed a step late, and
@@ -790,13 +817,14 @@ def simulate_weekly(  # noqa: PLR0917
     a caller comparing with a record made before the correction existed.
 
     The whole integration grid is held in memory for the whole cohort, twice
-    over: ``n_paths * n_weeks / dt`` samples as float64 and the same count again
-    as int64. A hundred patients over 1500 weeks at a step of 0.02 weeks peaked
-    at about 150 MB, and the cost grows linearly in every one of the three, so a
-    cohort of a thousand patients of that length needs about 1.5 GB. The
-    `record_every` argument of :func:`simulate_paths` is no way out, because the
-    rounding rule needs every sub-week sample. Split a larger cohort into
-    batches of patients and concatenate the frames.
+    over: ``n_paths * n_weeks / dt`` samples as float64 and the same count
+    again as int64. A hundred patients over 1500 weeks at a step of 0.02 weeks
+    peaked at about 150 MB, and the cost grows linearly in every one of the
+    three, so a cohort of a thousand patients of that length needs about 1.5
+    GB. The `record_every` argument of
+    [`simulate_paths`][msrelapse.simulate.simulate_paths] is no way out,
+    because the rounding rule needs every sub-week sample. Split a larger
+    cohort into batches of patients and concatenate the frames.
 
     Examples
     --------
@@ -835,7 +863,7 @@ def _check_step(dt: float) -> None:
     ------
     ValueError
         If `dt` is not a positive finite number, or if it exceeds
-        :data:`MAX_DT`.
+        [`MAX_DT`][msrelapse.simulate.MAX_DT].
     """
     if not math.isfinite(dt) or dt <= 0.0:
         raise ValueError(f"dt must be a positive finite number of weeks, got {dt!r}")
@@ -1178,7 +1206,7 @@ def _weekly_frame(
     Returns
     -------
     pandas.DataFrame
-        A frame in the weekly schema of :mod:`msrelapse.io`.
+        A frame in the weekly schema of [`msrelapse.io`][msrelapse.io].
 
     Raises
     ------
@@ -1296,7 +1324,7 @@ def _advance_loop(  # noqa: PLR0917
 ) -> None:
     """Advance every path one block of steps, one scalar update at a time.
 
-    This is the same arithmetic as :func:`_advance_numpy` in the same order, so
+    This is the same arithmetic as ``_advance_numpy`` in the same order, so
     that the compiled kernel and the numpy one produce the same paths from the
     same draws. It is written for numba and is far too slow to run as Python.
 
@@ -1415,7 +1443,7 @@ def _exit_loop(  # noqa: PLR0917
 ) -> None:
     """Advance every path one block of steps, one scalar update at a time.
 
-    This is the same arithmetic as :func:`_exit_numpy` in the same order. It is
+    This is the same arithmetic as ``_exit_numpy`` in the same order. It is
     written for numba and is far too slow to run as Python.
 
     Parameters
@@ -1426,7 +1454,7 @@ def _exit_loop(  # noqa: PLR0917
         Standard normal draws of shape ``(n_steps, n_paths)``.
     crossed : numpy.ndarray
         Output array of one entry per path, which arrives all negative, as in
-        :func:`_exit_numpy`.
+        ``_exit_numpy``.
     alpha : float
         Control parameter of the potential.
     beta : float
@@ -1509,7 +1537,7 @@ def _states_loop(
 ) -> None:
     """Apply the hysteresis band to every path, one scalar at a time.
 
-    This is the same rule as :func:`_states_numpy`. It is written for numba and
+    This is the same rule as ``_states_numpy``. It is written for numba and
     is far too slow to run as Python.
 
     Parameters

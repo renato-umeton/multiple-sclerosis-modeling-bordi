@@ -69,13 +69,15 @@ DEFAULT_BAND_FRACTION: Final = 0.3
 """Where the two thresholds of a ``band`` passage sit, by default.
 
 The number is the fraction of the distance from the saddle to each well bottom
-at which that state is entered, so a small fraction puts the thresholds close to
-the saddle and a large one deep inside the wells. It is the default of
-:func:`passage_endpoints` and :func:`calibrate` here, and of every band taking
-function of :mod:`msrelapse.simulate`, so that a potential calibrated with
-``passage='band'`` is cut into episodes exactly as it was calibrated. The cohort
-engine of :mod:`msrelapse.cohort` is the one place that departs from it; see
-:data:`msrelapse.cohort.SDE_ENGINE_BAND_FRACTION`.
+at which that state is entered, so a small fraction puts the thresholds close
+to the saddle and a large one deep inside the wells. It is the default of
+[`passage_endpoints`][msrelapse.model.passage_endpoints] and
+[`calibrate`][msrelapse.model.calibrate] here, and of every band taking
+function of [`msrelapse.simulate`][msrelapse.simulate], so that a potential
+calibrated with ``passage='band'`` is cut into episodes exactly as it was
+calibrated. The cohort engine of [`msrelapse.cohort`][msrelapse.cohort] is the
+one place that departs from it; see
+[`msrelapse.cohort.SDE_ENGINE_BAND_FRACTION`][msrelapse.cohort.SDE_ENGINE_BAND_FRACTION].
 """
 
 _Vector = np.ndarray[tuple[int], np.dtype[np.float64]]
@@ -534,7 +536,7 @@ class DoubleWell:
             If the potential does not have two wells, or if beta is so close to
             ``fold_beta(alpha)`` that the relapse barrier has already collapsed
             onto the saddle and the ratio has no value; see
-            :attr:`Barriers.ratio`.
+            [`Barriers.ratio`][msrelapse.model.Barriers.ratio].
         """
         return self.barriers().ratio
 
@@ -621,7 +623,7 @@ def _height_exponent(height: float, sigma: float) -> float:
         A barrier to climb, or the largest departure of the potential over a
         passage, in units of the potential. Never negative.
     sigma : float
-        Noise amplitude. Must already have passed :func:`_validate_sigma`.
+        Noise amplitude. Must already have passed ``_validate_sigma``.
 
     Returns
     -------
@@ -640,7 +642,7 @@ def _escape_exponent(well: DoubleWell, sigma: float, side: Side) -> float:
 
     Both exit time estimators return e raised to this exponent, so past about
     709 the answer stops being a number at all. Refusing it here turns what
-    would otherwise be an ``OverflowError`` out of :func:`math.exp` into a
+    would otherwise be an ``OverflowError`` out of ``math.exp`` into a
     ValueError that names the noise, the barrier and the potential.
 
     Parameters
@@ -701,10 +703,11 @@ def passage_endpoints(
     band_fraction : float, optional
         Position of the two thresholds of the ``band`` passage, as a fraction
         of the distance from the saddle to each well bottom. Must lie strictly
-        between 0 and 1, and defaults to :data:`DEFAULT_BAND_FRACTION`. It
-        matches the argument of the same name used to cut a simulated trajectory
-        into episodes, so calibrating with ``passage='band'`` and the same
-        fraction makes the simulated durations match the targets.
+        between 0 and 1, and defaults to
+        [`DEFAULT_BAND_FRACTION`][msrelapse.model.DEFAULT_BAND_FRACTION]. It
+        matches the argument of the same name used to cut a simulated
+        trajectory into episodes, so calibrating with ``passage='band'`` and
+        the same fraction makes the simulated durations match the targets.
 
     Returns
     -------
@@ -782,7 +785,7 @@ def kramers_time(well: DoubleWell, sigma: float, side: Side) -> float:
     time from the bottom of the well to the saddle is about half of it, because
     a walker that reaches the saddle still falls back with probability about a
     half. Equations (5) and (6) of the paper omit the prefactor altogether, for
-    which see :func:`paper_exit_time`.
+    which see [`paper_exit_time`][msrelapse.model.paper_exit_time].
 
     Parameters
     ----------
@@ -819,8 +822,8 @@ def paper_exit_time(well: DoubleWell, sigma: float, side: Side) -> float:
     variance, that is ``sigma**2`` here, and no prefactor. Dropping the
     prefactor makes equation (7) exact by construction: the ratio
     ``log(paper_exit_time(health)) / log(paper_exit_time(relapse))`` equals
-    :meth:`DoubleWell.barrier_ratio` for every noise amplitude, which is why
-    the noise cancels out of the estimator.
+    [`DoubleWell.barrier_ratio`][msrelapse.model.DoubleWell.barrier_ratio] for
+    every noise amplitude, which is why the noise cancels out of the estimator.
 
     Parameters
     ----------
@@ -1037,8 +1040,8 @@ def mfpt(
         Starting position. Defaults to the bottom of the well of `side`.
     x_absorb : float, optional
         Absorbing position. Defaults to the saddle. Use
-        :func:`passage_endpoints` to get the pair that matches a given reading
-        of what one episode is.
+        [`passage_endpoints`][msrelapse.model.passage_endpoints] to get the
+        pair that matches a given reading of what one episode is.
 
     Returns
     -------
@@ -1292,12 +1295,13 @@ def calibrate(
         uses the small noise escape time, which ignores `passage` altogether
         because it is always a well to well time.
     passage : {'bottom_to_saddle', 'bottom_to_bottom', 'band'}, optional
-        Which crossing counts as one episode, see :func:`passage_endpoints`.
-        Ignored when `method` is ``kramers``.
+        Which crossing counts as one episode, see
+        [`passage_endpoints`][msrelapse.model.passage_endpoints]. Ignored when
+        `method` is ``kramers``.
     band_fraction : float, optional
         Threshold position of the ``band`` passage, which defaults to
-        :data:`DEFAULT_BAND_FRACTION`. Ignored when `passage` is not ``band`` or
-        `method` is ``kramers``.
+        [`DEFAULT_BAND_FRACTION`][msrelapse.model.DEFAULT_BAND_FRACTION].
+        Ignored when `passage` is not ``band`` or `method` is ``kramers``.
 
     Returns
     -------

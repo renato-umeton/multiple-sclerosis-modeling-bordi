@@ -11,10 +11,10 @@ and negative binomial statistics that the counts follow when relapses are brief
 and when the onset rate varies from patient to patient.
 
 The module is the phenomenological twin of the stochastic differential equation
-in :mod:`msrelapse.model`: it produces the same kind of record without any
-double well behind it, which is what makes it useful as a null model. Numbers
-reported by the paper are never written here; import ``PAPER`` from
-:mod:`msrelapse._params` instead.
+in [`msrelapse.model`][msrelapse.model]: it produces the same kind of record
+without any double well behind it, which is what makes it useful as a null
+model. Numbers reported by the paper are never written here; import ``PAPER``
+from [`msrelapse._params`][msrelapse._params] instead.
 
 References
 ----------
@@ -262,7 +262,7 @@ def gamma_rates(
         Number of patients. Must be at least one.
     rng : numpy.random.Generator or int or None, optional
         Generator to draw from, or a seed for
-        :func:`numpy.random.default_rng`.
+        ``numpy.random.default_rng``.
 
     Returns
     -------
@@ -326,7 +326,7 @@ def alternating_renewal(  # noqa: PLR0917
         Number of patients. Must be at least one.
     rng : numpy.random.Generator or int or None, optional
         Generator to draw from, or a seed for
-        :func:`numpy.random.default_rng`.
+        ``numpy.random.default_rng``.
     discretise : {None, 'week'}, optional
         With ``'week'`` durations are drawn from a geometric distribution on
         1, 2, 3, ... with the same mean, so that every duration is a whole
@@ -408,7 +408,8 @@ def relapse_counts(events: pd.DataFrame, window: float | None = None) -> pd.Seri
     Parameters
     ----------
     events : pandas.DataFrame
-        An events table, as returned by :func:`alternating_renewal`.
+        An events table, as returned by
+        [`alternating_renewal`][msrelapse.renewal.alternating_renewal].
     window : float, optional
         Length in weeks of the window that starts at each patient's
         followup_start. An onset counts when
@@ -426,7 +427,8 @@ def relapse_counts(events: pd.DataFrame, window: float | None = None) -> pd.Seri
     ------
     ValueError
         If `events` lacks a column of the schema, if it fails the schema
-        validator of :mod:`msrelapse.io`, or if `window` is not positive.
+        validator of [`msrelapse.io`][msrelapse.io], or if `window` is not
+        positive.
 
     Examples
     --------
@@ -508,11 +510,13 @@ def _validate_events(events: pd.DataFrame) -> None:
     them raises a plain message instead of the key error that selecting the
     schema columns would give.
 
-    Only the five schema columns are handed to :func:`msrelapse.io.validate`,
-    because it rejects any column it does not know and a caller may well be
-    counting a table that carries extra columns, such as the dated export of
-    :func:`msrelapse.io.weekly_to_events`. Every other rule of the schema, on
-    dtypes, ordering, overlap and follow up windows, still runs.
+    Only the five schema columns are handed to
+    [`msrelapse.io.validate`][msrelapse.io.validate], because it rejects any
+    column it does not know and a caller may well be counting a table that
+    carries extra columns, such as the dated export of
+    [`msrelapse.io.weekly_to_events`][msrelapse.io.weekly_to_events]. Every
+    other rule of the schema, on dtypes, ordering, overlap and follow up
+    windows, still runs.
     """
     missing = [name for name in _EVENTS_COLUMNS if name not in events.columns]
     if missing:

@@ -55,9 +55,10 @@ class Param(Generic[T]):
 class Bordi2013:
     """The complete set of numbers the 2013 paper reports, one field per number.
 
-    Each field holds a :class:`Param`, so a caller reading a value can also
-    read the unit it is expressed in and the place in the paper it comes from.
-    Use the module level instance ``PAPER`` rather than building your own.
+    Each field holds a [`Param`][msrelapse._params.Param], so a caller reading
+    a value can also read the unit it is expressed in and the place in the
+    paper it comes from. Use the module level instance ``PAPER`` rather than
+    building your own.
     """
 
     alpha_reference: Param[float] = Param(

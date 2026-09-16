@@ -105,6 +105,15 @@ def test_every_exported_name_resolves() -> None:
     assert [name for name in msrelapse.__all__ if not hasattr(msrelapse, name)] == []
 
 
+def test_the_weekly_hazard_is_exported_beside_the_tests_that_read_it() -> None:
+    # discrete_hazard is documented as public on the reference page of the fit
+    # module, and the hazard reading of test_memoryless and the survival figure
+    # both call it, so a reader meets it and reaches for msrelapse.discrete_hazard.
+    assert "discrete_hazard" in msrelapse.fit.__all__
+    assert "discrete_hazard" in msrelapse.__all__
+    assert msrelapse.discrete_hazard is msrelapse.fit.discrete_hazard
+
+
 def test_the_export_list_names_nothing_twice() -> None:
     names = list(msrelapse.__all__)
 

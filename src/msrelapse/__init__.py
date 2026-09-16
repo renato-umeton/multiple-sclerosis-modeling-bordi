@@ -13,20 +13,24 @@ heights, about 3.1.
 
 Every number the article reports is collected in ``PAPER`` together with the
 sentence it comes from, and the code reads them from there rather than writing
-them down again. :func:`cite` prints the citation of the article and of this
+them down again. ``cite`` prints the citation of the article and of this
 package, and every result object, from a duration fit to a cohort to a rate
 ratio, carries a one line citation of its own and repeats it in its repr. What
 is re-exported here are the functions a reader calls directly, the result
 classes and the type aliases they are annotated with, among them ``Side`` and
-``Passage`` from :mod:`msrelapse.model`, ``Seed`` from :mod:`msrelapse.simulate`,
-which every module spells the same way, and ``Schema`` from :mod:`msrelapse.io`.
-The helpers that support those calls stay on their own modules and are reached
-through them: the calibration pair :func:`msrelapse.cohort.continuous_targets`
-and :func:`msrelapse.cohort.naive_mean_targets`, the sampler helper
-:func:`msrelapse.cohort.draw`, and the follow up helper
-:func:`msrelapse.stats.patient_followup`. Drawing lives in
-:mod:`msrelapse.plots`, which is imported explicitly, so that importing this
-package needs no matplotlib.
+``Passage`` from [`msrelapse.model`][msrelapse.model], ``Seed`` from
+[`msrelapse.simulate`][msrelapse.simulate], which every module spells the same
+way, and ``Schema`` from [`msrelapse.io`][msrelapse.io]. The helpers that
+support those calls stay on their own modules and are reached through them: the
+calibration pair
+[`msrelapse.cohort.continuous_targets`][msrelapse.cohort.continuous_targets]
+and
+[`msrelapse.cohort.naive_mean_targets`][msrelapse.cohort.naive_mean_targets],
+the sampler helper [`msrelapse.cohort.draw`][msrelapse.cohort.draw], and the
+follow up helper
+[`msrelapse.stats.patient_followup`][msrelapse.stats.patient_followup]. Drawing
+lives in [`msrelapse.plots`][msrelapse.plots], which is imported explicitly, so
+that importing this package needs no matplotlib.
 
 Examples
 --------
@@ -81,6 +85,7 @@ from msrelapse.fit import (
     PeriodicityResult,
     TestResult,
     barrier_ratio,
+    discrete_hazard,
     fit_durations,
     fit_gamma_rates,
     fit_nb_counts,
@@ -201,6 +206,7 @@ __all__ = [
     "cite",
     "compare_arr",
     "constant",
+    "discrete_hazard",
     "durations",
     "durations_to_weekly",
     "effective_onset_rate",
@@ -261,7 +267,7 @@ def cite(file: TextIO | None = None) -> None:
     -------
     None
         Nothing is returned; the citation is printed. Call
-        :func:`msrelapse.citation` for the same text as a string.
+        ``msrelapse.citation`` for the same text as a string.
 
     Examples
     --------

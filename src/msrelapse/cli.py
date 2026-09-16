@@ -8,11 +8,12 @@ the article and this package in a form a reference manager reads, and ``params``
 prints every number the article reports.
 
 This module composes the rest of the package and computes nothing of its own.
-Every number it prints comes from :mod:`msrelapse.fit`, :mod:`msrelapse.model`,
-:mod:`msrelapse.datasets` or :data:`msrelapse._params.PAPER`, and an error
-raised by any of them travels out with its own message rather than being turned
-into an exit code here. Argument errors are argparse's, which prints them to
-standard error and exits with 2.
+Every number it prints comes from [`msrelapse.fit`][msrelapse.fit],
+[`msrelapse.model`][msrelapse.model],
+[`msrelapse.datasets`][msrelapse.datasets] or ``msrelapse._params.PAPER``, and
+an error raised by any of them travels out with its own message rather than
+being turned into an exit code here. Argument errors are argparse's, which
+prints them to standard error and exits with 2.
 
 The records this package ships and generates are synthetic. ``reproduce`` and
 ``simulate`` say so on standard output every time, and ``reproduce`` records it
@@ -22,14 +23,15 @@ released and no clinical claim can be read off a twin of it.
 A ``reproduce`` run repeats itself. Every random draw it makes, the cohort it
 generates and the bootstrap behind the two goodness of fit rows of the closing
 table included, comes from one seed, which is the one ``--seed`` names or
-:data:`msrelapse.datasets.SYNTHETIC_SEED` when it names none, and the file it
-writes carries that seed beside the numbers. Two runs of the same command
-therefore write the same ``numbers.json``, byte for byte. Each of the two
-goodness of fit rows is measured once and reported twice, in the closing table
-and in the memorylessness block of the written record, where the statistic and
-the sample size stand beside the p value: the run measures the test itself and
-hands it to :func:`msrelapse.datasets.reproduction_table`, so the two readings
-are one number rather than two draws of one bootstrap.
+[`msrelapse.datasets.SYNTHETIC_SEED`][msrelapse.datasets.SYNTHETIC_SEED] when
+it names none, and the file it writes carries that seed beside the numbers. Two
+runs of the same command therefore write the same ``numbers.json``, byte for
+byte. Each of the two goodness of fit rows is measured once and reported twice,
+in the closing table and in the memorylessness block of the written record,
+where the statistic and the sample size stand beside the p value: the run
+measures the test itself and hands it to
+[`msrelapse.datasets.reproduction_table`][msrelapse.datasets.reproduction_table],
+so the two readings are one number rather than two draws of one bootstrap.
 
 References
 ----------
@@ -172,7 +174,7 @@ class _Record:
     Attributes
     ----------
     weekly : pandas.DataFrame
-        The record, in the weekly schema of :mod:`msrelapse.io`.
+        The record, in the weekly schema of [`msrelapse.io`][msrelapse.io].
     source : str
         One phrase naming where it came from, for the report and the file.
     synthetic : bool
@@ -200,7 +202,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     ----------
     argv : sequence of str, optional
         The arguments to parse, without the program name. The default of None
-        reads them from :data:`sys.argv`.
+        reads them from ``sys.argv``.
 
     Returns
     -------
@@ -234,7 +236,8 @@ def _build_parser() -> argparse.ArgumentParser:
     -------
     argparse.ArgumentParser
         The parser. Every subparser records the function that runs it under
-        ``handler``, so that :func:`main` never branches on the subcommand name.
+        ``handler``, so that [`main`][msrelapse.cli.main] never branches on the
+        subcommand name.
     """
     parser = argparse.ArgumentParser(
         prog="msrelapse",
@@ -280,8 +283,9 @@ def _add_reproduce(subcommands: argparse._SubParsersAction[argparse.ArgumentPars
         "--engine",
         choices=_ENGINES,
         default=None,
-        help=f"which generator produces the cohort, not to be given with --data "
-        f"(default: {_RENEWAL})",
+        help=f"which generator produces the cohort, not to be given with --data; an sde "
+        f"cohort does not meet the closing table, so that run exits 1 as a matter of "
+        f"course (default: {_RENEWAL})",
     )
     parser.add_argument(
         "--out",
@@ -784,11 +788,13 @@ def _require_matplotlib() -> None:
     Raises
     ------
     ImportError
-        If matplotlib is not installed. matplotlib is the ``plot`` extra of this
-        package and the figures are the last thing a reproduction writes, so an
-        install without the extra would otherwise run the whole analysis before
-        failing. The check is :func:`msrelapse.plots.require_matplotlib`, so that
-        the message a caller reads is the one message that module carries.
+        If matplotlib is not installed. matplotlib is the ``plot`` extra of
+        this package and the figures are the last thing a reproduction writes,
+        so an install without the extra would otherwise run the whole analysis
+        before failing. The check is
+        [`msrelapse.plots.require_matplotlib`][msrelapse.plots.require_matplotlib],
+        so that the message a caller reads is the one message that module
+        carries.
     """
     plots.require_matplotlib()
 
@@ -857,7 +863,7 @@ def _duration_fits(durations: pd.DataFrame) -> list[tuple[str, int, fit.FitResul
     Parameters
     ----------
     durations : pandas.DataFrame
-        A frame in the durations schema of :mod:`msrelapse.io`.
+        A frame in the durations schema of [`msrelapse.io`][msrelapse.io].
 
     Returns
     -------
@@ -878,7 +884,7 @@ def _memorylessness(durations: pd.DataFrame, seed: int) -> list[tuple[int, fit.T
     Parameters
     ----------
     durations : pandas.DataFrame
-        A frame in the durations schema of :mod:`msrelapse.io`.
+        A frame in the durations schema of [`msrelapse.io`][msrelapse.io].
     seed : int
         Seed of the bootstrap behind each of the four readings.
 
@@ -901,7 +907,8 @@ def _spans(table: pd.DataFrame) -> dict[str, object]:
     Parameters
     ----------
     table : pandas.DataFrame
-        The closing table of :func:`msrelapse.datasets.reproduction_table`,
+        The closing table of
+        [`msrelapse.datasets.reproduction_table`][msrelapse.datasets.reproduction_table],
         which has already measured all three on the record.
 
     Returns
@@ -922,7 +929,8 @@ def _reproduced(table: pd.DataFrame, quantity: str) -> object:
     Parameters
     ----------
     table : pandas.DataFrame
-        The closing table of :func:`msrelapse.datasets.reproduction_table`.
+        The closing table of
+        [`msrelapse.datasets.reproduction_table`][msrelapse.datasets.reproduction_table].
     quantity : str
         The opening of the name that table gives the quantity.
 
@@ -936,8 +944,8 @@ def _reproduced(table: pd.DataFrame, quantity: str) -> object:
     ------
     ValueError
         If the table holds no such row or more than one, so that a quantity
-        renamed or dropped in :mod:`msrelapse.datasets` fails here rather than
-        going missing from ``numbers.json``.
+        renamed or dropped in [`msrelapse.datasets`][msrelapse.datasets] fails
+        here rather than going missing from ``numbers.json``.
     """
     matches = [
         row["reproduced"]
@@ -959,13 +967,13 @@ def _busiest_barrier_ratios(durations: pd.DataFrame) -> dict[str, float]:
     Parameters
     ----------
     durations : pandas.DataFrame
-        A frame in the durations schema of :mod:`msrelapse.io`.
+        A frame in the durations schema of [`msrelapse.io`][msrelapse.io].
 
     Returns
     -------
     dict of str to float
         One ratio per patient, keyed by patient_id, for the
-        :data:`_N_BUSIEST` patients holding the most relapses. A patient whose
+        ``_N_BUSIEST`` patients holding the most relapses. A patient whose
         mean duration in either state is one week or shorter gets a missing
         value, because equation (7) is undefined there.
     """
@@ -981,7 +989,8 @@ def _all_within_tolerance(table: pd.DataFrame) -> bool:
     Parameters
     ----------
     table : pandas.DataFrame
-        The closing table of :func:`msrelapse.datasets.reproduction_table`.
+        The closing table of
+        [`msrelapse.datasets.reproduction_table`][msrelapse.datasets.reproduction_table].
 
     Returns
     -------
@@ -1007,7 +1016,8 @@ def _report_reproduction(
     effective_seed : int
         The seed every random draw of the run was made from.
     table : pandas.DataFrame
-        The closing table of :func:`msrelapse.datasets.reproduction_table`.
+        The closing table of
+        [`msrelapse.datasets.reproduction_table`][msrelapse.datasets.reproduction_table].
     """
     if record.synthetic:
         print(_SYNTHETIC_BANNER)
@@ -1047,9 +1057,9 @@ def _report_measurements(
     Parameters
     ----------
     fits : list of tuple
-        The output of :func:`_duration_fits`.
+        The output of ``_duration_fits``.
     memoryless : list of tuple
-        The output of :func:`_memorylessness`.
+        The output of ``_memorylessness``.
     periodicity : msrelapse.fit.PeriodicityResult
         The periodicity test of the same record.
     """
@@ -1079,7 +1089,7 @@ def _report_derived(
     busiest : dict of str to float
         The same ratio for the patients with the most relapses.
     spans : dict
-        The output of :func:`_spans`.
+        The output of ``_spans``.
     calibration : dict of str to float
         The control parameter, the asymmetry and the noise of the potential.
     """
@@ -1187,7 +1197,7 @@ def _write_json(path: Path, payload: dict[str, object]) -> Path:
     path : pathlib.Path
         File to write.
     payload : dict
-        The measurements, which are converted by :func:`_jsonable` first.
+        The measurements, which are converted by ``_jsonable`` first.
 
     Returns
     -------
@@ -1205,7 +1215,8 @@ def _write_frame(frame: pd.DataFrame, path: Path) -> Path:
     Parameters
     ----------
     frame : pandas.DataFrame
-        The frame to write, in one of the three schemas of :mod:`msrelapse.io`.
+        The frame to write, in one of the three schemas of
+        [`msrelapse.io`][msrelapse.io].
     path : pathlib.Path
         File to write.
 
@@ -1219,7 +1230,7 @@ def _write_frame(frame: pd.DataFrame, path: Path) -> Path:
 
 
 def _jsonable(value: object) -> object:
-    """Return one measured value in a shape :mod:`json` can write.
+    """Return one measured value in a shape ``json`` can write.
 
     Parameters
     ----------
@@ -1232,7 +1243,7 @@ def _jsonable(value: object) -> object:
     object
         The same value, with numpy scalars turned into Python ones, tuples into
         lists and non-finite numbers into None, so that the file is valid JSON
-        rather than the NaN and Infinity that :mod:`json` writes by default.
+        rather than the NaN and Infinity that ``json`` writes by default.
 
     Raises
     ------
@@ -1343,7 +1354,7 @@ def _format_value(value: object) -> str:
         The value in words: a dash where there is none, ``'yes'`` or ``'no'``
         for a verdict, and a bracketed pair for a range. A number that is not
         finite is a missing number and reads as the same dash, which is how
-        :func:`_jsonable` writes it to the file beside the printed table.
+        ``_jsonable`` writes it to the file beside the printed table.
 
     Examples
     --------

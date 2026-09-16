@@ -12,7 +12,8 @@ without ever running it and ruff is pointed away from docs/.
 from __future__ import annotations
 
 import re
-from typing import Any, cast
+from collections.abc import Iterable
+from typing import Any, NamedTuple, cast
 
 import pytest
 import yaml  # type: ignore[import-untyped]
@@ -67,6 +68,22 @@ UNRUN_DOCS_PAGES = {
     "docs/reproducing.md": "reads a registry export the reader supplies",
     "docs/paper_facts.md": "two formulas quoted from the article, calling nothing",
 }
+
+# One installation line of the README: the options it passes to ``uv sync`` and
+# the comment that says what they bring in.
+UV_SYNC_LINE = re.compile(r"^uv sync (?P<options>[^#\n]*?)\s+#\s*(?P<comment>.+)$", re.MULTILINE)
+
+# A word of such a comment, hyphens and dots kept so that a distribution name
+# arrives whole.
+COMMENT_WORD = re.compile(r"[A-Za-z][\w.-]*")
+
+# The words those comments use that name no package: "the API reference build"
+# says what the docs group is for, and "the kernel" is how the README refers to
+# ipykernel. Every other word of one of them is read as a package the line claims
+# to install and is looked up in the group or the extra it names, which is what
+# keeps a name the project has dropped, papermill for one, from sitting there
+# unnoticed.
+SETUP_COMMENT_PROSE = frozenset({"and", "the", "api", "reference", "build", "kernel"})
 
 # Every action the workflows are allowed to call, at the version the repository
 # standardised on. A new action, or a bumped version, is named here first.
@@ -158,6 +175,110 @@ def test_readme_names_each_audience_with_an_entry_point(audience: str, entry_poi
     assert entry_point.lower() in readme
 
 
+class InstallCommand(NamedTuple):
+    """One commented ``uv sync`` line of the README."""
+
+    line: str
+    groups: tuple[str, ...]
+    extras: tuple[str, ...]
+    comment_words: tuple[str, ...]
+
+
+def pyproject_table(header: str) -> dict[str, tuple[str, ...]]:
+    """Return one table of arrays of pyproject.toml, as distribution names.
+
+    The file is read rather than parsed as TOML, because ``tomllib`` arrived in
+    Python 3.11 and this suite runs from 3.10 on. Only a table whose every value
+    is an array of requirement strings can be read this way, which is what the
+    two dependency tables are.
+
+    Parameters
+    ----------
+    header : str
+        The table to read, such as ``"dependency-groups"``.
+
+    Returns
+    -------
+    dict of str to tuple of str
+        The name of every requirement of each key of the table, with the version
+        specifier, the environment marker and any extras dropped.
+    """
+    text = read("pyproject.toml")
+    marker = f"\n[{header}]\n"
+    start = text.find(marker)
+    assert start >= 0, f"pyproject.toml holds no [{header}] table"
+    body = text[start + len(marker) :]
+    following = re.search(r"^\[", body, re.MULTILINE)
+    if following is not None:
+        body = body[: following.start()]
+    body = "\n".join(line for line in body.splitlines() if not line.lstrip().startswith("#"))
+    keys = list(re.finditer(r"^([A-Za-z][\w.-]*)\s*=", body, re.MULTILINE))
+    ends = [key.start() for key in keys[1:]] + [len(body)]
+    return {
+        key.group(1): tuple(re.findall(r'"\s*([A-Za-z][\w.-]*)', body[key.end() : end]))
+        for key, end in zip(keys, ends, strict=True)
+    }
+
+
+def readme_dependency_groups() -> set[str]:
+    """Return every dependency group the README names, on a command line or in prose."""
+    readme = read("README.md")
+    return set(re.findall(r"--group\s+([A-Za-z][\w-]*)", readme)) | set(
+        re.findall(r"`([A-Za-z][\w-]*)` dependency group", readme)
+    )
+
+
+def readme_extras() -> set[str]:
+    """Return every extra the README names with ``--extra``."""
+    return set(re.findall(r"--extra\s+([A-Za-z][\w-]*)", read("README.md")))
+
+
+def readme_install_commands() -> list[InstallCommand]:
+    """Return each commented ``uv sync`` line of the README, read into its parts."""
+    commands = []
+    for match in UV_SYNC_LINE.finditer(read("README.md")):
+        options = match.group("options")
+        commands.append(
+            InstallCommand(
+                line=match.group(0),
+                groups=tuple(re.findall(r"--group\s+([A-Za-z][\w-]*)", options)),
+                extras=tuple(re.findall(r"--extra\s+([A-Za-z][\w-]*)", options)),
+                comment_words=tuple(
+                    word.lower() for word in COMMENT_WORD.findall(match.group("comment"))
+                ),
+            )
+        )
+    return commands
+
+
+def packages_not_installed(words: Iterable[str], installed: Iterable[str]) -> list[str]:
+    """Return the words of an install comment that name none of the packages.
+
+    A word names a package when it is the name of one of them, or the prefix of
+    a family of them as mkdocs is of mkdocs-material. The prose words of
+    :data:`SETUP_COMMENT_PROSE` claim no package and are passed over.
+
+    Parameters
+    ----------
+    words : iterable of str
+        The words of the comment, in lower case.
+    installed : iterable of str
+        The distribution names the groups and extras of that line install.
+
+    Returns
+    -------
+    list of str
+        The words that name no installed package, in the order they were given.
+    """
+    packages = tuple(installed)
+    return [
+        word
+        for word in words
+        if word not in SETUP_COMMENT_PROSE
+        and not any(package == word or package.startswith(f"{word}-") for package in packages)
+    ]
+
+
 def test_readme_documents_the_uv_setup() -> None:
     readme = flatten(read("README.md"))
     assert "uv sync" in readme
@@ -165,6 +286,34 @@ def test_readme_documents_the_uv_setup() -> None:
         assert f"--extra {extra}" in readme
     for group in ("docs", "notebooks"):
         assert f"--group {group}" in readme
+    # Each of them has to be one pyproject.toml declares, the dev group the
+    # README names in prose rather than on a command line included.
+    assert sorted(readme_dependency_groups() - set(pyproject_table("dependency-groups"))) == []
+    assert sorted(readme_extras() - set(pyproject_table("project.optional-dependencies"))) == []
+
+
+def test_readme_setup_comments_name_packages_the_line_installs() -> None:
+    """A package the README says a group or an extra brings in is really in it."""
+    groups = pyproject_table("dependency-groups")
+    extras = pyproject_table("project.optional-dependencies")
+    checked = []
+    for command in readme_install_commands():
+        if not command.groups and not command.extras:
+            continue
+        installed = {package for group in command.groups for package in groups[group]}
+        installed.update(package for extra in command.extras for package in extras[extra])
+        assert packages_not_installed(command.comment_words, installed) == [], command.line
+        checked.append(command.line)
+    # The two group lines and the extras line, so that a reformatted README the
+    # reader above no longer matches cannot leave this test checking nothing.
+    assert len(checked) >= 3, checked
+
+
+def test_a_setup_comment_naming_a_package_the_group_no_longer_holds_is_a_violation() -> None:
+    """The check above reads a stale name for what it is, papermill for one."""
+    notebooks = ("nbformat", "nbclient", "ipykernel", "matplotlib")
+    assert packages_not_installed(("nbformat", "and", "papermill"), notebooks) == ["papermill"]
+    assert packages_not_installed(("mkdocs",), ("mkdocs-material",)) == []
 
 
 def test_readme_documents_every_cli_subcommand() -> None:

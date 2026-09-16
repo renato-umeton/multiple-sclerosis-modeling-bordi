@@ -1385,6 +1385,34 @@ def test_overdispersion_below_the_floor_is_fitted_as_poisson() -> None:
     assert result.mean == pytest.approx(float(counts.mean()))
 
 
+def test_a_dispersion_the_information_cannot_pin_down_is_fitted_as_poisson(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The third way a fit falls back on the Poisson one, after the variance screen
+    # and the floor above. The counts clear both, the search settles on a
+    # dispersion of its own, and the observed information then leaves the log
+    # dispersion without the positive curvature a Wald interval needs. The helper
+    # reports that by returning None, and the fit answers with the Poisson result
+    # rather than with a dispersion no interval can be put around. Reached by
+    # monkeypatching the helper, because counts whose likelihood is that flat are
+    # screened off well before it is called.
+    def no_curvature(parameters: npt.NDArray[np.float64], values: npt.NDArray[np.float64]) -> None:
+        return None
+
+    counts = negative_binomial_counts()
+    assert fit.fit_nb_counts(counts).dispersion > 0.0
+    monkeypatch.setattr(fit, "_log_dispersion_standard_error", no_curvature)
+
+    result = fit.fit_nb_counts(counts)
+    assert result.dispersion == 0.0
+    assert result.dispersion_ci == (0.0, 0.0)
+    assert result.p_value == 1.0
+    assert result.lrt_statistic == 0.0
+    assert result.loglik_nb == result.loglik_poisson
+    assert result.mean == float(counts.mean())
+    assert result.n == counts.size
+
+
 def test_a_cohort_with_no_relapse_is_not_overdispersed() -> None:
     result = fit.fit_nb_counts(np.zeros(50, dtype=np.int64))
     assert result.mean == 0.0

@@ -10,17 +10,19 @@ is fitted by a log linear model with the follow up as an offset, as a Poisson
 regression or as an NB2 negative binomial regression.
 
 The module also wraps the relapse free curve of
-:mod:`msrelapse.renewal` and gives a negative binomial sample size formula, so
-that a reader can see what a cohort of the size of the paper's can and cannot
-resolve. Nothing here is specific to the double well of
-:mod:`msrelapse.model`: these are the statistics one would report for any
-relapsing-remitting record, and they are what a simulated cohort has to
+[`msrelapse.renewal`][msrelapse.renewal] and gives a negative binomial sample
+size formula, so that a reader can see what a cohort of the size of the paper's
+can and cannot resolve. Nothing here is specific to the double well of
+[`msrelapse.model`][msrelapse.model]: these are the statistics one would report
+for any relapsing-remitting record, and they are what a simulated cohort has to
 reproduce before the model is taken seriously. Numbers reported by the paper
-are never written here; import ``PAPER`` from :mod:`msrelapse._params` instead.
+are never written here; import ``PAPER`` from
+[`msrelapse._params`][msrelapse._params] instead.
 
-Both result types, :class:`ARRResult` and :class:`RateRatioResult`, carry the
-citation of the article on a ``citation`` property and repeat it once in their
-repr, so that a number copied out of a session names its source.
+Both result types, [`ARRResult`][msrelapse.stats.ARRResult] and
+[`RateRatioResult`][msrelapse.stats.RateRatioResult], carry the citation of the
+article on a ``citation`` property and repeat it once in their repr, so that a
+number copied out of a session names its source.
 
 References
 ----------
@@ -159,7 +161,7 @@ class ARRResult:
         Returns
         -------
         str
-            The short citation of :mod:`msrelapse._citation`.
+            The short citation of ``msrelapse._citation``.
         """
         return _citation.short_citation()
 
@@ -224,7 +226,7 @@ class RateRatioResult:
         Returns
         -------
         str
-            The short citation of :mod:`msrelapse._citation`.
+            The short citation of ``msrelapse._citation``.
         """
         return _citation.short_citation()
 
@@ -261,7 +263,8 @@ def patient_followup(events: pd.DataFrame) -> pd.Series[float]:
     Parameters
     ----------
     events : pandas.DataFrame
-        An events table, as described by the schema of :mod:`msrelapse.io`.
+        An events table, as described by the schema of
+        [`msrelapse.io`][msrelapse.io].
 
     Returns
     -------
@@ -269,9 +272,9 @@ def patient_followup(events: pd.DataFrame) -> pd.Series[float]:
         Follow up in weeks, named 'followup_w', of dtype float64, indexed by
         patient_id in ascending order. Every patient of the table appears once,
         so a table with no rows gives an empty series. That is the one place
-        this function and :func:`arr` part company: a follow up of no patients
-        is still a follow up, while a rate of no patients is nothing at all and
-        :func:`arr` refuses it.
+        this function and [`arr`][msrelapse.stats.arr] part company: a follow
+        up of no patients is still a follow up, while a rate of no patients is
+        nothing at all and [`arr`][msrelapse.stats.arr] refuses it.
 
     Raises
     ------
@@ -321,7 +324,8 @@ def arr(  # noqa: PLR0917
     Parameters
     ----------
     events : pandas.DataFrame
-        An events table, as described by the schema of :mod:`msrelapse.io`.
+        An events table, as described by the schema of
+        [`msrelapse.io`][msrelapse.io].
     followup : pandas.Series, optional
         Follow up in weeks per patient, indexed by patient_id, replacing the
         window recorded in `events` as the denominator of the rate. It does not
@@ -339,7 +343,7 @@ def arr(  # noqa: PLR0917
         Number of bootstrap resamples, used only by the bootstrap interval.
     rng : numpy.random.Generator or int or None, optional
         Generator to draw the bootstrap from, or a seed for
-        :func:`numpy.random.default_rng`.
+        ``numpy.random.default_rng``.
 
     Returns
     -------
@@ -363,24 +367,25 @@ def arr(  # noqa: PLR0917
     chi2((1 + `level`) / 2, 2 k + 2) / 2 divided by the patient-years, with a
     lower end of 0 when no relapse was seen.
 
-    ``'nb'`` is a Wald interval on the log rate whose variance is
-    (1 + a m) / k, with m the mean count per patient, k the total count and a
-    the method of moments dispersion max(0, (var(c) - mean(c)) / mean(c)^2) of
-    the per patient counts c, where var is the unbiased sample variance, the
-    one divided by n - 1, as the moment estimator behind a Wald interval
-    conventionally takes. :func:`msrelapse.fit.fit_nb_counts` weighs those same
-    two quantities against one another with the population variance instead,
-    divided by n, and its own Notes say why that is the right comparison there:
-    it screens on whether the maximum likelihood dispersion is positive at all,
-    and that turns exactly where the population variance meets the mean. The
-    two variances differ by the factor n / (n - 1), so the formula above and
-    that screen do not answer with the same number on the same counts, and
-    neither of them is a slip. The approximation this interval makes is that
-    patients are followed for comparable lengths of time: the moment estimator
-    reads all the spread of the counts as a spread of rates, so with widely
-    unequal follow up it also reads the spread of the exposure as over
-    dispersion and the interval comes out too wide. Prefer the bootstrap in
-    that case.
+    ``'nb'`` is a Wald interval on the log rate whose variance is (1 + a m) /
+    k, with m the mean count per patient, k the total count and a the method of
+    moments dispersion max(0, (var(c) - mean(c)) / mean(c)^2) of the per
+    patient counts c, where var is the unbiased sample variance, the one
+    divided by n - 1, as the moment estimator behind a Wald interval
+    conventionally takes.
+    [`msrelapse.fit.fit_nb_counts`][msrelapse.fit.fit_nb_counts] weighs those
+    same two quantities against one another with the population variance
+    instead, divided by n, and its own Notes say why that is the right
+    comparison there: it screens on whether the maximum likelihood dispersion
+    is positive at all, and that turns exactly where the population variance
+    meets the mean. The two variances differ by the factor n / (n - 1), so the
+    formula above and that screen do not answer with the same number on the
+    same counts, and neither of them is a slip. The approximation this interval
+    makes is that patients are followed for comparable lengths of time: the
+    moment estimator reads all the spread of the counts as a spread of rates,
+    so with widely unequal follow up it also reads the spread of the exposure
+    as over dispersion and the interval comes out too wide. Prefer the
+    bootstrap in that case.
 
     ``'bootstrap'`` resamples patients with replacement, recomputes the rate
     from the resampled counts and their resampled follow up, and takes the
@@ -473,11 +478,12 @@ def compare_arr(  # noqa: PLR0917
         Events table of the reference arm.
     followup_a : pandas.Series or None
         Follow up in weeks per patient of arm a, indexed by patient_id, or None
-        to take the window recorded in `events_a`. As in :func:`arr`, it is the
-        exposure only and does not restrict which relapses are counted: to
-        compare a window shorter than the record, trim the events tables first,
-        and it must hold exactly the patients of its own arm, so that the
-        follow up of the other arm is refused rather than silently aligned.
+        to take the window recorded in `events_a`. As in
+        [`arr`][msrelapse.stats.arr], it is the exposure only and does not
+        restrict which relapses are counted: to compare a window shorter than
+        the record, trim the events tables first, and it must hold exactly the
+        patients of its own arm, so that the follow up of the other arm is
+        refused rather than silently aligned.
     events_b : pandas.DataFrame
         Events table of the arm compared with the reference.
     followup_b : pandas.Series or None
@@ -581,8 +587,9 @@ def relapse_free_curve(
 ) -> npt.NDArray[np.float64]:
     """Return the probability of staying free of relapse over a grid of windows.
 
-    This is the array valued face of :func:`msrelapse.renewal.relapse_free`:
-    the same curve, always returned as an array, so that it can be plotted or
+    This is the array valued face of
+    [`msrelapse.renewal.relapse_free`][msrelapse.renewal.relapse_free]: the
+    same curve, always returned as an array, so that it can be plotted or
     compared with an observed Kaplan-Meier curve without a further conversion.
 
     Parameters
@@ -739,12 +746,12 @@ def _validate_events(events: pd.DataFrame) -> None:
     Only the five schema columns are handed to the validator, because it
     rejects any column it does not know and a caller may well be summarising a
     table that carries extra columns, such as the dated export of
-    :func:`msrelapse.io.weekly_to_events`. Every other rule of the schema still
-    runs. The columns are checked first so that a missing one is reported
-    rather than raising a bare lookup error.
+    [`msrelapse.io.weekly_to_events`][msrelapse.io.weekly_to_events]. Every
+    other rule of the schema still runs. The columns are checked first so that
+    a missing one is reported rather than raising a bare lookup error.
 
     The same check is spelled out again in
-    :func:`msrelapse.renewal._validate_events`, which that module keeps so that
+    ``msrelapse.renewal._validate_events``, which that module keeps so that
     it needs nothing beyond numpy and pandas. The two messages are meant to
     stay identical, so a change to the wording here belongs in both.
     """
@@ -757,10 +764,11 @@ def _validate_events(events: pd.DataFrame) -> None:
 def _followup_weeks(events: pd.DataFrame) -> pd.Series[float]:
     """Return the window length of each patient of an already validated table.
 
-    This is the body of :func:`patient_followup` without the schema check, for
-    the callers that have just run the validator through
-    :func:`msrelapse.renewal.relapse_counts` and would otherwise pay for a
-    second pass over the table.
+    This is the body of [`patient_followup`][msrelapse.stats.patient_followup]
+    without the schema check, for the callers that have just run the validator
+    through
+    [`msrelapse.renewal.relapse_counts`][msrelapse.renewal.relapse_counts] and
+    would otherwise pay for a second pass over the table.
     """
     windows = (events["followup_end"] - events["followup_start"]).astype(np.float64)
     # The schema gives a patient one window, repeated on each of its rows, so
@@ -889,7 +897,7 @@ def _standard_errors(covariance: _Matrix, model: ModelName) -> _Vector:
     root of either is a nan that would travel silently into the rate ratio, its
     interval and its p value while the fit still reported itself converged.
     Both are refused here instead, in the manner of
-    :func:`msrelapse.fit._log_dispersion_standard_error`, which reports the same
+    ``msrelapse.fit._log_dispersion_standard_error``, which reports the same
     condition to a caller that has a Poisson fit to fall back on. No cohort has
     been found that reaches this, here or in several hundred randomised fits, so
     it stands as insurance against the search and not as a description of any
@@ -949,7 +957,7 @@ def _moment_dispersion(design: _Matrix, counts: _Vector, exposure: _Vector, fit:
 def _bounded_log_dispersion(value: float) -> float:
     """Return a log dispersion the NB2 likelihood can be evaluated at.
 
-    See :data:`_LOG_DISPERSION_LIMIT` for why the bound is there. The likelihood
+    See ``_LOG_DISPERSION_LIMIT`` for why the bound is there. The likelihood
     and its score both read the bounded value wherever the free parameter
     appears, so they describe the same model at the bound. Beyond it the
     likelihood is flat while the score still reports the slope at the bound, so
@@ -981,7 +989,7 @@ def _nb_negative_loglik(
 def _nb_negative_score(
     parameters: _Vector, design: _Matrix, counts: _Vector, exposure: _Vector
 ) -> _Vector:
-    """Return the gradient of :func:`_nb_negative_loglik`, computed analytically."""
+    """Return the gradient of ``_nb_negative_loglik``, computed analytically."""
     dispersion = math.exp(_bounded_log_dispersion(float(parameters[-1])))
     size = 1.0 / dispersion
     fitted = exposure * np.exp(design @ parameters[:-1])
@@ -1032,7 +1040,7 @@ def _polish(
     which both settles the weakly identified dispersion and gives the caller a
     convergence flag that means something.
 
-    The step is judged against :data:`_POLISH_TOLERANCE` relative to the size of
+    The step is judged against ``_POLISH_TOLERANCE`` relative to the size of
     the parameters, so that the test scales with them and stays above the floor
     the differenced Hessian of this loop can deliver.
     """

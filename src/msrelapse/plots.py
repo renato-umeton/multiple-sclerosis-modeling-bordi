@@ -2,11 +2,11 @@
 
 matplotlib is an optional dependency, the ``plot`` extra, so it is imported
 inside the functions that draw rather than at the top of the module. Importing
-:mod:`msrelapse.plots` therefore works in an install without it, and only a call
-that has to create a figure raises, naming the extra to install.
-:func:`require_matplotlib` is that check on its own, and hands back the pyplot
-module, for a caller that would rather learn of a missing matplotlib before it
-starts work than at the figure.
+[`msrelapse.plots`][msrelapse.plots] therefore works in an install without it,
+and only a call that has to create a figure raises, naming the extra to
+install. [`require_matplotlib`][msrelapse.plots.require_matplotlib] is that
+check on its own, and hands back the pyplot module, for a caller that would
+rather learn of a missing matplotlib before it starts work than at the figure.
 
 Every function takes the axes to draw on and gives them back, so that a caller
 can compose the panels into a figure of their own; passing None instead creates
@@ -18,16 +18,17 @@ to close by number.
 
 Numbers taken from the article, the bin edges of Figure 3 and the digitised bar
 heights of Figures 3 and 4 among them, are read from ``PAPER`` in
-:mod:`msrelapse._params` and are never written here. What the paper does not
-fix, and what is therefore chosen here, is the resolution of the potential
-curves, the time step of the simulated paths of Figure 7 and the placement of
-the labels and arrows inside a panel.
+[`msrelapse._params`][msrelapse._params] and are never written here. What the
+paper does not fix, and what is therefore chosen here, is the resolution of the
+potential curves, the time step of the simulated paths of Figure 7 and the
+placement of the labels and arrows inside a panel.
 
 Two of the figures are not in the article at all.
-:func:`fig_survival_vs_exponential` puts the observed survival of one state
-beside the exponential fitted to it, and :func:`fig_poisson_to_nb` puts the
-relapse counts of a cohort beside the Poisson and the negative binomial mass.
-The article reports no fit, no test and no interval of any kind, as section 7 of
+[`fig_survival_vs_exponential`][msrelapse.plots.fig_survival_vs_exponential]
+puts the observed survival of one state beside the exponential fitted to it,
+and [`fig_poisson_to_nb`][msrelapse.plots.fig_poisson_to_nb] puts the relapse
+counts of a cohort beside the Poisson and the negative binomial mass. The
+article reports no fit, no test and no interval of any kind, as section 7 of
 ``docs/paper_facts.md`` records, so these two belong to the methods note rather
 than to the reproduction.
 
@@ -150,8 +151,8 @@ def fig2_sample_patients(
     Parameters
     ----------
     weekly : pandas.DataFrame
-        A frame in the weekly schema of :mod:`msrelapse.io`. It is validated
-        before use.
+        A frame in the weekly schema of [`msrelapse.io`][msrelapse.io]. It is
+        validated before use.
     patient_ids : sequence of str, optional
         Which patients to draw, one panel each. The default takes the first
         three of the frame, as the paper shows three sample patients.
@@ -276,9 +277,9 @@ def fig4_duration_histograms(
     Parameters
     ----------
     durations : pandas.DataFrame, optional
-        A frame in the durations schema of :mod:`msrelapse.io`, validated
-        before use. The default draws the bar heights digitised from the figure
-        of the paper instead.
+        A frame in the durations schema of [`msrelapse.io`][msrelapse.io],
+        validated before use. The default draws the bar heights digitised from
+        the figure of the paper instead.
     axes : sequence of matplotlib.axes.Axes, optional
         Two Axes, one per panel. The default creates a figure of two panels
         side by side.
@@ -449,7 +450,7 @@ def fig7_simulated_paths(  # noqa: PLR0917
         states no integration scheme and no step.
     rng : numpy.random.Generator or int or None, optional
         Generator to draw the noise from, or a seed for
-        :func:`numpy.random.default_rng`. One generator is built for the whole
+        ``numpy.random.default_rng``. One generator is built for the whole
         call and drawn from once per panel, so the panels carry different
         noise and the figure as a whole is reproducible from a seed.
     axes : sequence of matplotlib.axes.Axes, optional
@@ -466,8 +467,8 @@ def fig7_simulated_paths(  # noqa: PLR0917
         If matplotlib is not installed and `axes` is None.
     ValueError
         If `betas` is empty, if any argument of
-        :func:`msrelapse.simulate.simulate_paths` is out of range, or if `axes`
-        does not have one Axes per asymmetry.
+        [`msrelapse.simulate.simulate_paths`][msrelapse.simulate.simulate_paths]
+        is out of range, or if `axes` does not have one Axes per asymmetry.
 
     Notes
     -----
@@ -507,12 +508,13 @@ def fig8_patient_potentials(
 ) -> tuple[Axes, ...]:
     """Draw the potential fitted to each sample patient, Figure 8.
 
-    Every panel is drawn the way :func:`fig6_asymmetric_potential` draws one, at
-    the reference control parameter of the paper, which is the only value the
-    paper ever fits a patient with. The one difference is the dashed guides: the
-    article draws a single horizontal line per panel here, through V(x0), the
-    level both barriers are measured down from, where its Figure 6 draws one
-    line through each of the three stationary levels.
+    Every panel is drawn the way
+    [`fig6_asymmetric_potential`][msrelapse.plots.fig6_asymmetric_potential]
+    draws one, at the reference control parameter of the paper, which is the
+    only value the paper ever fits a patient with. The one difference is the
+    dashed guides: the article draws a single horizontal line per panel here,
+    through V(x0), the level both barriers are measured down from, where its
+    Figure 6 draws one line through each of the three stationary levels.
 
     Parameters
     ----------
@@ -574,15 +576,15 @@ def fig_survival_vs_exponential(
     The step is the Kaplan Meier estimate over the runs of `state`, in which a
     censored final remission contributes its time at risk but no event, and the
     smooth curve is the survival of the exponential
-    :func:`msrelapse.fit.fit_durations` fits to the same runs, read on the whole
-    weeks the durations are recorded in. The figure is not in the paper, which
-    reports no fit at all.
+    [`msrelapse.fit.fit_durations`][msrelapse.fit.fit_durations] fits to the
+    same runs, read on the whole weeks the durations are recorded in. The
+    figure is not in the paper, which reports no fit at all.
 
     Parameters
     ----------
     durations : pandas.DataFrame
-        A frame in the durations schema of :mod:`msrelapse.io`. It is validated
-        before use.
+        A frame in the durations schema of [`msrelapse.io`][msrelapse.io]. It
+        is validated before use.
     state : int
         Clinical code of the state to draw, +1 for no health and -1 for health.
     ax : matplotlib.axes.Axes, optional
@@ -607,26 +609,27 @@ def fig_survival_vs_exponential(
 
     Notes
     -----
-    The inset repeats the hazard :func:`msrelapse.fit.test_memoryless` regresses
-    on time: the complete durations alone, read at the weeks where at least five
-    of them are still at risk. The step of the main panel is the wider estimate
-    and counts a censored run as at risk until it is cut off. The dashed guide
-    of the inset sits at one over the fitted mean, which is the weekly hazard of
-    the fitted law however the law is read, since a duration rounded up to whole
-    weeks is geometric with that success probability.
+    The inset repeats the hazard
+    [`msrelapse.fit.test_memoryless`][msrelapse.fit.test_memoryless] regresses
+    on time: the complete durations alone, read at the weeks where at least
+    five of them are still at risk. The step of the main panel is the wider
+    estimate and counts a censored run as at risk until it is cut off. The
+    dashed guide of the inset sits at one over the fitted mean, which is the
+    weekly hazard of the fitted law however the law is read, since a duration
+    rounded up to whole weeks is geometric with that success probability.
 
     The main curve reads the same fit the same way. It is ``(1 - rate) ** t``,
     whose weekly hazard is the rate the dashed guide sits at and whose survival
     at every whole week is that of the geometric of the fitted mean. As a
     continuous exponential it is the one of scale ``-1 / log(1 - rate)``, about
     half a week shorter than the fitted mean and the scale
-    :func:`msrelapse.fit.test_memoryless` draws its null at. Drawing
-    ``exp(-t / mean)`` instead rounds the law a second time: it lifts the curve
-    above the step where runs last only a few weeks, so the panel would show a
-    record falling away from its own fit, and the main panel and the inset would
-    describe two different laws. A state whose runs all lasted a single week
-    puts the rate at one, and the curve is then the drop to zero after time zero
-    that such a law gives.
+    [`msrelapse.fit.test_memoryless`][msrelapse.fit.test_memoryless] draws its
+    null at. Drawing ``exp(-t / mean)`` instead rounds the law a second time:
+    it lifts the curve above the step where runs last only a few weeks, so the
+    panel would show a record falling away from its own fit, and the main panel
+    and the inset would describe two different laws. A state whose runs all
+    lasted a single week puts the rate at one, and the curve is then the drop
+    to zero after time zero that such a law gives.
 
     The panel runs to the longest time any run of the state was at risk for,
     which is past the last event whenever a censored run outlived every one of
@@ -636,8 +639,10 @@ def fig_survival_vs_exponential(
 
     A frame too small for any week to be read, which one patient of the paper's
     own size is, gets an inset that says so rather than an empty one. That is
-    the same frame :func:`msrelapse.fit.test_memoryless` refuses outright; the
-    step and the fitted curve of the main panel are drawn as usual.
+    the same frame
+    [`msrelapse.fit.test_memoryless`][msrelapse.fit.test_memoryless] refuses
+    outright; the step and the fitted curve of the main panel are drawn as
+    usual.
     """
     fitted = fit_durations(durations, state)
     selected = durations[durations["state"] == state]
@@ -685,10 +690,11 @@ def fig_poisson_to_nb(counts: npt.ArrayLike, ax: Axes | None = None) -> Axes:
     """Draw the relapse counts of a cohort against the Poisson and the NB mass.
 
     The bars are the share of patients at each count, the first line is the
-    Poisson mass at the sample mean and the second is the negative binomial mass
-    :func:`msrelapse.fit.fit_nb_counts` fits to the same counts. A cohort in
-    which the onset rate varies from patient to patient sits above the Poisson
-    line in both tails. The figure is not in the paper, which reports no fit.
+    Poisson mass at the sample mean and the second is the negative binomial
+    mass [`msrelapse.fit.fit_nb_counts`][msrelapse.fit.fit_nb_counts] fits to
+    the same counts. A cohort in which the onset rate varies from patient to
+    patient sits above the Poisson line in both tails. The figure is not in the
+    paper, which reports no fit.
 
     Parameters
     ----------
@@ -781,14 +787,16 @@ def save_all_paper_figures(
     out_dir : str or path-like
         Directory to write into. It is created if it does not exist.
     weekly : pandas.DataFrame
-        A frame in the weekly schema of :mod:`msrelapse.io`, which supplies the
-        sample patients of Figure 2 and the record lengths of Figure 3.
+        A frame in the weekly schema of [`msrelapse.io`][msrelapse.io], which
+        supplies the sample patients of Figure 2 and the record lengths of
+        Figure 3.
     durations : pandas.DataFrame
-        A frame in the durations schema of :mod:`msrelapse.io`, which supplies
-        the histograms of Figure 4, the survival figure and the relapse counts.
+        A frame in the durations schema of [`msrelapse.io`][msrelapse.io],
+        which supplies the histograms of Figure 4, the survival figure and the
+        relapse counts.
     rng : numpy.random.Generator or int or None, optional
         Generator behind the simulated paths of Figure 7, or a seed for
-        :func:`numpy.random.default_rng`.
+        ``numpy.random.default_rng``.
 
     Returns
     -------
@@ -848,9 +856,9 @@ def require_matplotlib() -> ModuleType:
     """Return the pyplot module, or explain which extra to install.
 
     This is the hook a caller reaches for before a piece of work that ends in a
-    figure, so that an install without the optional dependency is told so at the
-    start rather than after the work. :mod:`msrelapse.cli` calls it before a
-    reproduction that draws.
+    figure, so that an install without the optional dependency is told so at
+    the start rather than after the work. [`msrelapse.cli`][msrelapse.cli]
+    calls it before a reproduction that draws.
 
     Returns
     -------
@@ -1059,8 +1067,9 @@ def _chosen_patients(weekly: pd.DataFrame, patient_ids: Sequence[str] | None) ->
 def _record_lengths(followup_weeks: npt.ArrayLike) -> _Vector:
     """Return the record lengths of Figure 3 as doubles, or explain why not.
 
-    The same reading as :func:`msrelapse.fit` applies to its counts: one value
-    per patient, in one dimension, and every one of them a real number of weeks.
+    The same reading as [`msrelapse.fit`][msrelapse.fit] applies to its counts:
+    one value per patient, in one dimension, and every one of them a real
+    number of weeks.
 
     Parameters
     ----------
@@ -1113,14 +1122,15 @@ def _bin_counts(values: _Vector, edges: _Vector) -> _Vector:
 
 
 def _thinned_ticks(candidates: _Vector) -> _Vector:
-    """Return the values to tick an axis at, at most :data:`_MAX_BIN_TICKS` of them.
+    """Return the values to tick an axis at, at most ``_MAX_BIN_TICKS`` of them.
 
     Ticking the bin edges themselves is what the paper does, so that a reader
-    can see where a bin begins, and every other candidate is dropped as often as
-    it takes to keep the labels apart. At the bins of Figure 4 this gives the
-    axes of the paper: every edge on the no health panel and every second one,
-    that is every 200 weeks, on the health panel. The relapse count axis of
-    :func:`fig_poisson_to_nb` is thinned the same way, from every count.
+    can see where a bin begins, and every other candidate is dropped as often
+    as it takes to keep the labels apart. At the bins of Figure 4 this gives
+    the axes of the paper: every edge on the no health panel and every second
+    one, that is every 200 weeks, on the health panel. The relapse count axis
+    of [`fig_poisson_to_nb`][msrelapse.plots.fig_poisson_to_nb] is thinned the
+    same way, from every count.
 
     Parameters
     ----------
@@ -1390,7 +1400,7 @@ def _draw_asymmetric_potential(
     well : DoubleWell
         The potential to draw.
     points : CriticalPoints
-        Its three stationary points, from :func:`_well_and_points`.
+        Its three stationary points, from ``_well_and_points``.
     guides : sequence of float, optional
         The stationary points whose level gets a dashed horizontal guide. The
         default marks all three, which is what Figure 6 of the paper draws;
@@ -1572,8 +1582,10 @@ def _fitted_survival(grid: _Vector, rate: float) -> _Vector:
     grid : numpy.ndarray
         The times to read the survival at, in weeks.
     rate : float
-        The weekly rate :func:`msrelapse.fit.fit_durations` returned, which is
-        the number of complete runs over the weeks they were all at risk for.
+        The weekly rate
+        [`msrelapse.fit.fit_durations`][msrelapse.fit.fit_durations] returned,
+        which is the number of complete runs over the weeks they were all at
+        risk for.
 
     Returns
     -------
@@ -1612,9 +1624,10 @@ def _draw_hazard_inset(ax: Axes, complete: _Vector, fitted_hazard: float) -> Non
     Notes
     -----
     A set of durations too small for any week to be read, which is every set of
-    fewer than :data:`msrelapse.fit.MIN_AT_RISK` durations and a per patient
-    call of the paper's own sample patients, gets an inset saying so rather than
-    an empty pair of axes with a lone guide line across it.
+    fewer than [`msrelapse.fit.MIN_AT_RISK`][msrelapse.fit.MIN_AT_RISK]
+    durations and a per patient call of the paper's own sample patients, gets
+    an inset saying so rather than an empty pair of axes with a lone guide line
+    across it.
     """
     weeks, hazard, _at_risk = discrete_hazard(complete)
     inset = ax.inset_axes(_INSET_BOX)

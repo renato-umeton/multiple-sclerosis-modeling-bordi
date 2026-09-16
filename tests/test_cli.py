@@ -482,6 +482,21 @@ def test_reproduce_refuses_an_engine_together_with_a_record(tmp_path: Path) -> N
     assert raised.value.code == 2
 
 
+def test_reproduce_help_warns_that_an_sde_cohort_fails_the_table(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # The next test measures what --engine sde does: it exits 1 at the default
+    # settings, every time, because of a merging the weekly record cannot undo.
+    # A reader who meets that exit code should have been told to expect it by the
+    # help of the option that caused it.
+    with pytest.raises(SystemExit) as raised:
+        main(["reproduce", "--help"])
+    assert raised.value.code == 0
+    printed = " ".join(capsys.readouterr().out.split())
+    assert "an sde cohort does not meet the closing table" in printed
+    assert "exits 1 as a matter of course" in printed
+
+
 def test_reproduce_with_the_sde_engine_misses_the_mean_relapse_duration(tmp_path: Path) -> None:
     # The sde engine is an ordinary option of reproduce and this pins what it
     # does with it: the run completes, the file says which engine produced the

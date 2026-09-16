@@ -1,37 +1,43 @@
 """Virtual cohorts of relapsing-remitting records, in the three schemas.
 
-A cohort is described by a :class:`CohortSpec`: how many patients, how long each
-is followed, and how long that patient stays in each of the two clinical states
-on average. :func:`generate` turns such a description into the frames of
-:mod:`msrelapse.io`, through either of two engines.
+A cohort is described by a [`CohortSpec`][msrelapse.cohort.CohortSpec]: how
+many patients, how long each is followed, and how long that patient stays in
+each of the two clinical states on average.
+[`generate`][msrelapse.cohort.generate] turns such a description into the
+frames of [`msrelapse.io`][msrelapse.io], through either of two engines.
 
 ``renewal``
-    The phenomenological engine of :mod:`msrelapse.renewal`. Durations are drawn
-    directly from the target means, geometric on whole weeks or exponential in
-    continuous time. It is fast and it has no potential behind it.
+    The phenomenological engine of [`msrelapse.renewal`][msrelapse.renewal].
+    Durations are drawn directly from the target means, geometric on whole
+    weeks or exponential in continuous time. It is fast and it has no potential
+    behind it.
 ``sde``
     The mechanistic engine. Each pair of target durations is turned into a
-    potential and a noise amplitude by :func:`msrelapse.model.calibrate`, and the
-    record is then integrated with :func:`msrelapse.simulate.simulate_weekly`.
+    potential and a noise amplitude by
+    [`msrelapse.model.calibrate`][msrelapse.model.calibrate], and the record is
+    then integrated with
+    [`msrelapse.simulate.simulate_weekly`][msrelapse.simulate.simulate_weekly].
 
 Beside the records, the module reports the per patient parameters of equation
-(7) with :func:`per_patient_params`, and the three worked examples of the paper
-with :func:`paper_patients`, which is where the printed inconsistency of patient
-23 can be read off a table.
+(7) with [`per_patient_params`][msrelapse.cohort.per_patient_params], and the
+three worked examples of the paper with
+[`paper_patients`][msrelapse.cohort.paper_patients], which is where the printed
+inconsistency of patient 23 can be read off a table.
 
 The rounding correction
 -----------------------
-A weekly record of the study marks any week a relapse touches as a relapse week,
-so a relapse of continuous length L covers L + 1 whole weeks on average and the
-remission beside it loses that week. The means the paper prints, about 100 weeks
-in health and 4.3 weeks in no health, are means of such rounded durations. A
-continuous time engine therefore has to be aimed a week below the printed
-relapse and a week above the printed remission for its rounded output to land on
-them, which is what :func:`continuous_targets` returns and what the stochastic
-engine is calibrated to. The renewal engine needs no such correction either way:
-on whole weeks it draws durations of exactly the target means and no rounding
-follows, and without them it produces continuous events that are never rounded
-at all.
+A weekly record of the study marks any week a relapse touches as a relapse
+week, so a relapse of continuous length L covers L + 1 whole weeks on average
+and the remission beside it loses that week. The means the paper prints, about
+100 weeks in health and 4.3 weeks in no health, are means of such rounded
+durations. A continuous time engine therefore has to be aimed a week below the
+printed relapse and a week above the printed remission for its rounded output
+to land on them, which is what
+[`continuous_targets`][msrelapse.cohort.continuous_targets] returns and what
+the stochastic engine is calibrated to. The renewal engine needs no such
+correction either way: on whole weeks it draws durations of exactly the target
+means and no rounding follows, and without them it produces continuous events
+that are never rounded at all.
 
 What the correction does not cover
 ----------------------------------
@@ -40,35 +46,41 @@ record. Two relapses separated by less than a week fall in the same week and
 merge into one longer weekly episode, and the hysteresis band cannot remove a
 genuine short return to health. How often that happens is set by the width of
 the band. On the potential calibrated to the rounding corrected 101 and 3.3
-weeks, which is what :func:`continuous_targets` makes of the printed pair and
-what the measured table of :class:`CohortSpec` was built on, about one complete
+weeks, which is what
+[`continuous_targets`][msrelapse.cohort.continuous_targets] makes of the
+printed pair and what the measured table of
+[`CohortSpec`][msrelapse.cohort.CohortSpec] was built on, about one complete
 remission of the path in five and a half is shorter than a week at a band
 fraction of 0.3, about one in ten at 0.4 and about one in sixteen at 0.5. All
-three figures are of that one calibration; :mod:`msrelapse.simulate` quotes the
-same quantity on the uncorrected printed pair, where it is about half as
-frequent. This merging is the whole of the residual gap between the two engines
-now that :func:`msrelapse.simulate.simulate_weekly` carries the Brownian bridge
-correction, and it is why the default band fraction of :class:`CohortSpec` is
-:data:`SDE_ENGINE_BAND_FRACTION` rather than the
-:data:`msrelapse.model.DEFAULT_BAND_FRACTION` of the layers below. The measured
-table is in the Notes of that class, together with the reason the band is not
-widened further.
+three figures are of that one calibration;
+[`msrelapse.simulate`][msrelapse.simulate] quotes the same quantity on the
+uncorrected printed pair, where it is about half as frequent. This merging is
+the whole of the residual gap between the two engines now that
+[`msrelapse.simulate.simulate_weekly`][msrelapse.simulate.simulate_weekly]
+carries the Brownian bridge correction, and it is why the default band fraction
+of [`CohortSpec`][msrelapse.cohort.CohortSpec] is
+[`SDE_ENGINE_BAND_FRACTION`][msrelapse.cohort.SDE_ENGINE_BAND_FRACTION] rather
+than the
+[`msrelapse.model.DEFAULT_BAND_FRACTION`][msrelapse.model.DEFAULT_BAND_FRACTION]
+of the layers below. The measured table is in the Notes of that class, together
+with the reason the band is not widened further.
 
 A caution on naive means
 ------------------------
 The mean of the recorded durations of a state is not the mean the cohort was
-generated from, and the gap is the end of follow up rather than anything in this
-module. A remission of about a hundred weeks rarely fits twice into a record of a
-few hundred, so a short window records the short remissions plus one that the end
-of follow up cut off, and the naive mean lands about a fifth below the target.
-The 100 weeks the article prints is such a naive mean, over exactly those
-windows, so a twin generated at 100 weeks does not reproduce it.
-:func:`naive_mean_targets` inverts the measurement: it returns the generative
-means whose naive means are the ones asked for, and
-:func:`bordi2013_spec` uses it by default. Read
-:func:`msrelapse.fit.fit_durations` with censoring for the corrected estimate of
-a recorded cohort, and treat every naive mean, here and in the paper, as a lower
-bound on the mean of the process behind it.
+generated from, and the gap is the end of follow up rather than anything in
+this module. A remission of about a hundred weeks rarely fits twice into a
+record of a few hundred, so a short window records the short remissions plus
+one that the end of follow up cut off, and the naive mean lands about a fifth
+below the target. The 100 weeks the article prints is such a naive mean, over
+exactly those windows, so a twin generated at 100 weeks does not reproduce it.
+[`naive_mean_targets`][msrelapse.cohort.naive_mean_targets] inverts the
+measurement: it returns the generative means whose naive means are the ones
+asked for, and [`bordi2013_spec`][msrelapse.cohort.bordi2013_spec] uses it by
+default. Read [`msrelapse.fit.fit_durations`][msrelapse.fit.fit_durations] with
+censoring for the corrected estimate of a recorded cohort, and treat every
+naive mean, here and in the paper, as a lower bound on the mean of the process
+behind it.
 
 References
 ----------
@@ -143,15 +155,18 @@ SDE_ENGINE_BAND_FRACTION: Final = 0.4
 
 Notes
 -----
-It is wider than the :data:`msrelapse.model.DEFAULT_BAND_FRACTION` every band
-taking function of :mod:`msrelapse.model` and :mod:`msrelapse.simulate` uses,
-because the width of the band decides how often two relapses on either side of a
-remission shorter than a week merge into one weekly episode, which is the whole
-of the residual gap between the two engines. On the potential the measured table
-of :class:`CohortSpec` was built on, about one complete remission in five and a
-half is that short at :data:`msrelapse.model.DEFAULT_BAND_FRACTION` and about
-one in ten here. The table, and the reason the band is not widened further, are
-in the Notes of that class.
+It is wider than the
+[`msrelapse.model.DEFAULT_BAND_FRACTION`][msrelapse.model.DEFAULT_BAND_FRACTION]
+every band taking function of [`msrelapse.model`][msrelapse.model] and
+[`msrelapse.simulate`][msrelapse.simulate] uses, because the width of the band
+decides how often two relapses on either side of a remission shorter than a
+week merge into one weekly episode, which is the whole of the residual gap
+between the two engines. On the potential the measured table of
+[`CohortSpec`][msrelapse.cohort.CohortSpec] was built on, about one complete
+remission in five and a half is that short at
+[`msrelapse.model.DEFAULT_BAND_FRACTION`][msrelapse.model.DEFAULT_BAND_FRACTION]
+and about one in ten here. The table, and the reason the band is not widened
+further, are in the Notes of that class.
 """
 
 _Frames = tuple[pd.DataFrame | None, pd.DataFrame | None, pd.DataFrame]
@@ -243,13 +258,13 @@ def constant(value: float) -> Sampler:
 
     A bare float is already a sampler, so this exists for symmetry with the
     three drawing samplers: it lets a caller write every field of a
-    :class:`CohortSpec` in the same shape.
+    [`CohortSpec`][msrelapse.cohort.CohortSpec] in the same shape.
 
     Parameters
     ----------
     value : float
         The value every patient receives, in weeks. It is checked for
-        positivity by :func:`draw`, not here.
+        positivity by [`draw`][msrelapse.cohort.draw], not here.
 
     Returns
     -------
@@ -416,7 +431,7 @@ def draw(sampler: Sampler, rng: Seed, n: int) -> _Vector:
         generator and a count and returning that many values.
     rng : numpy.random.Generator or int or None
         Generator to draw from, or a seed for
-        :func:`numpy.random.default_rng`.
+        ``numpy.random.default_rng``.
     n : int
         Number of values wanted. Must be at least one.
 
@@ -467,7 +482,7 @@ def continuous_targets(
     aimed a week below the printed relapse and a week above the printed
     remission. A record that is never rounded needs no correction at all, which
     is what `weekly` False asks for and what the renewal engine of
-    :class:`CohortSpec` with ``weekly=False`` produces.
+    [`CohortSpec`][msrelapse.cohort.CohortSpec] with ``weekly=False`` produces.
 
     Parameters
     ----------
@@ -524,13 +539,14 @@ def naive_mean_targets(  # noqa: PLR0917
     """Return the generative means whose naive means are the ones asked for.
 
     A naive mean is the total time a cohort spent in a state, over every
-    recorded run of it including the one the end of follow up cut short, divided
-    by the number of those runs. It is the mean the paper reports and the mean
-    :func:`msrelapse.fit.barrier_ratio` and :func:`per_patient_params` read, and
-    it is shorter than the mean of the process behind it whenever the follow up
+    recorded run of it including the one the end of follow up cut short,
+    divided by the number of those runs. It is the mean the paper reports and
+    the mean [`msrelapse.fit.barrier_ratio`][msrelapse.fit.barrier_ratio] and
+    [`per_patient_params`][msrelapse.cohort.per_patient_params] read, and it is
+    shorter than the mean of the process behind it whenever the follow up
     windows are no longer than a few times that mean. This inverts the
-    measurement: it searches for the pair of generative means the weekly renewal
-    engine has to be given for its naive means to come out at
+    measurement: it searches for the pair of generative means the weekly
+    renewal engine has to be given for its naive means to come out at
     `naive_tau_health` and `naive_tau_relapse`.
 
     The remission is solved first, by bisection on the logarithm of its
@@ -551,8 +567,9 @@ def naive_mean_targets(  # noqa: PLR0917
         week, which is what the weekly renewal engine can draw.
     followup_weeks : float or callable
         Length of each record of the calibration cohort, in weeks, in the shape
-        :class:`CohortSpec` takes it. These windows are what makes the two means
-        differ, so they have to be the windows of the cohort being aimed at.
+        [`CohortSpec`][msrelapse.cohort.CohortSpec] takes it. These windows are
+        what makes the two means differ, so they have to be the windows of the
+        cohort being aimed at.
     start_state : {'relapse', 'health'}, optional
         State every patient of the calibration cohort is in at week 0.
     n_calibration : int, optional
@@ -565,7 +582,7 @@ def naive_mean_targets(  # noqa: PLR0917
     -------
     tuple of float
         The generative remission and relapse means, in weeks, to hand to
-        :class:`CohortSpec`.
+        [`CohortSpec`][msrelapse.cohort.CohortSpec].
 
     Raises
     ------
@@ -664,31 +681,38 @@ class CohortSpec:
         either way, because its integration grid is downsampled to whole weeks
         on the way out, so there False only turns the rounding correction off.
     band_fraction : float, optional
-        Position of the two hysteresis thresholds that cut a simulated path into
-        episodes, as a fraction of the distance from the saddle to each well
-        bottom. Must lie strictly between 0 and 1. Used by the ``sde`` engine
-        alone. The default of :data:`SDE_ENGINE_BAND_FRACTION` is wider than the
-        :data:`msrelapse.model.DEFAULT_BAND_FRACTION` that every band taking
-        function of :mod:`msrelapse.model` and :mod:`msrelapse.simulate`
-        defaults to, for the reason in the Notes. The two defaults cut a path
-        into episodes differently, so a path segmented by
-        :func:`msrelapse.simulate.to_states` at its own default and a record
-        generated from a spec here do not agree unless the same fraction is
-        passed to both. A pair of target durations more extreme than the cohort
-        of the paper can also calibrate at 0.3 and raise at 0.4; the Notes name
-        a worked example.
+        Position of the two hysteresis thresholds that cut a simulated path
+        into episodes, as a fraction of the distance from the saddle to each
+        well bottom. Must lie strictly between 0 and 1. Used by the ``sde``
+        engine alone. The default of
+        [`SDE_ENGINE_BAND_FRACTION`][msrelapse.cohort.SDE_ENGINE_BAND_FRACTION]
+        is wider than the
+        [`msrelapse.model.DEFAULT_BAND_FRACTION`][msrelapse.model.DEFAULT_BAND_FRACTION]
+        that every band taking function of [`msrelapse.model`][msrelapse.model]
+        and [`msrelapse.simulate`][msrelapse.simulate] defaults to, for the
+        reason in the Notes. The two defaults cut a path into episodes
+        differently, so a path segmented by
+        [`msrelapse.simulate.to_states`][msrelapse.simulate.to_states] at its
+        own default and a record generated from a spec here do not agree unless
+        the same fraction is passed to both. A pair of target durations more
+        extreme than the cohort of the paper can also calibrate at 0.3 and
+        raise at 0.4; the Notes name a worked example.
     dt : float, optional
         Integration step, in weeks. Must be positive and no larger than
-        :data:`msrelapse.simulate.MAX_DT`. Used by the ``sde`` engine alone.
+        [`msrelapse.simulate.MAX_DT`][msrelapse.simulate.MAX_DT]. Used by the
+        ``sde`` engine alone.
     start_state : {'relapse', 'health'}, optional
         State every patient is in at week 0. The records of the paper start at
         the first relapse, which is the default.
     naive_tau_health : float, optional
         The naive mean remission duration `tau_health` was chosen to reproduce,
-        in weeks, when the spec came out of :func:`naive_mean_targets`. It is
+        in weeks, when the spec came out of
+        [`naive_mean_targets`][msrelapse.cohort.naive_mean_targets]. It is
         carried so that the cohort can say what it was aimed at; nothing
         generates from it. It is given together with `naive_tau_relapse` or not
-        at all, because :func:`naive_mean_targets` solves for the two together.
+        at all, because
+        [`naive_mean_targets`][msrelapse.cohort.naive_mean_targets] solves for
+        the two together.
     naive_tau_relapse : float, optional
         The naive mean relapse duration `tau_relapse` was chosen to reproduce,
         under the same rule and given under the same pairing.
@@ -723,40 +747,44 @@ class CohortSpec:
     ========  =============  =================  =================
 
     The band fraction decides the answer and the step no longer does, now that
-    :func:`msrelapse.simulate.simulate_weekly` carries the Brownian bridge
-    correction. What the gap is made of is the merging of two relapses on either
-    side of a remission shorter than a week, which the weekly record cannot
-    express. On the rounding corrected 101 and 3.3 weeks the spec of that table
-    calibrates to, about one complete remission of the path in five and a half is
-    that short at a band fraction of 0.3, one in ten at 0.4 and one in sixteen at
-    0.5, measured over 20 paths of 20000 weeks at a step of 0.02 weeks and the
-    three seeds 3, 7 and 11. The three figures :mod:`msrelapse.simulate` quotes
-    are about half as frequent, one in six, one in twelve and one in twenty-five,
-    because that module calibrates to the printed 100 and 4.3 weeks and applies
-    no rounding correction; both series are right about their own potential and
+    [`msrelapse.simulate.simulate_weekly`][msrelapse.simulate.simulate_weekly]
+    carries the Brownian bridge correction. What the gap is made of is the
+    merging of two relapses on either side of a remission shorter than a week,
+    which the weekly record cannot express. On the rounding corrected 101 and
+    3.3 weeks the spec of that table calibrates to, about one complete
+    remission of the path in five and a half is that short at a band fraction
+    of 0.3, one in ten at 0.4 and one in sixteen at 0.5, measured over 20 paths
+    of 20000 weeks at a step of 0.02 weeks and the three seeds 3, 7 and 11. The
+    three figures [`msrelapse.simulate`][msrelapse.simulate] quotes are about
+    half as frequent, one in six, one in twelve and one in twenty-five, because
+    that module calibrates to the printed 100 and 4.3 weeks and applies no
+    rounding correction; both series are right about their own potential and
     neither should be read on the other. The cheaper step is therefore kept and
     the band widened.
 
     It is widened to 0.4 and not further, because the band also decides whether
-    the calibration exists at all. A wider band is a longer crossing, which asks
-    for a larger asymmetry to keep the relapse as short as the targets want, and
-    the asymmetry runs into the saddle-node fold at
-    ``fold_beta(1) = 0.3849``. The cohort of :func:`bordi2013_spec` calibrates to
-    a beta of 0.317 at a band fraction of 0.3 and 0.359 at 0.4, and at 0.5 it has
-    no solution at all: :func:`msrelapse.model.calibrate` raises there rather
-    than returning a potential. The rows for 0.5 above were measured on the
-    unmatched spec, whose relapse target is a tenth of a week longer and which
-    still calibrates, by a margin of about a thousandth in beta.
+    the calibration exists at all. A wider band is a longer crossing, which
+    asks for a larger asymmetry to keep the relapse as short as the targets
+    want, and the asymmetry runs into the saddle-node fold at
+    ``fold_beta(1) = 0.3849``. The cohort of
+    [`bordi2013_spec`][msrelapse.cohort.bordi2013_spec] calibrates to a beta of
+    0.317 at a band fraction of 0.3 and 0.359 at 0.4, and at 0.5 it has no
+    solution at all: [`msrelapse.model.calibrate`][msrelapse.model.calibrate]
+    raises there rather than returning a potential. The rows for 0.5 above were
+    measured on the unmatched spec, whose relapse target is a tenth of a week
+    longer and which still calibrates, by a margin of about a thousandth in
+    beta.
 
-    The cost of the wider default is that a pair of durations whose ratio is more
-    extreme than the cohort of the paper may have no solution at 0.4 although it
-    had one at 0.3. ``CohortSpec(tau_health=200, tau_relapse=4.0,
-    engine="sde")`` is the worked example: it calibrates to a beta of 0.349 at a
-    band fraction of 0.3 and raises out of :func:`msrelapse.model.calibrate` at
-    the default of 0.4, because the asymmetry the wider band asks for is past the
-    fold. The message names the two target times and not the band, so a caller
-    who meets it on an extreme pair should pass ``band_fraction=0.3`` and accept
-    the larger gap to the ``renewal`` engine in the table above.
+    The cost of the wider default is that a pair of durations whose ratio is
+    more extreme than the cohort of the paper may have no solution at 0.4
+    although it had one at 0.3.
+    ``CohortSpec(tau_health=200, tau_relapse=4.0, engine="sde")`` is the worked
+    example: it calibrates to a beta of 0.349 at a band fraction of 0.3 and
+    raises out of [`msrelapse.model.calibrate`][msrelapse.model.calibrate] at
+    the default of 0.4, because the asymmetry the wider band asks for is past
+    the fold. The message names the two target times and not the band, so a
+    caller who meets it on an extreme pair should pass ``band_fraction=0.3``
+    and accept the larger gap to the ``renewal`` engine in the table above.
     """
 
     n: int
@@ -824,9 +852,10 @@ class Cohort:
     spec : CohortSpec
         The description the cohort was generated from.
     weekly : pandas.DataFrame or None
-        One row per patient-week, in the weekly schema of :mod:`msrelapse.io`.
-        None when the records were not rounded to whole weeks and the engine was
-        ``renewal``, where the natural output is the events table alone.
+        One row per patient-week, in the weekly schema of
+        [`msrelapse.io`][msrelapse.io]. None when the records were not rounded
+        to whole weeks and the engine was ``renewal``, where the natural output
+        is the events table alone.
     durations : pandas.DataFrame or None
         The run length encoding of `weekly`, in the durations schema. None under
         the same rule as `weekly`.
@@ -839,7 +868,7 @@ class Cohort:
         which are missing for the ``renewal`` engine, and ``naive_tau_health``
         and ``naive_tau_relapse``, the naive means the two generative means were
         chosen to reproduce, which are missing unless the spec came from
-        :func:`naive_mean_targets`.
+        [`naive_mean_targets`][msrelapse.cohort.naive_mean_targets].
     provenance : str
         One sentence saying that the records are synthetic and are not the
         clinical series of the paper.
@@ -885,7 +914,7 @@ def generate(spec: CohortSpec, rng: Seed = None) -> Cohort:
         The description to generate from.
     rng : numpy.random.Generator or int or None, optional
         Generator behind every draw of the call, or a seed for
-        :func:`numpy.random.default_rng`. A given seed reproduces the cohort
+        ``numpy.random.default_rng``. A given seed reproduces the cohort
         exactly.
 
     Returns
@@ -943,7 +972,7 @@ def generate(spec: CohortSpec, rng: Seed = None) -> Cohort:
 def bordi2013_spec(engine: Engine = "renewal", match_naive_means: bool = True) -> CohortSpec:
     """Return the description of the cohort the paper studied.
 
-    Every number comes from :data:`msrelapse._params.PAPER`: the cohort size,
+    Every number comes from ``msrelapse._params.PAPER``: the cohort size,
     the two mean durations of Section 3.4, and the distribution of
     relapsing-remitting phase lengths of Figure 3, which supplies the length of
     each record.
@@ -954,11 +983,12 @@ def bordi2013_spec(engine: Engine = "renewal", match_naive_means: bool = True) -
         Which generator to describe the cohort for.
     match_naive_means : bool, optional
         With True, the default, the two mean durations of the spec are the
-        generative means :func:`naive_mean_targets` returns for the printed
-        means over these windows, and the printed means are recorded in the two
-        naive fields of the spec. With False the generative means are the
-        printed means themselves, which is the older behaviour and reproduces
-        the printed relapse but not the printed remission.
+        generative means
+        [`naive_mean_targets`][msrelapse.cohort.naive_mean_targets] returns for
+        the printed means over these windows, and the printed means are
+        recorded in the two naive fields of the spec. With False the generative
+        means are the printed means themselves, which is the older behaviour
+        and reproduces the printed relapse but not the printed remission.
 
     Returns
     -------
@@ -982,8 +1012,9 @@ def bordi2013_spec(engine: Engine = "renewal", match_naive_means: bool = True) -
     one of those windows, and the remission by a third.
 
     The ``sde`` engine applies the rounding correction of
-    :func:`continuous_targets` on top of the matched means, so a matched
-    stochastic spec calibrates its potential to 135.21 and 3.34415 weeks.
+    [`continuous_targets`][msrelapse.cohort.continuous_targets] on top of the
+    matched means, so a matched stochastic spec calibrates its potential to
+    135.21 and 3.34415 weeks.
 
     Examples
     --------
@@ -1026,8 +1057,8 @@ def per_patient_params(durations: pd.DataFrame) -> pd.DataFrame:
     Parameters
     ----------
     durations : pandas.DataFrame
-        A frame in the durations schema of :mod:`msrelapse.io`. It is validated
-        before use.
+        A frame in the durations schema of [`msrelapse.io`][msrelapse.io]. It
+        is validated before use.
 
     Returns
     -------
@@ -1202,7 +1233,8 @@ def _patient_ids(n: int) -> list[str]:
     -------
     list of str
         One identifier per patient, zero padded so that they sort in order, in
-        the spelling :mod:`msrelapse.renewal` and :mod:`msrelapse.simulate` use.
+        the spelling [`msrelapse.renewal`][msrelapse.renewal] and
+        [`msrelapse.simulate`][msrelapse.simulate] use.
     """
     digits = max(_MIN_ID_DIGITS, len(str(n)))
     return [f"p{number:0{digits}d}" for number in range(1, n + 1)]
@@ -1254,18 +1286,18 @@ def _naive_means_from_events(events: pd.DataFrame) -> tuple[float, float]:
     """Return the pooled naive remission and relapse means of a weekly events table.
 
     The runs are read off the events table arithmetically rather than through
-    :func:`msrelapse.io.events_to_weekly`, which would expand every patient-week
-    into a row of its own, because this is called once per step of a search. The
-    two are the same run lengths as long as every onset and end falls on a whole
-    week and no two relapses touch, which is what the weekly renewal engine
-    produces.
+    [`msrelapse.io.events_to_weekly`][msrelapse.io.events_to_weekly], which
+    would expand every patient-week into a row of its own, because this is
+    called once per step of a search. The two are the same run lengths as long
+    as every onset and end falls on a whole week and no two relapses touch,
+    which is what the weekly renewal engine produces.
 
     Parameters
     ----------
     events : pandas.DataFrame
         An events frame of whole week onsets and ends, as
-        :func:`msrelapse.renewal.alternating_renewal` returns it with
-        ``discretise='week'``.
+        [`msrelapse.renewal.alternating_renewal`][msrelapse.renewal.alternating_renewal]
+        returns it with ``discretise='week'``.
 
     Returns
     -------
@@ -1370,7 +1402,7 @@ def _solve_naive_mean(
     -------
     float
         The generative mean, in weeks, rounded to
-        :data:`_NAIVE_SEARCH_DIGITS` significant figures.
+        ``_NAIVE_SEARCH_DIGITS`` significant figures.
 
     Raises
     ------
@@ -1387,26 +1419,27 @@ def _solve_naive_mean(
     The search runs through the exponential and the logarithm of the standard
     library, which may differ in their last bit from one platform to another, so
     the root is pinned no more tightly than the bracket the search stops at. The
-    rounding to :data:`_NAIVE_SEARCH_DIGITS` significant figures then snaps two
+    rounding to ``_NAIVE_SEARCH_DIGITS`` significant figures then snaps two
     such roots to one number only when they differ by less than about five parts
-    in ten million, which is why :data:`_NAIVE_SEARCH_XTOL` stops the search at a
+    in ten million, which is why ``_NAIVE_SEARCH_XTOL`` stops the search at a
     hundred millionth of the mean rather than at the hundredth of a percent the
     accuracy of the answer would ask for. A wide stop under a fine rounding
     preserves two different numbers instead of merging them.
 
-    How much room there is to lose is worth stating, because it is less than the
-    rounding suggests. The objective is a step function: a generative mean fixes
-    the rate of a geometric draw, and the naive mean it measures moves only when
-    a draw of the fixed calibration cohort flips to the next whole week. The
-    search therefore converges onto the edge of one step, and what protects the
-    shipped files is that a whole plateau of generative means draws the same
-    cohort. Measured on the twin of :func:`bordi2013_spec` at the seed the
-    shipped files carry, the records come out identical byte for byte at every
+    How much room there is to lose is worth stating, because it is less than
+    the rounding suggests. The objective is a step function: a generative mean
+    fixes the rate of a geometric draw, and the naive mean it measures moves
+    only when a draw of the fixed calibration cohort flips to the next whole
+    week. The search therefore converges onto the edge of one step, and what
+    protects the shipped files is that a whole plateau of generative means
+    draws the same cohort. Measured on the twin of
+    [`bordi2013_spec`][msrelapse.cohort.bordi2013_spec] at the seed the shipped
+    files carry, the records come out identical byte for byte at every
     generative remission tried from 134.202 to 134.23 weeks and at every
     generative relapse tried from 4.34405 to 4.3444 weeks, and differ just
     outside both. The relapse plateau is about a ten thousandth of itself wide,
-    narrower than a stop of a hundredth of a percent would leave the root free to
-    wander, which is the measurement behind the two constants above.
+    narrower than a stop of a hundredth of a percent would leave the root free
+    to wander, which is the measurement behind the two constants above.
     """
     lower = float(target)
     upper = _NAIVE_SEARCH_FACTOR * lower

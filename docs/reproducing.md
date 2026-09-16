@@ -14,7 +14,7 @@ article reports. The options change the record, not the measurement.
 | Option | Effect |
 |---|---|
 | `--data FILE` | Measure a weekly CSV of your own instead of the shipped twin |
-| `--engine {renewal,sde}` | Generate a fresh cohort with the named engine, not to be given with `--data`; an `sde` cohort does not meet the closing table, and the note below says why |
+| `--engine {renewal,sde}` | Generate a fresh cohort with the named engine, not to be given with `--data`; an `sde` cohort does not pass the closing table at the default settings, so the command exits 1, and the note below says why |
 | `--seed N` | Generate a fresh cohort under that seed, and draw every bootstrap of the run from it, the two of the closing table included |
 | `--out DIR` | Where to write, created if absent, `reproduction` by default |
 | `--no-figures` | Skip the figures, which need the `plot` extra |
@@ -193,9 +193,14 @@ headlessly the way the tests do.
 article presents it: load the record and say loudly what it is, redraw Figures
 2 to 4, fit the durations three ways (naive, censored and geometric), test
 memorylessness and periodicity, apply equation (7), calibrate the stochastic
-equation, simulate and overlay Figure 7, draw the three per patient potentials
-of Figure 8, and close with the table above. It is the notebook whose closing
-table has to stay inside tolerance in continuous integration.
+equation, redraw Figures 6 and 7 at the calibrated asymmetry and noise, draw the
+three per patient potentials of Figure 8, and close with the table above. Every
+comparison of the article against this record is drawn side by side rather than
+overlaid: Figures 3 and 4 carry the bars digitised from the article in one panel
+and the same histogram measured here in the next, while Figure 2 is drawn from
+this record alone, because the article prints no numbers for its three series.
+It is the notebook whose closing table has to stay inside tolerance in
+continuous integration.
 
 **`02_sde_to_exponential.ipynb`** asks why the exit times look exponential. It
 sweeps the noise amplitude and puts the Kramers time, the exact mean first

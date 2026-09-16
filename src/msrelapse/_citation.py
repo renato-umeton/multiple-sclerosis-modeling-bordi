@@ -1,16 +1,18 @@
 """The citation of the article and of this package, in plain text and in BibTeX.
 
 Every result object of the package carries the article it reproduces on a
-``citation`` property and repeats it in its repr, so that a number copied out of
-a session can be traced back to its source. A raw simulation output, such as the
-paths of :mod:`msrelapse.simulate`, is not a result object and carries none. The
-strings are built here once and read from everywhere else.
+``citation`` property and repeats it in its repr, so that a number copied out
+of a session can be traced back to its source. A raw simulation output, such as
+the paths of [`msrelapse.simulate`][msrelapse.simulate], is not a result object
+and carries none. The strings are built here once and read from everywhere
+else.
 
 No string built by this module writes the DOI of the article down: every one of
-them reads it from ``PAPER.paper_doi`` in :mod:`msrelapse._params`, which is the
-single place in the package where a number or an identifier of the article may
-be recorded. The reference block below quotes the DOI as prose, as the
-docstring of every other module of the package does.
+them reads it from ``PAPER.paper_doi`` in
+[`msrelapse._params`][msrelapse._params], which is the single place in the
+package where a number or an identifier of the article may be recorded. The
+reference block below quotes the DOI as prose, as the docstring of every other
+module of the package does.
 
 References
 ----------
@@ -67,7 +69,7 @@ def _software_version() -> str:
     -------
     str
         The version recorded in the installed distribution metadata, or
-        :data:`_UNINSTALLED_VERSION` when the package is being imported from a
+        ``_UNINSTALLED_VERSION`` when the package is being imported from a
         source tree that was never installed.
     """
     try:
@@ -125,7 +127,7 @@ def citation() -> str:
     Returns
     -------
     str
-        :data:`PAPER_REFERENCE`, a blank line, then the two BibTeX entries.
+        ``PAPER_REFERENCE``, a blank line, then the two BibTeX entries.
 
     Examples
     --------

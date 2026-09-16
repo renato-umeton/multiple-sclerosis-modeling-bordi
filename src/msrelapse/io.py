@@ -1,7 +1,7 @@
 """The three relapse record schemas, their validation, conversions and readers.
 
 A patient record is held in one of three shapes, all of them plain
-:class:`pandas.DataFrame` objects with fixed columns and fixed dtypes.
+``pandas.DataFrame`` objects with fixed columns and fixed dtypes.
 
 ``weekly``
     One row per patient-week: ``patient_id``, ``week`` (0-based and contiguous
@@ -22,7 +22,8 @@ of the study, under which any week touched by a relapse counts as a whole
 relapse week.
 
 The two state codes are not written down here: they are read from
-``PAPER.state_no_health`` and ``PAPER.state_health`` in :mod:`msrelapse._params`.
+``PAPER.state_no_health`` and ``PAPER.state_health`` in
+[`msrelapse._params`][msrelapse._params].
 """
 
 from __future__ import annotations
@@ -128,12 +129,13 @@ def validate(df: pd.DataFrame, schema: Schema) -> None:
     Extra columns are a violation as much as missing ones, so that a frame can
     be converted back and forth without picking up or losing information. A
     follow up window must be finite as well as present, because an unbounded
-    window has no number of weeks for :func:`events_to_weekly` to produce.
-    The numeric columns must carry exactly the numpy dtypes the schema names,
-    ``int64``, ``float64`` and ``bool``, and nothing else: a narrower or a
-    wider width would come back changed from a conversion, and a pandas
-    nullable extension dtype can hold a missing value where the schema allows
-    none. The rules are listed under Notes.
+    window has no number of weeks for
+    [`events_to_weekly`][msrelapse.io.events_to_weekly] to produce. The numeric
+    columns must carry exactly the numpy dtypes the schema names, ``int64``,
+    ``float64`` and ``bool``, and nothing else: a narrower or a wider width
+    would come back changed from a conversion, and a pandas nullable extension
+    dtype can hold a missing value where the schema allows none. The rules are
+    listed under Notes.
 
     Parameters
     ----------
@@ -330,11 +332,12 @@ def events_to_weekly(df: pd.DataFrame) -> pd.DataFrame:
     Notes
     -----
     The weekly record holds one row per week of every follow up window, so the
-    memory it needs grows with the length of the windows. :func:`validate` puts
-    no ceiling on a window it has found finite, and a window of many millions
-    of weeks therefore ends this call with a :class:`MemoryError` rather than a
-    message naming the patient. A window of that length is not a clinical
-    record, but nothing here rejects it.
+    memory it needs grows with the length of the windows.
+    [`validate`][msrelapse.io.validate] puts no ceiling on a window it has
+    found finite, and a window of many millions of weeks therefore ends this
+    call with a ``MemoryError`` rather than a message naming the patient. A
+    window of that length is not a clinical record, but nothing here rejects
+    it.
 
     Examples
     --------
@@ -404,8 +407,9 @@ def weekly_to_events(df: pd.DataFrame, origin: pd.Timestamp | None = None) -> pd
         A frame in the weekly schema. It is validated before use.
     origin : pandas.Timestamp, optional
         Calendar date of week 0. When given, the four columns of
-        :data:`EVENTS_DATE_COLUMNS` are appended, each holding `origin` plus
-        the corresponding number of weeks of :data:`DAYS_PER_WEEK` days.
+        ``EVENTS_DATE_COLUMNS`` are appended, each holding `origin` plus the
+        corresponding number of weeks of
+        [`DAYS_PER_WEEK`][msrelapse.io.DAYS_PER_WEEK] days.
 
     Returns
     -------
@@ -465,7 +469,7 @@ def read_weekly(path: str | os.PathLike[str]) -> pd.DataFrame:
     ----------
     path : str or path-like
         File to read. It must carry exactly the columns of
-        :data:`WEEKLY_COLUMNS`, in any order.
+        ``WEEKLY_COLUMNS``, in any order.
 
     Returns
     -------
@@ -489,7 +493,7 @@ def read_durations(path: str | os.PathLike[str]) -> pd.DataFrame:
     ----------
     path : str or path-like
         File to read. It must carry exactly the columns of
-        :data:`DURATIONS_COLUMNS`, in any order.
+        ``DURATIONS_COLUMNS``, in any order.
 
     Returns
     -------
@@ -537,7 +541,7 @@ def read_events(
         weeks has no use for it.
     date_format : str, default 'ISO8601'
         The one format that every date column of the file follows, passed
-        through to :func:`pandas.to_datetime`. The default reads any ISO 8601
+        through to ``pandas.to_datetime``. The default reads any ISO 8601
         date. A file written in another convention has to name its format, for
         example ``'%d/%m/%Y'`` for a day first export, and a date that does not
         follow the named format is an error rather than a guess: left to guess,
@@ -588,7 +592,7 @@ def write_csv(df: pd.DataFrame, path: str | os.PathLike[str]) -> None:
     The schema is recognised from the columns of the frame, so that a file
     written here and read back by the matching reader comes back unchanged.
     An events frame carrying the four date columns of
-    :data:`EVENTS_DATE_COLUMNS` is written with those columns last.
+    ``EVENTS_DATE_COLUMNS`` is written with those columns last.
 
     Parameters
     ----------
@@ -612,11 +616,12 @@ def write_csv(df: pd.DataFrame, path: str | os.PathLike[str]) -> None:
     Notes
     -----
     Every line ends with a single newline, on every platform. Left to itself
-    pandas ends a line with :data:`os.linesep`, so the same frame would write
+    pandas ends a line with ``os.linesep``, so the same frame would write
     different bytes on Windows from the ones it writes elsewhere, and two files
     holding the same records could not be compared byte for byte. Naming the
-    terminator is what makes the shipped files of :mod:`msrelapse.datasets`
-    reproducible from a regeneration on any machine.
+    terminator is what makes the shipped files of
+    [`msrelapse.datasets`][msrelapse.datasets] reproducible from a regeneration
+    on any machine.
     """
     df[list(_output_columns(df))].to_csv(path, index=False, lineterminator="\n")
 
@@ -937,7 +942,7 @@ def _weeks_since(value: float, origin: float) -> float:
     binary floating point, so a span of exactly one week can come out as
     0.999999999999999 or 1.000000000000001. Rounding such a value up or down
     would move a relapse across a week boundary, so a result within
-    :data:`_WEEK_TOLERANCE` of a whole number is returned as that whole number.
+    ``_WEEK_TOLERANCE`` of a whole number is returned as that whole number.
     """
     elapsed = value - origin
     nearest = round(elapsed)

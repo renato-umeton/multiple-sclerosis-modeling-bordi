@@ -8,29 +8,35 @@ records in full. This module supplies the statistics the paper leaves out, so
 that its claims can be checked rather than repeated:
 
 durations
-    :func:`fit_durations` fits an exponential or a geometric duration with or
-    without the right censoring of a final remission,
-    :func:`test_memoryless` asks in four different ways whether the durations
-    of one state really are memoryless, and :func:`discrete_hazard` is the
-    weekly hazard that test and the survival figure of :mod:`msrelapse.plots`
+    [`fit_durations`][msrelapse.fit.fit_durations] fits an exponential or a
+    geometric duration with or without the right censoring of a final
+    remission, [`test_memoryless`][msrelapse.fit.test_memoryless] asks in four
+    different ways whether the durations of one state really are memoryless,
+    and [`discrete_hazard`][msrelapse.fit.discrete_hazard] is the weekly hazard
+    that test and the survival figure of [`msrelapse.plots`][msrelapse.plots]
     both read.
 counts
-    :func:`fit_nb_counts` fits the negative binomial counts of a cohort and
-    tests them against the Poisson counts of a single shared rate, and
-    :func:`fit_gamma_rates` fits the gamma distribution of the per patient
-    onset rates that would produce them.
+    [`fit_nb_counts`][msrelapse.fit.fit_nb_counts] fits the negative binomial
+    counts of a cohort and tests them against the Poisson counts of a single
+    shared rate, and [`fit_gamma_rates`][msrelapse.fit.fit_gamma_rates] fits
+    the gamma distribution of the per patient onset rates that would produce
+    them.
 rhythm
-    :func:`test_periodicity` looks for a period in the relapse onsets of each
-    weekly record and combines the per patient evidence.
+    [`test_periodicity`][msrelapse.fit.test_periodicity] looks for a period in
+    the relapse onsets of each weekly record and combines the per patient
+    evidence.
 barrier
-    :func:`barrier_ratio` applies equation (7) to the observed durations.
+    [`barrier_ratio`][msrelapse.fit.barrier_ratio] applies equation (7) to the
+    observed durations.
 
-Every number of the paper is imported from :mod:`msrelapse._params`, never
-written here. Each of the five result types of this module, :class:`FitResult`,
-:class:`TestResult`, :class:`PeriodicityResult`, :class:`NBFit` and
-:class:`GammaFit`, carries the citation of the article it belongs to on a
-``citation`` property, from :mod:`msrelapse._citation`, and repeats it once in
-its repr.
+Every number of the paper is imported from
+[`msrelapse._params`][msrelapse._params], never written here. Each of the five
+result types of this module, [`FitResult`][msrelapse.fit.FitResult],
+[`TestResult`][msrelapse.fit.TestResult],
+[`PeriodicityResult`][msrelapse.fit.PeriodicityResult],
+[`NBFit`][msrelapse.fit.NBFit] and [`GammaFit`][msrelapse.fit.GammaFit],
+carries the citation of the article it belongs to on a ``citation`` property,
+from ``msrelapse._citation``, and repeats it once in its repr.
 
 References
 ----------
@@ -61,12 +67,7 @@ from msrelapse._params import PAPER
 from msrelapse.io import validate
 from msrelapse.model import barrier_ratio_from_durations
 
-# The names the package re-exports through ``msrelapse``. discrete_hazard is
-# public and documented and belongs in this list too. It is held out only
-# because tests/test_api.py asks every function listed here to be re-exported
-# from msrelapse or named as msrelapse.fit.discrete_hazard in the package
-# docstring, and both of those live in src/msrelapse/__init__.py. Adding it
-# there and adding the name below are the two lines that close this.
+# The names the package re-exports through ``msrelapse``.
 __all__ = [
     "MIN_AT_RISK",
     "Family",
@@ -79,6 +80,7 @@ __all__ = [
     "Seed",
     "TestResult",
     "barrier_ratio",
+    "discrete_hazard",
     "fit_durations",
     "fit_gamma_rates",
     "fit_nb_counts",
@@ -87,13 +89,13 @@ __all__ = [
 ]
 
 Family = Literal["exponential", "geometric"]
-"""Which duration law :func:`fit_durations` fits."""
+"""Which duration law [`fit_durations`][msrelapse.fit.fit_durations] fits."""
 
 MemorylessMethod = Literal["hazard", "cv", "ks", "ad"]
-"""Which reading of memorylessness :func:`test_memoryless` applies."""
+"""Which reading of memorylessness [`test_memoryless`][msrelapse.fit.test_memoryless] applies."""
 
 PeriodicityMethod = Literal["fisher_g", "lombscargle"]
-"""Which periodogram :func:`test_periodicity` builds."""
+"""Which periodogram [`test_periodicity`][msrelapse.fit.test_periodicity] builds."""
 
 Seed = np.random.Generator | int | None
 """What every random operation of this module accepts."""
@@ -103,9 +105,10 @@ MIN_AT_RISK: Final = 5
 
 Below this the ratio is one or two events over a handful of patients and says
 nothing about the shape of the durations. It is the threshold
-:func:`discrete_hazard` applies by default, and so the one behind both the
-``hazard`` method of :func:`test_memoryless` and the inset of
-:func:`msrelapse.plots.fig_survival_vs_exponential`.
+[`discrete_hazard`][msrelapse.fit.discrete_hazard] applies by default, and so
+the one behind both the ``hazard`` method of
+[`test_memoryless`][msrelapse.fit.test_memoryless] and the inset of
+[`msrelapse.plots.fig_survival_vs_exponential`][msrelapse.plots.fig_survival_vs_exponential].
 """
 
 _Vector = npt.NDArray[np.float64]
@@ -156,17 +159,17 @@ _LOG_MEAN: Final = 0
 _LOG_DISPERSION: Final = 1
 
 # Relative step of the central differences behind an observed information, the
-# same as :mod:`msrelapse.stats` uses on the same likelihood. What the two
+# same as ``msrelapse.stats`` uses on the same likelihood. What the two
 # difference is the analytic score, not the log likelihood, so the truncation
 # error stays at the square of the step.
 _HESSIAN_STEP: Final = 1e-5
 
 # Below this a negative binomial is a Poisson and its dispersion reads 0, as in
-# :mod:`msrelapse.stats`.
+# ``msrelapse.stats``.
 _DISPERSION_FLOOR: Final = 1e-8
 
 # Bound on the log dispersion the count likelihood is read at, again as in
-# :mod:`msrelapse.stats`. The likelihood divides by the dispersion, which
+# ``msrelapse.stats``. The likelihood divides by the dispersion, which
 # underflows to zero below about -745 on the log scale, so a line search that
 # probed that far would meet a bare arithmetic error rather than a value telling
 # it to turn back. Every dispersion a count model means anything at lies well
@@ -510,8 +513,8 @@ def fit_durations(  # noqa: PLR0917
     Parameters
     ----------
     durations : pandas.DataFrame
-        A frame in the durations schema of :mod:`msrelapse.io`. It is validated
-        before use.
+        A frame in the durations schema of [`msrelapse.io`][msrelapse.io]. It
+        is validated before use.
     state : int
         Clinical code of the state to fit, +1 for no health and -1 for health.
     family : {'exponential', 'geometric'}, optional
@@ -536,7 +539,7 @@ def fit_durations(  # noqa: PLR0917
         geometric family, which already lives on whole weeks.
     rng : numpy.random.Generator or int or None, optional
         Generator for the bootstrap, or a seed for
-        :func:`numpy.random.default_rng`. Unused when `bootstrap` is 0.
+        ``numpy.random.default_rng``. Unused when `bootstrap` is 0.
 
     Returns
     -------
@@ -564,12 +567,12 @@ def fit_durations(  # noqa: PLR0917
     interval is 14 percent the wider. It is built by the private helper
     ``_fisher_interval`` of this module, which the API pages do not carry.
 
-    A weekly record is discrete, so the geometric family is the exact law of what
-    was recorded and is the one to read a weekly duration with. The exponential
-    family is kept because it is the law of the paper and of
-    :mod:`msrelapse.model`, and because the mean it reports is the arithmetic the
-    paper did; ``continuity_correction=0.5`` is the way to read an exponential on
-    durations that were rounded to whole weeks.
+    A weekly record is discrete, so the geometric family is the exact law of
+    what was recorded and is the one to read a weekly duration with. The
+    exponential family is kept because it is the law of the paper and of
+    [`msrelapse.model`][msrelapse.model], and because the mean it reports is
+    the arithmetic the paper did; ``continuity_correction=0.5`` is the way to
+    read an exponential on durations that were rounded to whole weeks.
 
     The continuity correction is taken off the complete runs only. A run
     recorded as k weeks and censored there is known to have lasted at least k
@@ -676,8 +679,8 @@ def test_memoryless(
     Parameters
     ----------
     durations : pandas.DataFrame
-        A frame in the durations schema of :mod:`msrelapse.io`. It is validated
-        before use.
+        A frame in the durations schema of [`msrelapse.io`][msrelapse.io]. It
+        is validated before use.
     state : int
         Clinical code of the state to test, +1 for no health and -1 for health.
     method : {'hazard', 'cv', 'ks', 'ad'}, optional
@@ -692,7 +695,7 @@ def test_memoryless(
         them, under the same null and at the same scale.
     rng : numpy.random.Generator or int or None, optional
         Generator for the bootstrap, or a seed for
-        :func:`numpy.random.default_rng`.
+        ``numpy.random.default_rng``.
 
     Returns
     -------
@@ -803,10 +806,12 @@ def discrete_hazard(
 
     The hazard of week k is the share of the durations still at risk at the
     start of that week which end in it. A memoryless duration has the same
-    hazard in every week, an ageing one a rising hazard and a mixture of rates a
-    falling one. This is the hazard the ``hazard`` method of
-    :func:`test_memoryless` regresses on time, and the one the inset of
-    :func:`msrelapse.plots.fig_survival_vs_exponential` draws.
+    hazard in every week, an ageing one a rising hazard and a mixture of rates
+    a falling one. This is the hazard the ``hazard`` method of
+    [`test_memoryless`][msrelapse.fit.test_memoryless] regresses on time, and
+    the one the inset of
+    [`msrelapse.plots.fig_survival_vs_exponential`][msrelapse.plots.fig_survival_vs_exponential]
+    draws.
 
     Parameters
     ----------
@@ -818,7 +823,7 @@ def discrete_hazard(
     min_at_risk : int, optional
         Fewest durations that have to be still at risk in a week for the hazard
         of that week to be read. Must be at least one; the default is
-        :data:`MIN_AT_RISK`.
+        [`MIN_AT_RISK`][msrelapse.fit.MIN_AT_RISK].
 
     Returns
     -------
@@ -845,8 +850,8 @@ def discrete_hazard(
     All three arrays come back empty when no week holds `min_at_risk` durations
     still at risk, which is every set of fewer than that many durations. The
     callers read that emptiness rather than a hazard of one event over one
-    patient: :func:`test_memoryless` refuses such a set outright and the
-    survival figure writes a note in place of its inset.
+    patient: [`test_memoryless`][msrelapse.fit.test_memoryless] refuses such a
+    set outright and the survival figure writes a note in place of its inset.
 
     Examples
     --------
@@ -904,8 +909,8 @@ def test_periodicity(
     Parameters
     ----------
     weekly : pandas.DataFrame
-        A frame in the weekly schema of :mod:`msrelapse.io`. It is validated
-        before use.
+        A frame in the weekly schema of [`msrelapse.io`][msrelapse.io]. It is
+        validated before use.
     method : {'fisher_g', 'lombscargle'}, optional
         ``fisher_g`` takes the discrete Fourier periodogram of the mean removed
         onset series and Fisher's exact g test; ``lombscargle`` takes the
@@ -920,7 +925,7 @@ def test_periodicity(
         ``fisher_g``, whose p value is exact.
     rng : numpy.random.Generator or int or None, optional
         Generator for the permutations, or a seed for
-        :func:`numpy.random.default_rng`.
+        ``numpy.random.default_rng``.
 
     Returns
     -------
@@ -1112,17 +1117,17 @@ def fit_nb_counts(counts: pd.Series[int] | npt.ArrayLike) -> NBFit:
     the parameter space, where the curvature of the likelihood is of the order of
     the dispersion itself and float64 cannot resolve it.
 
-    :mod:`msrelapse.stats` reaches the same cohorts through a related quantity
-    rather than through this one. It screens on the method of moments dispersion
-    around its own fitted Poisson mean, which for a model of an intercept alone
-    read at equal follow up is the population variance less the mean over the
-    square of the mean, so on such a cohort the two screens agree on which counts
-    are overdispersed at all. What that module actually fits is an intercept and
-    an arm, over a follow up that varies from patient to patient, so its fitted
-    means vary with the follow up and the two quantities part company by that
-    much. It then asks its own quantity to clear its dispersion floor rather than
-    merely to be positive, because it starts its search from it and a start below
-    the floor has nowhere to go.
+    [`msrelapse.stats`][msrelapse.stats] reaches the same cohorts through a
+    related quantity rather than through this one. It screens on the method of
+    moments dispersion around its own fitted Poisson mean, which for a model of
+    an intercept alone read at equal follow up is the population variance less
+    the mean over the square of the mean, so on such a cohort the two screens
+    agree on which counts are overdispersed at all. What that module actually
+    fits is an intercept and an arm, over a follow up that varies from patient
+    to patient, so its fitted means vary with the follow up and the two
+    quantities part company by that much. It then asks its own quantity to
+    clear its dispersion floor rather than merely to be positive, because it
+    starts its search from it and a start below the floor has nowhere to go.
 
     A cohort screened out that way, or one whose search settles on a dispersion
     no model can tell from zero, or one whose observed information leaves the log
@@ -1215,8 +1220,8 @@ def fit_gamma_rates(durations: pd.DataFrame) -> GammaFit:
     Parameters
     ----------
     durations : pandas.DataFrame
-        A frame in the durations schema of :mod:`msrelapse.io`. It is validated
-        before use.
+        A frame in the durations schema of [`msrelapse.io`][msrelapse.io]. It
+        is validated before use.
 
     Returns
     -------
@@ -1234,12 +1239,13 @@ def fit_gamma_rates(durations: pd.DataFrame) -> GammaFit:
     Notes
     -----
     This is a plug in estimate and a noisy one: a patient with three remissions
-    has a rate known to within a factor of two, and the gamma is fitted to those
-    noisy rates as though they were the true ones. The spread it reports is
-    therefore the spread of the estimates, which is wider than the spread of the
-    rates. :func:`fit_nb_counts` is the usual alternative and the better one: it
-    fits the same gamma mixture through the counts themselves, so the Poisson
-    noise of a short record stays where it belongs.
+    has a rate known to within a factor of two, and the gamma is fitted to
+    those noisy rates as though they were the true ones. The spread it reports
+    is therefore the spread of the estimates, which is wider than the spread of
+    the rates. [`fit_nb_counts`][msrelapse.fit.fit_nb_counts] is the usual
+    alternative and the better one: it fits the same gamma mixture through the
+    counts themselves, so the Poisson noise of a short record stays where it
+    belongs.
 
     Two kinds of patient are left out. One with no remission run at all
     contributes no rate, since the denominator is the time spent in remission
@@ -1289,8 +1295,8 @@ def barrier_ratio(durations: pd.DataFrame, per_patient: bool = False) -> float |
     Parameters
     ----------
     durations : pandas.DataFrame
-        A frame in the durations schema of :mod:`msrelapse.io`. It is validated
-        before use.
+        A frame in the durations schema of [`msrelapse.io`][msrelapse.io]. It
+        is validated before use.
     per_patient : bool, optional
         With False the ratio is computed once over the whole frame. With True
         one ratio is computed per patient.
@@ -1320,8 +1326,8 @@ def barrier_ratio(durations: pd.DataFrame, per_patient: bool = False) -> float |
     Equation (7) follows from equations (5) and (6) only because those drop the
     prefactor of the exit time, which silently sets the prefactor of both wells
     to one week. Treat the number as the documented heuristic of the paper, as
-    :func:`msrelapse.model.barrier_ratio_from_durations` explains at greater
-    length, and not as a definition of the barrier ratio.
+    [`msrelapse.model.barrier_ratio_from_durations`][msrelapse.model.barrier_ratio_from_durations]
+    explains at greater length, and not as a definition of the barrier ratio.
     """
     validate(durations, "durations")
     if not per_patient:
@@ -1427,7 +1433,7 @@ def _log_scale_interval(centre: float, half_width: float) -> tuple[float, float]
     Returns
     -------
     tuple of float
-        The two endpoints. A half width beyond :data:`_LARGEST_EXPONENT` has no
+        The two endpoints. A half width beyond ``_LARGEST_EXPONENT`` has no
         exponential in float64, and the interval is then ``(0.0, inf)``, which is
         what a half width of several hundred says in any case: the parameter is
         not pinned down at all. Saturating rather than raising keeps a fit that
@@ -1535,11 +1541,12 @@ def _hazard_drift(values: _Vector) -> float | None:
     float or None
         The signed ratio, positive when the hazard rises. None says these
         durations carry no readable drift at all: fewer than
-        :data:`_MIN_HAZARD_TIMES` weeks have :data:`MIN_AT_RISK` still at risk,
-        or the hazard at those weeks lies exactly on a straight line, which
-        leaves the slope with no standard error. A replicate of the null that
-        lands there is dropped rather than counted; :func:`_hazard_test` raises
-        on either case for the durations themselves.
+        ``_MIN_HAZARD_TIMES`` weeks have
+        [`MIN_AT_RISK`][msrelapse.fit.MIN_AT_RISK] still at risk, or the hazard
+        at those weeks lies exactly on a straight line, which leaves the slope
+        with no standard error. A replicate of the null that lands there is
+        dropped rather than counted; ``_hazard_test`` raises on either case for
+        the durations themselves.
     """
     times, hazard, _at_risk = discrete_hazard(values)
     if times.size < _MIN_HAZARD_TIMES:
@@ -1557,12 +1564,12 @@ def _hazard_test(values: _Vector, n_boot: int, rng: Seed) -> TestResult:
     Raises
     ------
     ValueError
-        If fewer than :data:`_MIN_HAZARD_TIMES` times have at least
-        :data:`MIN_AT_RISK` records still at risk, if the hazard at those times
-        lies exactly on a straight line, which leaves the slope with no standard
-        error and the drift with nothing to measure, or if every replicate of
-        the null was dropped for one of those two reasons, which leaves the
-        drift with nothing to be read against.
+        If fewer than ``_MIN_HAZARD_TIMES`` times have at least
+        [`MIN_AT_RISK`][msrelapse.fit.MIN_AT_RISK] records still at risk, if
+        the hazard at those times lies exactly on a straight line, which leaves
+        the slope with no standard error and the drift with nothing to measure,
+        or if every replicate of the null was dropped for one of those two
+        reasons, which leaves the drift with nothing to be read against.
 
     Notes
     -----
@@ -1580,7 +1587,7 @@ def _hazard_test(values: _Vector, n_boot: int, rng: Seed) -> TestResult:
 
     So the p value here is the share of replicates drawn under the rounded
     exponential null whose drift is at least as far from zero as the sample's,
-    the same parametric bootstrap :func:`_cv_test` and :func:`_distance_test`
+    the same parametric bootstrap ``_cv_test`` and ``_distance_test``
     draw, at the same scale and rounded the same way. That share holds its level
     at every sample size checked and keeps the power of the statistic against an
     ageing record.
@@ -1653,10 +1660,11 @@ def _exponential_scale(values: _Vector) -> float:
     Notes
     -----
     The mean of `values` is not that scale and is about half a week longer than
-    it, because every draw is rounded up. Drawing the replicates of a parametric
-    bootstrap at the mean rather than at the scale rounds them twice over, which
-    leaves them further from an exponential than the data are and turns a
-    memoryless record into a rejection. See the Notes of :func:`test_memoryless`.
+    it, because every draw is rounded up. Drawing the replicates of a
+    parametric bootstrap at the mean rather than at the scale rounds them twice
+    over, which leaves them further from an exponential than the data are and
+    turns a memoryless record into a rejection. See the Notes of
+    [`test_memoryless`][msrelapse.fit.test_memoryless].
     """
     probability = float(values.size) / float(values.sum())
     if probability >= 1.0:
@@ -1772,7 +1780,7 @@ def _fisher_g(series: _Vector) -> tuple[float, float, float] | None:
     there is nothing there. The Nyquist ordinate of an even length record is
     left out as well, because it is real rather than complex, so it is not
     distributed like the others and the finite sum behind
-    :func:`_fisher_g_p_value` does not describe it: keeping it makes the exact p
+    ``_fisher_g_p_value`` does not describe it: keeping it makes the exact p
     value anti-conservative, by half again at the eight week minimum of this
     module and by a few per cent at a record of several hundred weeks. What is
     left is the classical ``floor((n - 1) / 2)`` ordinates, for a record of
@@ -1784,14 +1792,15 @@ def _fisher_g(series: _Vector) -> tuple[float, float, float] | None:
     is the one the g test does not look at. What the transform actually leaves at
     the other ordinates of such a series is its own rounding error, below 1e-32
     of the power of the series, which is why the emptiness is read against
-    :data:`_SPECTRUM_FLOOR` rather than against an exact zero.
+    ``_SPECTRUM_FLOOR`` rather than against an exact zero.
 
     The period returned is the period of the largest ordinate alone. A sparse
-    train of onsets carries power at every harmonic of its spacing, and when the
-    record is not a whole number of spacings long the leakage between
+    train of onsets carries power at every harmonic of its spacing, and when
+    the record is not a whole number of spacings long the leakage between
     neighbouring frequencies can lift a harmonic above the fundamental, so the
     number is the strongest frequency of this record rather than the rhythm
-    behind it. :func:`test_periodicity` says so in its own Notes.
+    behind it. [`test_periodicity`][msrelapse.fit.test_periodicity] says so in
+    its own Notes.
     """
     centred = series - series.mean()
     spectrum = np.abs(np.fft.rfft(centred)) ** 2
@@ -1895,8 +1904,8 @@ def _rayleigh(
     Notes
     -----
     The grid runs from one cycle per record to the weekly Nyquist frequency of
-    0.5 cycles per week, oversampled by :data:`_LOMB_OVERSAMPLING`. It therefore
-    keeps the two week limit that :func:`_fisher_g` drops, and on a train of few
+    0.5 cycles per week, oversampled by ``_LOMB_OVERSAMPLING``. It therefore
+    keeps the two week limit that ``_fisher_g`` drops, and on a train of few
     onsets the largest power lands near that limit often: over three cohorts of
     seventy memoryless records of four hundred weeks, 86 of the 191 patients read
     reported a period below three weeks and 19 of them exactly two. The p value
@@ -1906,10 +1915,11 @@ def _rayleigh(
 
     The surrogate that the observed maximum is compared with is the same onsets
     with the gaps between them shuffled, which keeps the first onset, the last
-    onset and the distribution of the gaps, and destroys any periodic arrangement
-    of them. The p value counts a surrogate whose maximum ties with the observed
-    one, so a patient with few gaps, and therefore few distinct shuffles, cannot
-    reach a small p value at all. See the Notes of :func:`test_periodicity`.
+    onset and the distribution of the gaps, and destroys any periodic
+    arrangement of them. The p value counts a surrogate whose maximum ties with
+    the observed one, so a patient with few gaps, and therefore few distinct
+    shuffles, cannot reach a small p value at all. See the Notes of
+    [`test_periodicity`][msrelapse.fit.test_periodicity].
     """
     frequencies = np.linspace(1.0 / n_weeks, 0.5, max(2, _LOMB_OVERSAMPLING * n_weeks // 2))
     power = _rayleigh_power(times, frequencies)
@@ -1997,7 +2007,7 @@ def _boundary_p_value(statistic: float) -> float:
 def _bounded_log_parameter(value: float, limit: float) -> float:
     """Return a log parameter the NB2 likelihood can be evaluated at.
 
-    See :data:`_LOG_DISPERSION_LIMIT` and :data:`_LOG_MEAN_LIMIT` for why the two
+    See ``_LOG_DISPERSION_LIMIT`` and ``_LOG_MEAN_LIMIT`` for why the two
     bounds are there. The likelihood and its score both read the bounded value
     wherever the free parameter appears, so they describe the same model at a
     bound, and the likelihood is flat beyond it: a line search that reaches one
@@ -2010,7 +2020,7 @@ def _bounded_log_parameter(value: float, limit: float) -> float:
 def _nb_negative_loglik(parameters: _Vector, values: _Vector) -> float:
     """Return the negative NB2 log likelihood at (log mean, log dispersion).
 
-    Written with :func:`math.log1p`, as :func:`msrelapse.stats._nb_negative_loglik`
+    Written with ``math.log1p``, as ``msrelapse.stats._nb_negative_loglik``
     is, so that the terms stay accurate as the dispersion approaches zero and the
     curvature read off them near the boundary means something.
     """
@@ -2032,7 +2042,7 @@ def _nb_negative_loglik(parameters: _Vector, values: _Vector) -> float:
 
 
 def _nb_negative_score(parameters: _Vector, values: _Vector) -> _Vector:
-    """Return the gradient of :func:`_nb_negative_loglik`, computed analytically."""
+    """Return the gradient of ``_nb_negative_loglik``, computed analytically."""
     mean = math.exp(_bounded_log_parameter(float(parameters[_LOG_MEAN]), _LOG_MEAN_LIMIT))
     dispersion = math.exp(
         _bounded_log_parameter(float(parameters[_LOG_DISPERSION]), _LOG_DISPERSION_LIMIT)
@@ -2051,14 +2061,14 @@ def _nb_negative_score(parameters: _Vector, values: _Vector) -> _Vector:
 
 
 def _numerical_hessian(parameters: _Vector, values: _Vector) -> _Vector:
-    """Return the Hessian of :func:`_nb_negative_loglik` by central differences.
+    """Return the Hessian of ``_nb_negative_loglik`` by central differences.
 
     Differencing the analytic score rather than the log likelihood itself keeps
     the truncation error at the square of the step while halving the number of
     evaluations, which is what a standard error near the boundary needs. There
     the log likelihood is a difference of gamma logarithms thousands of times
     larger than itself, and differencing it twice buries the curvature in that
-    cancellation. This follows :func:`msrelapse.stats._numerical_hessian`, which
+    cancellation. This follows ``msrelapse.stats._numerical_hessian``, which
     differences the score of the same likelihood for the same reason.
     """
     size = parameters.size
@@ -2098,7 +2108,7 @@ def _log_dispersion_standard_error(parameters: _Vector, values: _Vector) -> floa
     None is not a failure to report: it says the likelihood has no curvature in
     the dispersion that float64 can resolve, so the data do not identify a
     dispersion at all and the Poisson fit is the answer. The caller returns that
-    fit, in the manner of :func:`msrelapse.stats._fit_negative_binomial`, rather
+    fit, in the manner of ``msrelapse.stats._fit_negative_binomial``, rather
     than a Wald interval built on a curvature that is not there.
     """
     hessian = _numerical_hessian(parameters, values)

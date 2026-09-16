@@ -12,8 +12,12 @@ notebook and a workflow are held to the rules the prose is held to.
 
 from __future__ import annotations
 
+import os
 import re
+import shutil
+import subprocess
 from collections.abc import Callable
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
@@ -68,6 +72,18 @@ API_PAGES = {
 
 # Pages that live under docs/ but are not part of the published site.
 EXCLUDED = ("plan1.md", "IMPLEMENTATION_PLAN.md", "paper/", "pull_request_template.md")
+
+# The Sphinx cross reference roles. mkdocstrings reads numpy docstrings and
+# interprets none of them, so one left in a docstring reaches the built page as
+# the literal text a reader sees. The markers are built from their names rather
+# than written out, so that this file keeps the rule it checks.
+ROLE_NAMES = ("func", "class", "meth", "attr", "mod", "data", "const", "obj", "ref")
+ROLE_MARKERS = tuple(f":{name}:" for name in ROLE_NAMES)
+
+# What mkdocs-autorefs logs for a cross reference whose target it cannot find.
+# Strict mode already turns it into a failed build; the phrase is held here so
+# that a build which stops failing on it is still caught.
+UNRESOLVED_REFERENCE = "Could not find cross-reference target"
 
 # A line of hyphens, built rather than written, so that this file keeps the
 # rule it checks. The same goes for the two fence markers below.
@@ -161,6 +177,39 @@ def sweep(rule: Callable[[str], list[int]], *, suffix: str | None = None) -> lis
     )
 
 
+def role_markers(text: str) -> list[str]:
+    """Return every Sphinx cross reference role marker a piece of text holds.
+
+    Parameters
+    ----------
+    text : str
+        The text to read, a module or a built page.
+
+    Returns
+    -------
+    list of str
+        One entry per marker found, without duplicates, in the order of
+        ``ROLE_MARKERS``.
+    """
+    return [marker for marker in ROLE_MARKERS if marker in text]
+
+
+def build_site(site_dir: Path) -> subprocess.CompletedProcess[str]:
+    """Build the documentation site into a directory and return the finished run."""
+    environment = dict(os.environ)
+    # The virtual environment of the caller is not the one uv resolves the
+    # project against, and leaving it set makes uv warn and then ignore it.
+    environment.pop("VIRTUAL_ENV", None)
+    return subprocess.run(
+        ["uv", "run", "--no-sync", "mkdocs", "build", "--strict", "--site-dir", str(site_dir)],
+        cwd=ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
 def test_site_is_named_after_the_package() -> None:
     config = load_config()
     assert config["site_name"] == "msrelapse"
@@ -211,6 +260,57 @@ def test_only_the_numbers_of_the_paper_are_documented_from_the_private_modules()
                 documented.add(line.removeprefix("::: ").strip())
     private = {name for name in documented if name.rpartition(".")[2].startswith("_")}
     assert private == {"msrelapse._params"}, "docs/api/ documents a private module of its own"
+
+
+def test_role_markers_reads_a_role_and_walks_past_a_plain_colon() -> None:
+    assert role_markers(f"see {ROLE_MARKERS[0]}`calibrate`") == [ROLE_MARKERS[0]]
+    assert role_markers("Returns: the mean duration in weeks") == []
+
+
+def test_no_module_of_the_package_holds_a_sphinx_role() -> None:
+    """The docstrings are read by mkdocstrings, which renders a role as literal text.
+
+    A cross reference is written ``[`name`][msrelapse.module.name]`` instead,
+    which mkdocs-autorefs turns into a link, and anything that is not an object
+    of this package is written as a code span. The whole module is read rather
+    than its docstrings alone, so that the comments keep the same rule.
+    """
+    found = {
+        path.name: markers
+        for path in sorted(PACKAGE.glob("*.py"))
+        if (markers := role_markers(read(path)))
+    }
+    assert found == {}, f"a Sphinx role reaches the site as literal text: {found}"
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    find_spec("mkdocs") is None or shutil.which("uv") is None,
+    reason="mkdocs or uv is missing here, so the site cannot be built",
+)
+def test_the_built_api_pages_carry_no_role_and_no_unresolved_reference(tmp_path: Path) -> None:
+    """The site is built the way continuous integration builds it, then read back.
+
+    The check above reads the sources; this one reads what a visitor of the site
+    is served, so a role that survives the handler, and a cross reference that
+    resolves to nothing, are both caught on the page itself.
+    """
+    site = tmp_path / "site"
+
+    completed = build_site(site)
+
+    assert completed.returncode == 0, completed.stderr
+    output = completed.stdout + completed.stderr
+    assert UNRESOLVED_REFERENCE not in output, output
+    # The site uses directory URLs, so each page is written as api/<name>/index.html.
+    pages = sorted((site / "api").rglob("*.html"))
+    assert {page.parent.name for page in pages} == set(API_PAGES)
+    found = {
+        page.relative_to(site).as_posix(): markers
+        for page in pages
+        if (markers := role_markers(read(page)))
+    }
+    assert found == {}, f"a built API page shows a Sphinx role as literal text: {found}"
 
 
 def test_contains_em_dash_finds_the_character_and_nothing_else() -> None:

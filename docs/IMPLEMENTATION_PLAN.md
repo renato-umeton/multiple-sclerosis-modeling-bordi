@@ -33,6 +33,14 @@ and records the decisions taken where the specification left a choice open.
 - Data files ship inside the package (src/msrelapse/data) with a loader in
   msrelapse.datasets, so they are available after pip install; the plan's data/
   directory is not used.
+- Provenance travels beside the records rather than inside them. The shipped files
+  have a sidecar PROVENANCE.txt, which datasets.provenance returns whole, and
+  datasets.load_synthetic_bordi2013 copies its first line onto the frame it returns
+  as frame.attrs["provenance"]. It is not a column, because the three schemas of
+  msrelapse.io reject an extra column as firmly as a missing one, and it is not a
+  comment row at the head of each CSV, because that would change the reader
+  contract: every reader of those files, this package and any other, would have to
+  be told about a comment character before it could read a shipped file at all.
 - The hysteresis band fraction has two defaults on purpose: model.DEFAULT_BAND_FRACTION
   of 0.3, which every band taking function of model and simulate uses, and
   cohort.SDE_ENGINE_BAND_FRACTION of 0.4, which the sde engine of CohortSpec uses.
