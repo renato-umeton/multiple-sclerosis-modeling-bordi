@@ -12,11 +12,14 @@ from hypothesis import strategies as st
 
 from msrelapse._params import PAPER
 from msrelapse.model import (
+    _FOLD_MARGIN,
+    _VANISHED_BARRIER,
     DEFAULT_BAND_FRACTION,
     Barriers,
     CriticalPoints,
     Curvatures,
     DoubleWell,
+    _snap_vanished_barrier,
     barrier_ratio_from_durations,
     beta_from_barrier_ratio,
     calibrate,
@@ -137,6 +140,108 @@ def test_barrier_ratio_just_inside_the_fold_names_the_collapsed_well() -> None:
     assert well.barriers().relapse == 0.0
     with pytest.raises(ValueError, match="fold_beta"):
         well.barrier_ratio()
+
+
+def test_a_ratio_lost_to_a_large_alpha_says_so_rather_than_blaming_beta() -> None:
+    # Both barriers of a symmetric potential are 1 / (4 alpha), so above an
+    # alpha of 2.5e11 both of them lie inside the threshold a vanished barrier
+    # is snapped to zero at and the ratio has nothing left to divide. Beta is
+    # exactly zero here, so a message that named only the fold would send the
+    # reader looking at the one parameter that is not the cause.
+    with pytest.raises(ValueError, match="shallower than the threshold"):
+        DoubleWell(1e12, 0.0).barrier_ratio()
+
+
+def test_a_symmetric_potential_below_the_snapping_alpha_still_has_a_ratio() -> None:
+    # The other side of that boundary, where 1 / (4 alpha) is two and a half
+    # times the threshold, so neither barrier is snapped and the symmetric ratio
+    # is reported as usual. The two sides together pin where the message above
+    # starts to apply.
+    assert DoubleWell(1e11, 0.0).barrier_ratio() == pytest.approx(1.0, rel=1e-9)
+
+
+@pytest.mark.parametrize("distance", [1e-12, 1e-11, 1e-10])
+def test_a_barrier_near_the_fold_is_zero_or_clear_of_the_vanishing_threshold(
+    distance: float,
+) -> None:
+    # This close to the fold the difference of the two values of the potential
+    # is rounding, and each platform's linear algebra rounds it its own way. The
+    # reported barrier is therefore either exactly zero or a height well above
+    # the rounding, and never a number in between that a caller would have to
+    # compare against a tolerance of its own.
+    relapse = DoubleWell(1.0, fold_beta(1.0) - distance).barriers().relapse
+    assert relapse == 0.0 or relapse >= _VANISHED_BARRIER
+
+
+@pytest.mark.parametrize(
+    ("alpha", "distance"),
+    [
+        (1.0, 2e-13),
+        (1.0, 5e-12),
+        (0.05, 2e-12),
+        (1.0, 1e-12),
+        (1.0, 1e-10),
+        (1.0, 1e-8),
+        (1.0, 1e-6),
+        (1.0, 1e-3),
+    ],
+)
+def test_a_reported_barrier_is_never_negative(alpha: float, distance: float) -> None:
+    # The saddle is the top of the potential between the two wells, so neither
+    # barrier can be negative except by rounding, and rounding is snapped away.
+    # At the first three pairs the difference of the two values of the potential
+    # has been seen to come out negative, by a few times 1e-17 at the reference
+    # alpha and by 9e-16 at the low alpha where the potential is fifteen times
+    # taller, so what the assertion measures there is the snap itself.
+    barriers = DoubleWell(alpha, fold_beta(alpha) - distance).barriers()
+    assert min(barriers.health, barriers.relapse) >= 0.0
+
+
+@pytest.mark.parametrize(
+    ("height", "expected"),
+    [
+        (-1e-17, 0.0),
+        (0.0, 0.0),
+        (_VANISHED_BARRIER / 2.0, 0.0),
+        (5e-12, 5e-12),
+        (BARRIER_RELAPSE_008, BARRIER_RELAPSE_008),
+    ],
+)
+def test_the_snap_zeroes_a_vanished_barrier_and_passes_a_real_one_through(
+    height: float, expected: float
+) -> None:
+    # The test above reaches the snap only on a platform whose linear algebra
+    # happens to round those roots negative, so on another one it can pass
+    # without ever reaching the snapped branch. This one reaches it everywhere,
+    # because it hands the helper the heights directly: a small negative comes
+    # back as zero, so does a height inside the threshold, and a height above
+    # the threshold is handed back untouched.
+    assert _snap_vanished_barrier(height) == expected
+
+
+def test_a_height_far_below_zero_is_not_rounding_and_is_refused() -> None:
+    # The snap reports a barrier lost in rounding as zero. A height a long way
+    # below zero is not rounding: it would take stationary points that are not
+    # sorted as health, saddle, relapse, so it is reported rather than passed
+    # off as a well that has flattened onto the saddle.
+    with pytest.raises(ValueError, match="not the rounding"):
+        _snap_vanished_barrier(-0.1)
+
+
+def test_the_vanishing_threshold_is_far_below_the_barriers_of_the_tables() -> None:
+    # The snap reports a vanished barrier as zero and must leave every barrier
+    # of ordinary size alone. The smallest of the regression table is more than
+    # nine orders of magnitude above the threshold, so no pinned value moves.
+    assert min(BARRIER_HEALTH_008, BARRIER_RELAPSE_008) / 1e9 > _VANISHED_BARRIER
+
+
+def test_the_bisection_bound_sits_where_the_relapse_barrier_is_still_a_number() -> None:
+    # beta_from_barrier_ratio brackets its search at _FOLD_MARGIN below the
+    # fold and reads the barrier ratio there. A bound so close to the fold that
+    # the relapse barrier vanished would leave that ratio undefined, so the
+    # margin is kept where the barrier is well clear of the threshold.
+    relapse = DoubleWell(1.0, fold_beta(1.0) - _FOLD_MARGIN).barriers().relapse
+    assert relapse > 100.0 * _VANISHED_BARRIER
 
 
 def test_asymmetric_curvatures(asymmetric: DoubleWell) -> None:
@@ -485,6 +590,40 @@ def test_beta_from_barrier_ratio_rejects_a_ratio_below_one() -> None:
 def test_beta_from_barrier_ratio_rejects_a_ratio_the_potential_cannot_reach() -> None:
     with pytest.raises(ValueError, match="largest ratio reachable"):
         beta_from_barrier_ratio(1e14)
+
+
+def test_a_ratio_just_inside_the_ceiling_of_the_fold_margin_is_answered() -> None:
+    # The bisection stops _FOLD_MARGIN below the fold, so the ratios it can
+    # answer run out a little under a thousand million. This one is inside that
+    # ceiling and comes back as a beta inside the fold that delivers it.
+    beta = beta_from_barrier_ratio(1e8)
+    assert 0.0 < beta < fold_beta(1.0)
+    assert DoubleWell(1.0, beta).barrier_ratio() == pytest.approx(1e8, rel=1e-3)
+
+
+def test_a_ratio_just_past_the_ceiling_of_the_fold_margin_is_refused() -> None:
+    # The other side of that ceiling, with the ceiling itself pinned to the
+    # decade it falls in. A change to _FOLD_MARGIN moves it, and this pair makes
+    # that a deliberate edit rather than a silent one: msrelapse.cohort reaches
+    # this function with the ratio of two logarithms of episode durations, and
+    # the largest ratio it can ask for is the one recorded here.
+    largest = DoubleWell(1.0, fold_beta(1.0) - _FOLD_MARGIN).barrier_ratio()
+    assert 1e8 < largest < 1e9
+    with pytest.raises(ValueError, match="largest ratio reachable"):
+        beta_from_barrier_ratio(1e9)
+
+
+@pytest.mark.parametrize("alpha", [1.7e11, 1e12])
+def test_beta_from_barrier_ratio_rejects_an_alpha_that_leaves_no_room_for_beta(
+    alpha: float,
+) -> None:
+    # The bisection brackets its search _FOLD_MARGIN below the fold, and an
+    # alpha this large puts the whole fold below that margin. Without the check
+    # the bound goes negative and the refusal either quotes a largest reachable
+    # ratio below one, which the function's own contract forbids, or names a
+    # negative beta the caller never passed.
+    with pytest.raises(ValueError, match="no room"):
+        beta_from_barrier_ratio(2.0, alpha)
 
 
 @pytest.mark.parametrize("ratio", [float("inf"), float("nan")])

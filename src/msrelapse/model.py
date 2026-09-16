@@ -90,6 +90,24 @@ _METHODS: Final = ("mfpt", "kramers")
 # A root of the cubic counts as real when its imaginary part is below this.
 _IMAGINARY_TOLERANCE: Final = 1e-10
 
+# A barrier this small is no barrier at all and is reported as exactly zero, in
+# units of the potential. At an alpha near one the wells are of order one deep,
+# so the difference of two values of the potential carries a rounding error of a
+# few times 1e-17, and at an alpha as low as 0.05, where the wells are fifteen
+# times deeper, of up to 9e-16. The roots those values are taken at come out of
+# an eigenvalue solve whose last digits differ from one platform's linear
+# algebra to the next, so a well that has flattened onto the saddle lands
+# anywhere in that range rather than on zero. The threshold sits three orders of
+# magnitude above the largest of those roundings, so such a well reads as
+# collapsed everywhere, and more than nine orders of magnitude below the
+# smallest barrier of the tables this package pins, so no barrier of ordinary
+# size is touched by it. What is touched whatever beta reads is a very flat
+# potential: the shallower of the two barriers is at most 1 / (4 alpha), which
+# the symmetric potential reaches, so above an alpha of about 2.5e11 that
+# barrier lies inside the threshold at every beta and comes back as zero, which
+# Barriers.ratio names.
+_VANISHED_BARRIER: Final = 1e-12
+
 # exp of an argument above about 709 overflows float64, so every exit time in
 # this module is refused a little before that rather than returned as an
 # infinity or raised as an OverflowError from the bare exponential.
@@ -108,8 +126,14 @@ _GRID_MAX: Final = 2**21
 _GRID_TOLERANCE: Final = 1e-8
 
 # How far below the fold the bisection of beta_from_barrier_ratio stops, where
-# the two barriers still solve cleanly.
-_FOLD_MARGIN: Final = 1e-9
+# the two barriers still solve cleanly. The shallow barrier falls off as the
+# three halves power of the distance to the fold, so this margin leaves it at
+# about 1e-9 at the reference alpha, three orders of magnitude above
+# _VANISHED_BARRIER and eight above the rounding of the potential. A margin a
+# hundred times smaller would leave the barrier at the threshold itself, where
+# the largest reachable ratio would read as undefined. It is also the distance
+# the calibration keeps from the fold, see _CALIBRATION_MARGIN.
+_FOLD_MARGIN: Final = 1e-6
 
 # Calibration search: bounds, starting points and the accepted mismatch.
 _CALIBRATION_MARGIN: Final = 1e-6
@@ -289,6 +313,17 @@ class Barriers:
     relapse : float
         The paper's delta V2, ``V(saddle) - V(relapse)``, the climb out of the
         no health well.
+
+    Notes
+    -----
+    A barrier built by [`DoubleWell.barriers`][msrelapse.model.DoubleWell.barriers]
+    is never negative, and a well that has flattened onto the saddle is reported
+    as exactly 0.0 rather than as the rounding left over from the difference of
+    two nearly equal values of the potential. A well within rounding of the fold
+    therefore reads as collapsed on every platform, in
+    [`ratio`][msrelapse.model.Barriers.ratio], in
+    [`DoubleWell.barrier_ratio`][msrelapse.model.DoubleWell.barrier_ratio] and
+    in the exit time functions alike.
     """
 
     health: float
@@ -301,17 +336,26 @@ class Barriers:
         Raises
         ------
         ValueError
-            If the relapse barrier is not positive, which is where the shallow
-            well has flattened onto the saddle. That is the case within about
-            1e-12 of ``fold_beta(alpha)``, where the cubic still has three
-            distinct roots but the two right ones no longer differ in the
-            potential.
+            If the relapse barrier is not positive, which happens on either of
+            two counts. The shallow well has flattened onto the saddle, which is
+            the case within about 1e-8 of ``fold_beta(alpha)``, where the cubic
+            still has three distinct roots but the two right ones no longer
+            differ in the potential by more than the threshold a vanished
+            barrier is snapped to zero at. Or the potential is so flat that the
+            barrier was snapped whatever beta reads: the shallower of the two
+            barriers is at most ``1 / (4 alpha)``, which the symmetric potential
+            reaches, and that is below the threshold above an alpha of about
+            2.5e11.
         """
         if self.relapse <= 0.0:
             raise ValueError(
                 f"the barrier ratio is not defined when the relapse barrier is "
-                f"{self.relapse!r}: the shallow well has flattened onto the saddle, which "
-                f"is what happens as beta approaches fold_beta(alpha)"
+                f"{self.relapse!r}: either the shallow well has flattened onto the saddle, "
+                f"which is what happens as beta approaches fold_beta(alpha), or the "
+                f"potential is so flat that 1 / (4 alpha), the deepest the shallower of "
+                f"the two barriers gets, is itself shallower than the threshold a vanished "
+                f"barrier is snapped to zero at, which is the case above an alpha of about "
+                f"2.5e11"
             )
         return self.health / self.relapse
 
@@ -514,12 +558,19 @@ class DoubleWell:
         Returns
         -------
         Barriers
-            The paper's delta V1 and delta V2, both positive.
+            The paper's delta V1 and delta V2, neither of them negative. A well
+            that is within rounding of the fold, where it has flattened onto the
+            saddle, is reported as exactly 0.0, so that it reads as collapsed on
+            every platform rather than as the rounding of a difference of two
+            nearly equal values of the potential.
 
         Raises
         ------
         ValueError
-            If the potential does not have two wells.
+            If the potential does not have two wells, or if a barrier comes out
+            further below zero than the snapping threshold, which is more than
+            rounding can account for and means the stationary points are not
+            ordered health, saddle, relapse.
         """
         return _barriers_at(self, self.critical_points())
 
@@ -535,9 +586,12 @@ class DoubleWell:
         Raises
         ------
         ValueError
-            If the potential does not have two wells, or if beta is so close to
+            If the potential does not have two wells, if beta is so close to
             ``fold_beta(alpha)`` that the relapse barrier has already collapsed
-            onto the saddle and the ratio has no value; see
+            onto the saddle, or if alpha is large enough that the shallower
+            barrier is inside the threshold a vanished barrier is snapped to zero
+            at whatever beta reads, which is the case above an alpha of about
+            2.5e11. In all three the ratio has no value; see
             [`Barriers.ratio`][msrelapse.model.Barriers.ratio].
         """
         return self.barriers().ratio
@@ -587,6 +641,44 @@ class DoubleWell:
         )
 
 
+def _snap_vanished_barrier(height: float) -> float:
+    """Return a barrier height, with a vanished barrier reported as exactly zero.
+
+    Parameters
+    ----------
+    height : float
+        A barrier height, the difference of two values of the potential.
+
+    Returns
+    -------
+    float
+        Exactly 0.0 when `height` is below ``_VANISHED_BARRIER``, and `height`
+        itself otherwise. The saddle is the top of the potential between the two
+        wells, so a height can only come out a little negative by rounding; such
+        a height is below the threshold and comes back as zero, which is why a
+        barrier is never reported negative. The largest negative seen over a
+        scan of the fold at alphas from 0.05 to 1e4 is 9e-16, three orders of
+        magnitude inside the threshold.
+
+    Raises
+    ------
+    ValueError
+        If `height` lies further below zero than the threshold, which is more
+        than rounding can account for and means the stationary points are not
+        sorted as health, saddle, relapse. Snapping such a height would report a
+        deep well as a collapsed one and send the reader looking at beta.
+    """
+    if height < -_VANISHED_BARRIER:
+        raise ValueError(
+            f"the saddle lies {-height!r} below the bottom of the well, which is not the "
+            f"rounding of a difference of two values of the potential: the stationary "
+            f"points are not sorted as health, saddle, relapse"
+        )
+    if height < _VANISHED_BARRIER:
+        return 0.0
+    return height
+
+
 def _barriers_at(well: DoubleWell, points: CriticalPoints) -> Barriers:
     """Return the two barrier heights of a potential whose stationary points are known.
 
@@ -603,10 +695,16 @@ def _barriers_at(well: DoubleWell, points: CriticalPoints) -> Barriers:
     Returns
     -------
     Barriers
-        The paper's delta V1 and delta V2, both measured from the saddle down.
+        The paper's delta V1 and delta V2, both measured from the saddle down,
+        neither negative and each snapped to exactly zero where the well has
+        flattened onto the saddle. This is the one place the module builds a
+        ``Barriers``, so every barrier it hands out has been through the snap.
     """
     top = well.V(points.saddle)
-    return Barriers(health=top - well.V(points.health), relapse=top - well.V(points.relapse))
+    return Barriers(
+        health=_snap_vanished_barrier(top - well.V(points.health)),
+        relapse=_snap_vanished_barrier(top - well.V(points.relapse)),
+    )
 
 
 def _height_exponent(height: float, sigma: float) -> float:
@@ -1057,7 +1155,9 @@ def mfpt(
         two spellings, if the exponent ``2 max(barrier) / sigma**2`` would
         overflow float64, if `x0` and `x_absorb` are not ordered the way `side`
         requires, if they sit so far apart that the integrand overflows anyway,
-        or if the quadrature does not converge.
+        if the quadrature does not converge, or if a barrier comes out further
+        below zero than the snapping threshold, as
+        [`DoubleWell.barriers`][msrelapse.model.DoubleWell.barriers] describes.
 
     See Also
     --------
@@ -1202,7 +1302,14 @@ def beta_from_barrier_ratio(ratio: float, alpha: float = PAPER.alpha_reference.v
         If `ratio` is not a finite number, if `ratio` is below one, which would
         need a negative beta and would make the no health well the deeper of
         the two, if `ratio` is larger than any potential at this alpha can
-        deliver, or if `alpha` is not a positive finite number.
+        deliver, if `alpha` is not a positive finite number, or if `alpha` is so
+        large that the fold sits below the margin the search keeps from it and
+        no positive beta is left to search over, which happens above an alpha of
+        about 1.5e11. The largest ratio any beta inside the search bracket
+        delivers is about 7.4e8 at the reference alpha, because the bracket stops
+        ``_FOLD_MARGIN`` below the fold and the shallow barrier is still a real
+        height there; a ratio above that is refused rather than answered with a
+        beta closer to the fold.
 
     Examples
     --------
@@ -1219,6 +1326,12 @@ def beta_from_barrier_ratio(ratio: float, alpha: float = PAPER.alpha_reference.v
     upper = fold_beta(alpha) - _FOLD_MARGIN
     if ratio == 1.0:
         return 0.0
+    if upper <= 0.0:
+        raise ValueError(
+            f"alpha={alpha!r} puts the fold at {fold_beta(alpha)!r}, which leaves no room "
+            f"for a positive asymmetry: the search stops {_FOLD_MARGIN} below the fold, and "
+            f"there is no beta between 0 and that bound"
+        )
     largest = DoubleWell(alpha=alpha, beta=upper).barrier_ratio()
     if not ratio <= largest:
         raise ValueError(

@@ -13,7 +13,9 @@ from msrelapse import _citation
 from msrelapse._params import PAPER
 from msrelapse.renewal import alternating_renewal, gamma_rates, rates_from_means, relapse_counts
 from msrelapse.stats import (
+    _DISPERSION_COLLAPSE,
     _DISPERSION_FLOOR,
+    _LOGLIK_GAIN,
     WEEKS_PER_YEAR,
     ARRResult,
     _Fit,
@@ -23,6 +25,7 @@ from msrelapse.stats import (
     _nb_negative_loglik,
     _nb_negative_score,
     _numerical_hessian,
+    _poisson_negative_loglik,
     _standard_errors,
     arr,
     compare_arr,
@@ -71,6 +74,12 @@ SMALL_FOLLOWUP_W = 104.0
 # is passed through, ignored, and warned about, and leaves the reference
 # dispersion a part in ten thousand short of the maximum.
 REFERENCE_TOLERANCE = 1e-10
+
+# The dispersion the refinement of the negative binomial fit stops at on some
+# platforms for the two counts of the collapse test below, where on others it
+# walks the same search all the way down to nothing. Both are the same collapse
+# and both have to be reported as the Poisson fit.
+STALLED_DISPERSION = 1.891353304642683e-08
 
 # Relative agreement asked of every comparison against a reference fit. The two
 # fits agree far more closely than this on the cohort below: the negative
@@ -185,6 +194,26 @@ def reference_design(
 def interval_width(result: ARRResult) -> float:
     """Return the width of a confidence interval on the annualised relapse rate."""
     return result.ci_high - result.ci_low
+
+
+def eight_patient_arms() -> tuple[
+    npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]
+]:
+    """Return the design, counts and exposure of two arms of four patients.
+
+    The counts are more spread out than a Poisson allows, so the negative
+    binomial search starts from a moment dispersion well clear of zero and runs
+    rather than collapsing onto the Poisson fit before it begins.
+    """
+    design = np.column_stack([np.ones(8), np.array([0.0] * 4 + [1.0] * 4)])
+    counts = np.array([0.0, 3.0, 1.0, 7.0, 2.0, 0.0, 5.0, 1.0])
+    exposure = np.full(8, 2.0)
+    return design, counts, exposure
+
+
+def no_standard_errors(*_: object) -> npt.NDArray[np.float64]:
+    """Stand in for _standard_errors on a curvature that carries no Wald interval."""
+    raise np.linalg.LinAlgError("the nb fit has no standard errors: patched to refuse")
 
 
 @pytest.fixture(scope="module")
@@ -696,6 +725,152 @@ def test_a_search_that_walks_the_dispersion_to_nothing_reports_the_poisson_fit()
     assert _fit_negative_binomial(design, counts, exposure, displaced) is displaced
 
 
+def test_a_refinement_that_stalls_just_above_the_numerical_floor_reports_the_poisson_fit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Where one platform walks that same search down to nothing, another stops
+    # a hair above the floor and hands back a dispersion of about 2e-8. It is
+    # the same collapse, so the rule that names it is a threshold far enough
+    # above the floor to catch both rather than the floor itself.
+    design = np.ones((2, 1))
+    counts = np.array([22649.0, 22349.0])
+    exposure = np.ones(2)
+    settled = _fit_poisson(design, counts, exposure)
+    displaced = _Fit(settled.coefficients + 0.05, settled.standard_errors, 0.0, True)
+    stalled = np.concatenate([settled.coefficients, [math.log(STALLED_DISPERSION)]])
+    monkeypatch.setattr("msrelapse.stats._polish", lambda *_: (stalled, False))
+
+    assert _fit_negative_binomial(design, counts, exposure, displaced) is displaced
+
+
+def test_a_curvature_with_no_interval_at_a_tiny_dispersion_reports_the_poisson_fit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A Hessian with no curvature left in the dispersion direction is the
+    # signature of a dispersion that has collapsed, and no Wald interval can be
+    # read from it. The Poisson fit is what the data support, so it is what
+    # comes back rather than the error. The dispersion below is above the one
+    # that is read as a collapse on its own, so the curvature is what decides.
+    design, counts, exposure = eight_patient_arms()
+    poisson = _fit_poisson(design, counts, exposure)
+    stalled = np.concatenate([poisson.coefficients, [math.log(1e-5)]])
+    monkeypatch.setattr("msrelapse.stats._polish", lambda *_: (stalled, True))
+    monkeypatch.setattr("msrelapse.stats._standard_errors", no_standard_errors)
+
+    assert _fit_negative_binomial(design, counts, exposure, poisson) is poisson
+
+
+def test_a_curvature_with_no_interval_at_a_real_dispersion_is_still_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # At a dispersion the data can carry, the same failure is a fault in the fit
+    # rather than a collapse, so it reaches the caller.
+    design, counts, exposure = eight_patient_arms()
+    poisson = _fit_poisson(design, counts, exposure)
+    stalled = np.concatenate([poisson.coefficients, [math.log(0.5)]])
+    monkeypatch.setattr("msrelapse.stats._polish", lambda *_: (stalled, True))
+    monkeypatch.setattr("msrelapse.stats._standard_errors", no_standard_errors)
+
+    with pytest.raises(np.linalg.LinAlgError, match="no standard errors"):
+        _fit_negative_binomial(design, counts, exposure, poisson)
+
+
+def test_the_poisson_likelihood_is_the_limit_of_the_negative_binomial_one() -> None:
+    # The fitted dispersion is weighed in log likelihood units against the
+    # Poisson fit, which means something only because the two are the same model
+    # as the dispersion goes to zero. At a dispersion of 1e-6 the two values
+    # still differ by the term the limit drops, 1.2e-5 on these eight patients,
+    # and by nothing else. The tolerance is one order of magnitude above that
+    # term, so a limit that was wrong by ten times it would be caught.
+    design, counts, exposure = eight_patient_arms()
+    poisson = _fit_poisson(design, counts, exposure)
+    vanishing = np.concatenate([poisson.coefficients, [math.log(1e-6)]])
+
+    assert _nb_negative_loglik(vanishing, design, counts, exposure) == pytest.approx(
+        _poisson_negative_loglik(poisson.coefficients, design, counts, exposure), abs=1e-4
+    )
+
+
+def test_the_likelihood_difference_at_a_vanishing_dispersion_is_rounding(
+    two_arms: tuple[pd.DataFrame, pd.DataFrame],
+) -> None:
+    # What the gain rule differences is the Poisson loss against the negative
+    # binomial one, and the negative binomial carries
+    # gammaln(y + 1 / a) - gammaln(1 / a), a cancellation of two values of size
+    # (1 / a) log(1 / a). The error of the difference therefore grows as the
+    # dispersion falls and as the cohort grows, rather than sitting at the
+    # rounding of either likelihood. At a dispersion of 1e-10 the difference is
+    # below 1e-7 in truth, and on these 600 patients what comes back is larger
+    # than _LOGLIK_GAIN itself. That is why the gain is asked for per patient: a
+    # bound flat in the size of the cohort would be read off rounding on any
+    # cohort of a few hundred.
+    #
+    # Nothing bounds a cancellation error from below, so the assertion is
+    # written against the flat bound, which is the whole of the claim, and not
+    # against the 1.3e-3 measured here. A library whose gammaln rounds
+    # differently moves that number by an order of magnitude either way and the
+    # claim still holds.
+    counts, design, exposure = reference_design(*two_arms)
+    poisson = _fit_poisson(design, counts, exposure)
+    vanishing = np.concatenate([poisson.coefficients, [math.log(1e-10)]])
+
+    rounding = abs(
+        _nb_negative_loglik(vanishing, design, counts, exposure)
+        - _poisson_negative_loglik(poisson.coefficients, design, counts, exposure)
+    )
+    assert rounding > _LOGLIK_GAIN
+
+
+def test_the_gain_rule_reaches_down_to_the_dispersion_that_collapses_on_its_own(
+    two_arms: tuple[pd.DataFrame, pd.DataFrame],
+) -> None:
+    # The two readings of a collapse have to meet. A dispersion just above
+    # _DISPERSION_COLLAPSE is the smallest the gain rule is ever consulted at,
+    # and what it buys on these 600 patients is still inside the per patient
+    # bound, so it is read as the collapse it is rather than falling through a
+    # gap between the two rules.
+    counts, design, exposure = reference_design(*two_arms)
+    poisson = _fit_poisson(design, counts, exposure)
+    vanishing = np.concatenate([poisson.coefficients, [math.log(_DISPERSION_COLLAPSE)]])
+
+    gain = _poisson_negative_loglik(
+        poisson.coefficients, design, counts, exposure
+    ) - _nb_negative_loglik(vanishing, design, counts, exposure)
+    assert gain < _LOGLIK_GAIN * counts.size
+
+
+def test_a_gain_the_cohort_cannot_resolve_reports_the_poisson_fit(
+    two_arms: tuple[pd.DataFrame, pd.DataFrame],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A dispersion of 2e-6 is past the one that reads as a collapse on its own
+    # and its curvature still inverts, so the gain is what decides. It buys 3e-4
+    # of log likelihood over the whole of these 600 patients, under a millionth
+    # each and only a few times the rounding the difference of the two
+    # likelihoods carries at that dispersion. The Poisson fit is what comes back.
+    counts, design, exposure = reference_design(*two_arms)
+    poisson = _fit_poisson(design, counts, exposure)
+    vanishing = np.concatenate([poisson.coefficients, [math.log(2e-6)]])
+    monkeypatch.setattr("msrelapse.stats._polish", lambda *_: (vanishing, True))
+
+    assert _fit_negative_binomial(design, counts, exposure, poisson) is poisson
+
+
+def test_a_dispersion_that_buys_no_likelihood_reports_the_poisson_fit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A dispersion is reported only when the likelihood it reaches is better
+    # than the one the Poisson fit already reaches. This one is far past the
+    # maximum and fits the counts worse than the Poisson does, so the negative
+    # binomial has bought nothing and the Poisson fit is the honest answer.
+    design, counts, exposure = eight_patient_arms()
+    poisson = _fit_poisson(design, counts, exposure)
+    overblown = np.concatenate([poisson.coefficients, [math.log(5.0)]])
+    monkeypatch.setattr("msrelapse.stats._polish", lambda *_: (overblown, True))
+
+    assert _fit_negative_binomial(design, counts, exposure, poisson) is poisson
+
+
 @pytest.mark.parametrize("variance", [-1.0, math.inf, math.nan])
 def test_a_variance_that_is_not_positive_and_finite_has_no_standard_error(
     variance: float,
@@ -718,9 +893,7 @@ def test_a_fit_that_stops_short_of_a_minimum_reports_no_interval(
     # instead. The refinement is displaced by hand because no cohort has been
     # found that displaces it: the point below sits where the likelihood curves
     # the other way along one direction, which is what the eigenvalue records.
-    design = np.column_stack([np.ones(8), np.array([0.0] * 4 + [1.0] * 4)])
-    counts = np.array([0.0, 3.0, 1.0, 7.0, 2.0, 0.0, 5.0, 1.0])
-    exposure = np.full(8, 2.0)
+    design, counts, exposure = eight_patient_arms()
     poisson = _fit_poisson(design, counts, exposure)
     settled = _fit_negative_binomial(design, counts, exposure, poisson)
     assert np.all(np.isfinite(settled.standard_errors))

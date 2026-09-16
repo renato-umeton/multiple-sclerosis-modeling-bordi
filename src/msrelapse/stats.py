@@ -101,7 +101,79 @@ _BFGS_GRADIENT_TOLERANCE: Final = 1e-10
 _BFGS_STEPS: Final = 1000
 _HESSIAN_STEP: Final = 1e-5
 _DISPERSION_FLOOR: Final = 1e-8
-"""Below this the negative binomial is a Poisson and its dispersion reads 0."""
+"""Numerical zero of the moment dispersion, below which the counts are a Poisson.
+
+The maximum likelihood dispersion is zero exactly when the moment one is, so a
+moment estimate no larger than this settles the question before the search
+starts. Where the search itself stops is a different question and is judged
+against ``_DISPERSION_COLLAPSE``, which is wider for the reason given there.
+"""
+
+_DISPERSION_COLLAPSE: Final = 1e-6
+"""At or below this dispersion a fitted negative binomial is read as a Poisson.
+
+The search stops where the likelihood stops moving, and on a cohort whose
+dispersion is walking to nothing that is not the same place on every platform:
+the same fit has been seen to arrive at 5e-9 on one and to stall at 2e-8 on
+another, one either side of the floor above. The threshold is set fifty times
+above that stall so that both read as the collapse they are. Nothing is lost by
+it: a dispersion of 1e-6 inflates the variance of a count of mean m
+from m to m (1 + 1e-6 m), a part in ten thousand even at a hundred relapses per
+patient, which is far below the sampling noise of a variance measured on any
+cohort.
+"""
+
+_LOGLIK_GAIN: Final = 1e-6
+"""Log likelihood per patient a fitted dispersion has to buy over the Poisson fit.
+
+The NB2 likelihood tends to the Poisson likelihood as the dispersion tends to
+zero, so a fit with nothing to show against the Poisson maximum has collapsed
+onto it, whatever the dispersion it stopped at reads.
+
+The bound is counted per patient because the quantity it is compared with is a
+difference of two log likelihoods, and the error of that difference grows with
+the cohort. The negative binomial term gammaln(y + 1 / a) - gammaln(1 / a)
+cancels two values of size (1 / a) log(1 / a), so the difference carries an
+error of order the number of patients times the rounding of float64 times
+(1 / a) log(1 / a), which is set by the dispersion and the size of the cohort
+rather than by the size of either likelihood. Measured on 600 patients it is
+3e-5 at a dispersion of 1e-8, and it falls as the dispersion rises, so it is a
+few times 1e-7 at the dispersion of 1e-6 this rule is first consulted at. A
+bound flat in the size of the cohort would therefore be read off rounding on a
+cohort of a few thousand, while a bound per patient stays above the error on a
+cohort of any size.
+
+What the rule discards is a dispersion no cohort can resolve. Reading the
+likelihood as a quadratic around its maximum, a gain of this size over n
+patients puts the dispersion sqrt(2 n 1e-6) of a standard error from zero,
+three hundredths of one on a cohort of 600. The smallest gain a fitted
+dispersion of this package has been measured to buy is 1e-3, on the 60 patients
+of the smallest cohort of the test suite, sixteen times the bound there.
+
+In dispersion units the same quadratic puts the reach of the rule at about 2e-3
+divided by the root mean square fitted count, whatever the size of the cohort:
+the curvature of the likelihood in the dispersion grows with the cohort exactly
+as the bound does, so n cancels and only the size of a count is left. That is
+under two parts in a thousand on a cohort like the one the test suite fits,
+where a patient has about one relapse over the record, and it means a fitted
+dispersion is discarded some way above ``_DISPERSION_COLLAPSE`` rather than only
+at it. Measured over 600 simulated Poisson cohorts of 200 patients, the largest
+searched dispersion discarded was 1.7e-3 and the smallest kept 2.3e-3, against a
+reach of 1.8e-3 predicted by that formula on those counts. The standard error
+reading holds while the cohort stays below a few hundred thousand patients:
+sqrt(2 n 1e-6) reaches one standard error at about 500000 of them and grows as
+the square root of n after that.
+"""
+
+_SINGULAR_DISPERSION: Final = 1e-3
+"""Dispersion below which a curvature that carries no interval reads as a collapse.
+
+A Hessian with no curvature left in the dispersion direction is what a
+dispersion on its way to zero leaves behind, and no Wald interval can be read
+from it. The bound is three orders of magnitude above ``_DISPERSION_COLLAPSE``,
+so that a fit stopping in the decades between the two is read as a collapse
+where the curvature says so and as a fit where it does not.
+"""
 
 _LOG_DISPERSION_LIMIT: Final = 50.0
 """Bound on the log dispersion the negative binomial likelihood is read at.
@@ -249,7 +321,14 @@ class RateRatioResult:
 
 @dataclass(frozen=True)
 class _Fit:
-    """One fitted log linear count model, with everything the caller reports."""
+    """One fitted log linear count model, with everything the caller reports.
+
+    A negative binomial fit whose dispersion has collapsed is reported as the
+    Poisson fit it was started from, the same object, so it carries a dispersion
+    of 0 and the Poisson standard errors, which are the limit of the negative
+    binomial ones. ``_fit_negative_binomial`` says which readings of a collapse
+    it checks and why.
+    """
 
     coefficients: _Vector
     standard_errors: _Vector
@@ -512,7 +591,10 @@ def compare_arr(  # noqa: PLR0917
         standard error exists. Both coefficients are identified as soon as each
         arm has a relapse, so this needs a degenerate cohort; it is raised
         rather than caught, because a fit whose curvature carries no interval
-        is not reported as one with a nan interval.
+        is not reported as one with a nan interval. The one exception is a
+        negative binomial fit whose dispersion has collapsed, where the missing
+        curvature is that collapse and the Poisson fit is reported instead; see
+        the Notes.
 
     Notes
     -----
@@ -547,6 +629,23 @@ def compare_arr(  # noqa: PLR0917
     the model as 'nb' with a dispersion of 0 and the Poisson standard errors,
     which are the limit of the negative binomial ones, rather than a dispersion
     driven to zero by an optimiser that cannot reach it.
+
+    A search that runs and then arrives at nothing is reported the same way,
+    and it is read as having arrived at nothing on any of three counts: a
+    dispersion at or below 1e-6, where the spread it adds to a count is far
+    below the sampling noise of any cohort; a likelihood no better than the
+    Poisson one by more than 1e-6 for each patient of the two arms; or a
+    curvature that carries no standard errors while the dispersion is below
+    1e-3, which is what a likelihood with no curvature left in the dispersion
+    direction looks like. Three readings rather than one because the search
+    stops where the likelihood stops moving, and that is not the same place on
+    every platform, while a dispersion no model can tell from zero is a collapse
+    wherever the search stopped. The second reading is counted per patient
+    because the difference of the two log likelihoods carries a rounding error
+    that grows with the cohort; what it discards is a dispersion a few
+    hundredths of a standard error from zero, about 2e-3 divided by the root mean
+    square fitted count whatever the size of the cohort, which no cohort below a
+    few hundred thousand patients can resolve.
 
     `arr_a` and `arr_b` are the fitted rates exp(intercept) and
     exp(intercept + coefficient), so that `rate_ratio` is exactly their ratio.
@@ -1002,6 +1101,19 @@ def _bounded_log_dispersion(value: float) -> float:
     return min(max(value, -_LOG_DISPERSION_LIMIT), _LOG_DISPERSION_LIMIT)
 
 
+def _poisson_negative_loglik(
+    coefficients: _Vector, design: _Matrix, counts: _Vector, exposure: _Vector
+) -> float:
+    """Return the negative Poisson log likelihood at one set of coefficients.
+
+    This is the value the negative binomial fit is measured against: the same
+    counts under the model the negative binomial reduces to as its dispersion
+    goes to zero, at the coefficients the Poisson fit maximised it with.
+    """
+    fitted = _fitted_mean(design, coefficients, exposure)
+    return -float(np.sum(counts * np.log(fitted) - fitted - special.gammaln(counts + 1.0)))
+
+
 def _nb_negative_loglik(
     parameters: _Vector, design: _Matrix, counts: _Vector, exposure: _Vector
 ) -> float:
@@ -1094,7 +1206,34 @@ def _polish(
 def _fit_negative_binomial(
     design: _Matrix, counts: _Vector, exposure: _Vector, poisson: _Fit
 ) -> _Fit:
-    """Fit an NB2 model, falling back on the Poisson fit when the dispersion is zero."""
+    """Fit an NB2 model, falling back on the Poisson fit wherever the dispersion collapses.
+
+    The moment dispersion settles the question for the data before the search
+    starts, because the maximum likelihood dispersion is zero exactly when the
+    moment one is. Three further readings settle it for the search, which stops
+    where the likelihood stops moving and not at the same place on every
+    platform: a dispersion at or below ``_DISPERSION_COLLAPSE``, a curvature the
+    standard errors cannot be read from while the dispersion is below
+    ``_SINGULAR_DISPERSION``, and a likelihood that beats the Poisson one by no
+    more than ``_LOGLIK_GAIN`` for each patient of the two arms. Each of them
+    hands back the Poisson fit it was given, which carries a dispersion of 0 and
+    the Poisson standard errors, the limit of the negative binomial ones.
+
+    A Hessian with no curvature left in the dispersion direction is the
+    signature of a dispersion that has gone to nothing, and no Wald interval can
+    be read from it, which is why it is read as a collapse rather than raised
+    while the dispersion is small. At a dispersion the data can carry it is a
+    fault in the fit instead, and it reaches the caller. That is why the
+    curvature is read before the likelihood the fit arrived at: a fit that
+    cannot be inverted at a real dispersion is reported as the fault it is
+    rather than taken for a collapse because its likelihood is poor.
+
+    ``msrelapse.fit.fit_nb_counts`` fits the same NB2 model on bare counts and
+    reads a collapsed search off its own numerical floor alone, so the two
+    modules do not answer the question the same way: a search this one reports as
+    a Poisson can reach a dispersion there. Neither reading is wrong for what its
+    own caller reports, but a change to either belongs in both.
+    """
     start_dispersion = _moment_dispersion(design, counts, exposure, poisson)
     if start_dispersion <= _DISPERSION_FLOOR:
         return poisson
@@ -1109,18 +1248,27 @@ def _fit_negative_binomial(
     )
     parameters, converged = _polish(np.asarray(found.x, dtype=np.float64), design, counts, exposure)
     dispersion = math.exp(_bounded_log_dispersion(float(parameters[-1])))
-    # The first check above settles the question for data the likelihood agrees
-    # with, since the maximum likelihood dispersion is zero exactly when the
-    # moment one is. This second check catches the optimiser rather than the
-    # data: a search that wandered to a dispersion no model can distinguish
-    # from zero reports the Poisson fit instead of an inverted Hessian. No
-    # cohort has been found that reaches it, here or in several thousand
-    # randomised fits, so it stands as insurance against the search and not as
-    # a description of any data.
-    if dispersion <= _DISPERSION_FLOOR:
+    # The check above settles the question for data the likelihood agrees with.
+    # The three that follow catch the optimiser rather than the data: a search
+    # that walked to a dispersion no model can distinguish from zero reports the
+    # Poisson fit instead of an interval built on curvature that is not there.
+    if dispersion <= _DISPERSION_COLLAPSE:
         return poisson
-    covariance = np.linalg.inv(_numerical_hessian(parameters, design, counts, exposure))
-    errors = _standard_errors(covariance, "nb")
+    try:
+        covariance = np.linalg.inv(_numerical_hessian(parameters, design, counts, exposure))
+        errors = _standard_errors(covariance, "nb")
+    except np.linalg.LinAlgError:
+        if dispersion >= _SINGULAR_DISPERSION:
+            raise
+        return poisson
+    # What the dispersion bought, in log likelihood units: the Poisson fit at
+    # its own optimum against the negative binomial fit at this one. The gain is
+    # weighed per patient, because the difference of two log likelihoods carries
+    # a rounding error that grows with the cohort; see _LOGLIK_GAIN.
+    poisson_loss = _poisson_negative_loglik(poisson.coefficients, design, counts, exposure)
+    nb_loss = _nb_negative_loglik(parameters, design, counts, exposure)
+    if poisson_loss - nb_loss <= _LOGLIK_GAIN * counts.size:
+        return poisson
     return _Fit(parameters[:-1], errors[:-1], dispersion, converged)
 
 
