@@ -1,6 +1,7 @@
 # msrelapse
 
 [![CI](https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi/actions/workflows/ci.yml/badge.svg)](https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-live-brightgreen.svg)](https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi/blob/main/LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%20to%203.14-blue.svg)](https://www.python.org/downloads/)
 
@@ -236,9 +237,9 @@ Rebuild them with `python notebooks/build_notebooks.py`; see
 
 The user guide, the theory notes, the reproduction walkthrough and the API
 reference live at
-<https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/>. The site
-goes live once the maintainer enables GitHub Pages for the repository; until
-then it builds locally with `uv run --group docs mkdocs serve`.
+<https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/>. It is
+rebuilt from `main` by the docs workflow on every push, and builds locally with
+`uv run --group docs mkdocs serve`.
 
 ## Citing
 

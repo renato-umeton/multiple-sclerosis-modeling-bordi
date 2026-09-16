@@ -54,13 +54,8 @@ all = ["msrelapse[plot,fast]"]
 msrelapse = "msrelapse.cli:main"
 
 [project.urls]
-# The doubled s of "sclerosis" is how the GitHub repository itself is spelled,
-# so these three URLs, and the ones in CITATION.cff, codemeta.json, mkdocs.yml,
-# the README and the issue chooser, point at a name that resolves. It is also
-# the repository name registered with the PyPI trusted publisher, which matches
-# it exactly, so the spelling changes only by renaming the repository and
-# registering the publisher again.
 Homepage = "https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi"
+Documentation = "https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/"
 Repository = "https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi"
 Issues = "https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi/issues"
 
