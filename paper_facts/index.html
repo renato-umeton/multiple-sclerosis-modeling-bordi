@@ -1,0 +1,1913 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Stochastic double-well model of relapsing-remitting multiple sclerosis (Bordi et al. 2013)">
+      
+      
+      
+        <link rel="canonical" href="https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/paper_facts/">
+      
+      
+        <link rel="prev" href="../data/">
+      
+      
+        <link rel="next" href="../api/model/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Paper facts - msrelapse</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#bordi-et-al-2013-verified-paper-facts-for-implementation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="msrelapse" class="md-header__button md-logo" aria-label="msrelapse" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            msrelapse
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Paper facts
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    renato-umeton/multiple-sclerosiss-modeling-bordi
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="msrelapse" class="md-nav__button md-logo" aria-label="msrelapse" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    msrelapse
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    renato-umeton/multiple-sclerosiss-modeling-bordi
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../theory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Theory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reproducing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reproducing the paper
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paper facts
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paper facts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-sign-convention-fixed-in-three-places" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Sign convention, fixed in three places
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-equations-exactly-as-printed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Equations exactly as printed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-which-convention-to-implement-and-why" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Which convention to implement, and why
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-how-the-barrier-depends-on-alpha" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. How the barrier depends on alpha
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-the-asymmetry-term" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. The asymmetry term
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-verified-numerical-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Verified numerical values
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-clinical-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Clinical data
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-the-three-sample-patients" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. The three sample patients
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-what-to-reproduce-for-each-figure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. What to reproduce for each figure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-table-1-page-7-full-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Table 1 (page 7), full contents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-noise-description" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Noise description
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-implementation-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Implementation checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-what-the-paper-does-not-specify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. What the paper does not specify
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-ethics-licence-and-availability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Ethics, licence and availability
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-printed-typographical-slips-for-transcribers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Printed typographical slips, for transcribers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-key-references-for-the-mathematics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. Key references for the mathematics
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/simulate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    simulate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/renewal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    renewal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/cohort/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cohort
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/fit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    fit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/stats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    stats
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/io/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    io
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/plots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    plots
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/datasets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cli
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/params/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    params
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../citing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Citing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CHANGELOG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-sign-convention-fixed-in-three-places" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Sign convention, fixed in three places
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-equations-exactly-as-printed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Equations exactly as printed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-which-convention-to-implement-and-why" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Which convention to implement, and why
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-how-the-barrier-depends-on-alpha" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. How the barrier depends on alpha
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-the-asymmetry-term" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. The asymmetry term
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-verified-numerical-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Verified numerical values
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-clinical-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Clinical data
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-the-three-sample-patients" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. The three sample patients
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-what-to-reproduce-for-each-figure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. What to reproduce for each figure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-table-1-page-7-full-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Table 1 (page 7), full contents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-noise-description" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Noise description
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-implementation-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Implementation checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-what-the-paper-does-not-specify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. What the paper does not specify
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-ethics-licence-and-availability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Ethics, licence and availability
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-printed-typographical-slips-for-transcribers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Printed typographical slips, for transcribers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-key-references-for-the-mathematics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. Key references for the mathematics
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="bordi-et-al-2013-verified-paper-facts-for-implementation">Bordi et al. 2013: verified paper facts for implementation<a class="headerlink" href="#bordi-et-al-2013-verified-paper-facts-for-implementation" title="Permanent link">&para;</a></h1>
+<p>Source: Bordi I, Umeton R, Ricigliano VAG, Annibali V, Mechelli R, Ristori G, Grassi F, Salvetti M, Sutera A. "A Mechanistic, Stochastic Model Helps Understand Multiple Sclerosis Course and Pathogenesis". International Journal of Genomics, Volume 2013, Article ID 910321, 10 pages. DOI 10.1155/2013/910321. Hindawi Publishing Corporation. Received 24 October 2012; Revised 2 January 2013; Accepted 27 January 2013. Academic Editor Brian Wigdahl. Licence CC BY.</p>
+<p>Every equation, number and figure value below was checked by me against the PDF: the text layer was extracted and read directly, and every disputed figure was rendered at 300 to 400 dpi and measured with axis calibration. Where a value is measured rather than printed, this document says so.</p>
+<h2 id="1-sign-convention-fixed-in-three-places">1. Sign convention, fixed in three places<a class="headerlink" href="#1-sign-convention-fixed-in-three-places" title="Permanent link">&para;</a></h2>
+<p>Clinical encoding (Section 2.1, page 2): "Each subject has been represented by a sequence of plus one (+1) and minus one (-1) corresponding to the states of relapses and remissions, respectively. For clarity, hereafter these two states are denoted as <em>no health</em> and <em>health</em>."</p>
+<p>So <code>+1</code> is RELAPSE, called "no health"; <code>-1</code> is REMISSION, called "health".</p>
+<p>Model counterpart (page 4, right column, immediately after equation (1)): "The above equation has three steady (independent on time) states. They are x0 = 0, x1 = -1/sqrt(a), and x2 = +1/sqrt(a). Note that in case alpha = 1, we have x1 = -1 and x2 = 1. Now, in agreement with the convention used for clinical data, let x1 be the state of <em>health</em> and x2 the state of <em>no health</em>."</p>
+<table>
+<thead>
+<tr>
+<th>Model state</th>
+<th>Position</th>
+<th>Clinical meaning</th>
+<th>Clinical code</th>
+<th>Depth when beta &gt; 0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>x1</td>
+<td>-1/sqrt(alpha)</td>
+<td>health, remission</td>
+<td>-1</td>
+<td>deeper well</td>
+</tr>
+<tr>
+<td>x0</td>
+<td>middle root</td>
+<td>unstable barrier top</td>
+<td>none</td>
+<td>not a state</td>
+</tr>
+<tr>
+<td>x2</td>
+<td>+1/sqrt(alpha)</td>
+<td>no health, relapse</td>
+<td>+1</td>
+<td>shallower well</td>
+</tr>
+</tbody>
+</table>
+<p>Restated in the Figure 5 caption (page 5) and at the head of Section 3.2 (page 3). Figure 2's y-axis labels the +1 tick "No health sate" (a printed typo for "state") and the -1 tick "Health state". Figure 7(b) confirms the direction: with beta = 0.08 "the variable x still changes erratically its state but spends more time around -1 than around +1".</p>
+<h2 id="2-equations-exactly-as-printed">2. Equations exactly as printed<a class="headerlink" href="#2-equations-exactly-as-printed" title="Permanent link">&para;</a></h2>
+<p>Equation (1), page 4, deterministic mechanistic component:</p>
+<div class="highlight"><pre><span></span><code>dx = x (1 - alpha*x^2) dt
+</code></pre></div>
+<p>The control parameter sits INSIDE the bracket, so the drift expands to <code>x - alpha*x^3</code>. Alpha multiplies x CUBED, never the linear term.</p>
+<p>Steady states of (1), unnumbered, inline on page 4:</p>
+<div class="highlight"><pre><span></span><code>x0 = 0,  x1 = -1/sqrt(a),  x2 = +1/sqrt(a)
+</code></pre></div>
+<p>The radicand is printed as a Latin italic <code>a</code> (U+1D44E), not the Greek alpha (U+1D6FC) used everywhere else. I verified this at the byte level. It is a typesetting slip; implement <code>1/sqrt(alpha)</code>.</p>
+<p>Equation (2), page 4, symmetric potential:</p>
+<div class="highlight"><pre><span></span><code>V(x) = - integral of x(1 - alpha*x^2) dx = -(1/2)*x^2 + alpha*(1/4)*x^4
+</code></pre></div>
+<p>Equation (3), page 5, asymmetric potential:</p>
+<div class="highlight"><pre><span></span><code>V(x) = - integral of [x(1 - alpha*x^2) - beta] dx = -(1/2)*x^2 + alpha*(1/4)*x^4 + beta*x
+</code></pre></div>
+<p>Equation (4), page 6, the full stochastic equation of motion, the one actually simulated:</p>
+<div class="highlight"><pre><span></span><code>dx = [x(1 - alpha*x^2) - beta] dt + epsilon^(1/2) dw
+</code></pre></div>
+<p>printed with three underbraces: <code>dx</code> is "change of the health state of a patient", the drift term is "mechanistic component (double-well)", the noise term is "external random stimuli". Followed by "where epsilon^(1/2) dw is the noise of variance epsilon".</p>
+<p>Equations (5) and (6), page 6, mean exit times:</p>
+<div class="highlight"><pre><span></span><code>tau_x1 approximately e^(2*dV1/epsilon)
+tau_x2 approximately e^(2*dV2/epsilon)
+</code></pre></div>
+<p>No prefactor is printed. "where e is the Nepero number", that is Napier's number, so the base is e.</p>
+<p>Equation (7), page 6, the barrier-ratio estimator:</p>
+<div class="highlight"><pre><span></span><code>dV1 / dV2 approximately log(tau_x1) / log(tau_x2)
+</code></pre></div>
+<p>The base of "log" is not given, but because this is a ratio of two logarithms the base cancels exactly. Do not write two separate tests for a natural-log and a base-10 version; they are the same number.</p>
+<p>Barrier definition, stated only in words on page 6, left column: "the barriers are denoted as dV1 and dV2 and are the difference in the potential between the states x1 and x0, and x2 and x0, respectively". That is:</p>
+<div class="highlight"><pre><span></span><code>dV1 = V(x0) - V(x1)      barrier out of health
+dV2 = V(x0) - V(x2)      barrier out of no health
+</code></pre></div>
+<p>No closed form for the barrier is printed anywhere in the paper.</p>
+<h2 id="3-which-convention-to-implement-and-why">3. Which convention to implement, and why<a class="headerlink" href="#3-which-convention-to-implement-and-why" title="Permanent link">&para;</a></h2>
+<p>Implement, in exactly this form:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">potential</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">):</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="k">return</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">4</span> <span class="o">+</span> <span class="n">beta</span> <span class="o">*</span> <span class="n">x</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">drift</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">):</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">beta</span>        <span class="c1"># equals -dV/dx</span>
+</code></pre></div>
+<p>This is the numerical check's <strong>convention B</strong>. Convention A (<code>V = x**4/4 - a*x**2/2 + beta*x</code>) is NOT this paper and must not be used. The two are algebraically identical at alpha = 1 and only there, which is why every alpha = 1 value agrees under both. They diverge at alpha = 0.7, which the paper does use.</p>
+<p>Evidence that B is correct:</p>
+<ol>
+<li>Printed equation (2) is convention B verbatim: the alpha multiplies the quartic, and there is no alpha on the quadratic.</li>
+<li>The drift in (4) is exactly the negative gradient of (3): <code>-dV/dx = x - alpha*x^3 - beta = x(1 - alpha*x^2) - beta</code>. Verified.</li>
+<li>Figure 5(b), which I rendered at 300 dpi. At alpha = 0.7 the minima move OUTWARD to about plus or minus 1.2 and DOWN to about -0.357. Convention B predicts wells at <code>1/sqrt(0.7) = 1.1952</code> and depth <code>-1/(4*0.7) = -0.3571</code>. Convention A would have moved them INWARD to plus or minus 0.837 and UP to -0.1225. The figure is unambiguous.</li>
+</ol>
+<p>Consequences, derived and not printed in the paper:</p>
+<table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th>beta = 0 closed form</th>
+<th>alpha = 1</th>
+<th>alpha = 0.7</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Well positions</td>
+<td>plus or minus 1/sqrt(alpha)</td>
+<td>plus or minus 1</td>
+<td>plus or minus 1.195229</td>
+</tr>
+<tr>
+<td>Well depth</td>
+<td>-1/(4*alpha)</td>
+<td>-0.25</td>
+<td>-0.357143</td>
+</tr>
+<tr>
+<td>Barrier dV</td>
+<td>1/(4*alpha)</td>
+<td>0.25</td>
+<td>0.357143</td>
+</tr>
+</tbody>
+</table>
+<p>For beta not equal to zero there is no closed form. The three stationary points are the real roots of <code>alpha*x^3 - x + beta = 0</code>; find them numerically (<code>numpy.roots([alpha, 0, -1, beta])</code>, keep real roots, sort ascending as x1 &lt; x0 &lt; x2). At alpha = 1 three real roots exist only for <code>beta &lt; 2/(3*sqrt(3)) = 0.384900179459750</code>; above that the no-health well vanishes in a saddle-node fold. Guard package input against this.</p>
+<h2 id="4-how-the-barrier-depends-on-alpha">4. How the barrier depends on alpha<a class="headerlink" href="#4-how-the-barrier-depends-on-alpha" title="Permanent link">&para;</a></h2>
+<p>Text, page 4, right column: "It should be noted that the difference of the potential in x1 (x2) and x0 (denoted by delta-V in the figure) is the barrier that must be overcome to jump from one state to the other; <strong>it increases when alpha is decreased with respect to the reference value alpha = 1</strong> (the opposite occurs when alpha is greater than 1). In the context of MS, such a barrier is though [sic] to be set by the combination of heritable and nonheritable risk."</p>
+<p>Figure 5 caption: "delta-V is the barrier whose height is controlled by the parameter alpha."</p>
+<p>Table 1, page 7: "alpha: control parameter that sets the barrier to overcome for going from one state to the other."</p>
+<p><strong>Text and figure agree completely</strong>, and both agree with the algebra of equation (2): <code>dV = 1/(4*alpha)</code>, monotonically decreasing in alpha. Lower alpha means a higher barrier, longer dwell times and fewer transitions. Clinically alpha encodes "the combination of heritable and nonheritable risk" (page 4) or "the genetic background and environmental exposures of the patient" (page 3).</p>
+<p>This resolves the plan's section 1.1 VERIFY flags. Both resolve against the plan's primary guess and in favour of its parenthetical alternative. The plan's provisional forms <code>dx/dt = a*x - x^3</code> and <code>V = x^4/4 - a*x^2/2</code> are wrong for alpha not equal to 1 and should be deleted, not merely flagged. Note that the plan's regression targets for alpha = 1, beta = 0.08 remain correct unchanged, because alpha = 1 is the crossover point.</p>
+<p>The same direction holds in the asymmetric case: at beta = 0.08, lowering alpha from 1 to 0.7 raises dV1 from 0.3348 to 0.4575 and dV2 from 0.1749 to 0.2664, while their ratio falls slightly from 1.914 to 1.718.</p>
+<p>Alpha is never estimated from data. Every patient fit fixes alpha = 1; alpha = 0.7 appears only in Figures 5(b) and 6(b).</p>
+<h2 id="5-the-asymmetry-term">5. The asymmetry term<a class="headerlink" href="#5-the-asymmetry-term" title="Permanent link">&para;</a></h2>
+<p>The potential term is <code>+beta*x</code>, arising from <code>-beta</code> inside the drift. With beta &gt; 0 the potential is lowered for x &lt; 0 and raised for x &gt; 0, so the LEFT well at x1 (health) deepens and the RIGHT well at x2 (no health) becomes shallower. This is exactly what the paper wants (page 5: "the one associated to the health state is deeper than the other, so that it is more difficult to exit from the health condition than from the relapse"), and I confirmed it by measuring Figure 6(a), where the deep well is on the negative x side.</p>
+<p>Parameter values used in the figures:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Values used</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>alpha</td>
+<td>1 (reference), 0.7</td>
+<td>1 in Figs 5a, 6a, 7a, 7b, 8a-c; 0.7 in Figs 5b, 6b only</td>
+</tr>
+<tr>
+<td>beta</td>
+<td>0, 0.08, 0.25, 0.19, 0.12</td>
+<td>0 in Figs 5, 7a; 0.08 in Figs 6, 7b; 0.25/0.19/0.12 in Figs 8a/8b/8c</td>
+</tr>
+<tr>
+<td>epsilon</td>
+<td>0.13</td>
+<td>Figure 7, both panels. The only noise value in the entire paper</td>
+</tr>
+</tbody>
+</table>
+<p>The noise amplitude multiplying <code>dw</code> is <code>sqrt(0.13) = 0.360555</code>.</p>
+<h2 id="6-verified-numerical-values">6. Verified numerical values<a class="headerlink" href="#6-verified-numerical-values" title="Permanent link">&para;</a></h2>
+<p>All computed by me in the paper's own convention with barriers anchored at V(x0), and cross-checked against the rendered figures.</p>
+<table>
+<thead>
+<tr>
+<th>alpha</th>
+<th>beta</th>
+<th>x1</th>
+<th>x0</th>
+<th>x2</th>
+<th>V(x1)</th>
+<th>V(x0)</th>
+<th>V(x2)</th>
+<th>dV1</th>
+<th>dV2</th>
+<th>ratio</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>0</td>
+<td>-1</td>
+<td>0</td>
+<td>1</td>
+<td>-0.2500</td>
+<td>0</td>
+<td>-0.2500</td>
+<td>0.2500</td>
+<td>0.2500</td>
+<td>1.000</td>
+</tr>
+<tr>
+<td>0.7</td>
+<td>0</td>
+<td>-1.1952</td>
+<td>0</td>
+<td>1.1952</td>
+<td>-0.3571</td>
+<td>0</td>
+<td>-0.3571</td>
+<td>0.3571</td>
+<td>0.3571</td>
+<td>1.000</td>
+</tr>
+<tr>
+<td>1</td>
+<td>0.08</td>
+<td>-1.037827</td>
+<td>0.080522</td>
+<td>0.957305</td>
+<td>-0.331541</td>
+<td>0.003210</td>
+<td>-0.171670</td>
+<td>0.334751</td>
+<td>0.174880</td>
+<td>1.914174</td>
+</tr>
+<tr>
+<td>0.7</td>
+<td>0.08</td>
+<td>-1.2334</td>
+<td>0.0804</td>
+<td>1.1530</td>
+<td>-0.4543</td>
+<td>0.0032</td>
+<td>-0.2632</td>
+<td>0.4575</td>
+<td>0.2664</td>
+<td>1.7175</td>
+</tr>
+<tr>
+<td>1</td>
+<td>0.25</td>
+<td>-1.1072</td>
+<td>0.2696</td>
+<td>0.8376</td>
+<td>-0.5140</td>
+<td>0.0324</td>
+<td>-0.0183</td>
+<td>0.5464</td>
+<td>0.0507</td>
+<td>10.775</td>
+</tr>
+<tr>
+<td>1</td>
+<td>0.19</td>
+<td>-1.0841</td>
+<td>0.1977</td>
+<td>0.8864</td>
+<td>-0.4483</td>
+<td>0.0184</td>
+<td>-0.0701</td>
+<td>0.4667</td>
+<td>0.0885</td>
+<td>5.273</td>
+</tr>
+<tr>
+<td>1</td>
+<td>0.12</td>
+<td>-1.0553</td>
+<td>0.1218</td>
+<td>0.9335</td>
+<td>-0.3734</td>
+<td>0.0073</td>
+<td>-0.1338</td>
+<td>0.3807</td>
+<td>0.1411</td>
+<td>2.698</td>
+</tr>
+</tbody>
+</table>
+<p>Equation (7) applied to the printed durations, with natural logarithms:</p>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>tau_x1</th>
+<th>tau_x2</th>
+<th>ln ratio</th>
+<th>printed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cohort</td>
+<td>100</td>
+<td>4.3</td>
+<td>3.1572</td>
+<td>3.1</td>
+</tr>
+<tr>
+<td>Patient 23</td>
+<td>117.7</td>
+<td>1.5</td>
+<td>11.7597</td>
+<td>11.8</td>
+</tr>
+<tr>
+<td>Patient 32</td>
+<td>54.0</td>
+<td>2.1</td>
+<td>5.3764</td>
+<td>5.3</td>
+</tr>
+<tr>
+<td>Patient 53</td>
+<td>47.0</td>
+<td>4.3</td>
+<td>2.6396</td>
+<td>2.7</td>
+</tr>
+</tbody>
+</table>
+<p>Note the rounding direction is not uniform: 5.3764 is printed 5.3 rather than 5.4, and 2.6396 is printed 2.7 rather than 2.6.</p>
+<p>The beta that would deliver each ratio at alpha = 1: 0.1375 for the cohort's 3.157, 0.2565 for 11.8, 0.1905 for 5.3, 0.1201 for 2.7. So the published beta for patients 32 and 53 is consistent to two decimals, but the published beta = 0.25 for patient 23 delivers only 10.775. I verified this is a real inconsistency in the paper, not a mis-transcription, by rendering Figure 8(a): the plotted curve matches the beta = 0.25 values exactly.</p>
+<p>I also falsified the alternative barrier anchor. Measuring well depths from V = 0 instead of from V(x0) gives ratios 28.04, 6.39 and 2.79 for the three Figure 8 beta values, matching none of the printed values. The V(x0) anchor is correct.</p>
+<h2 id="7-clinical-data">7. Clinical data<a class="headerlink" href="#7-clinical-data" title="Permanent link">&para;</a></h2>
+<p>From Section 2.1 (page 2), verbatim in substance: 70 patients (28 males and 42 females) with definite MS, monitored prospectively at the MS Clinic of Sapienza University of Rome by four experienced MS neurologists. All were free of any disease-modifying therapy (all data antecedent 1993) and received short courses of corticosteroids if deemed necessary during relapses. "Times to disability endpoints were not different between this cohort and published data on the natural history of the disease."</p>
+<p>Diagnostic criteria: references [14] Schumacher et al. 1965 and [15] Poser et al. 1983.</p>
+<p>Observation window: "The period of interest starts with the first relapse at onset and ends with the last one before the shift to a secondary progressive form." The secondary progressive phase is excluded.</p>
+<p>Relapse definition (citing [14]): "the occurrence of new symptoms, the reappearance of former ones, or the worsening of current symptoms of at least 24 hours duration but less than 6 month". Duration is "the interval between onset of the first symptom or sign and maximum improvement of the last symptom or sign".</p>
+<p>Time resolution: weekly scale; "shorter exacerbations have been rounded up to one week". The 1-week minimum relapse duration is an artefact of this rule.</p>
+<p>Discretisation caveat (page 3): transitions are step functions, which the paper concedes "can be reductive or unrealistic since patients usually report a slow or subacute onset of the relapses. However, this feature does not affect the results presented below."</p>
+<p>Aggregate statistics:</p>
+<table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th>Value</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No health (relapse) events</td>
+<td>218 total</td>
+<td>Fig 4(a) in-panel text</td>
+</tr>
+<tr>
+<td>Mean relapse duration</td>
+<td>4.3 weeks</td>
+<td>Fig 4(a), Section 3.1, Section 3.4</td>
+</tr>
+<tr>
+<td>Relapse duration range</td>
+<td>1 to about 24 weeks</td>
+<td>Section 3.1</td>
+</tr>
+<tr>
+<td>Health (remission) events</td>
+<td>266 total</td>
+<td>Fig 4(b) in-panel text</td>
+</tr>
+<tr>
+<td>Mean remission duration</td>
+<td>about 100 weeks</td>
+<td>Fig 4(b), Section 3.1, Section 3.4</td>
+</tr>
+<tr>
+<td>Remission duration range</td>
+<td>a few weeks to about 1000 weeks</td>
+<td>Section 3.1</td>
+</tr>
+<tr>
+<td>Relapsing-remitting phase length</td>
+<td>40 to 1311 weeks (about 27 years)</td>
+<td>Section 3.1, Fig 3 caption</td>
+</tr>
+<tr>
+<td>Modal phase length</td>
+<td>25 of 70 patients (about 36 percent) at about 200 weeks</td>
+<td>Section 3.1, Fig 3 caption</td>
+</tr>
+<tr>
+<td>Cohort barrier ratio</td>
+<td>dV1/dV2 about 3.1</td>
+<td>Section 3.4</td>
+</tr>
+</tbody>
+</table>
+<p>Consistency check of my own: 266 x 100 + 218 x 4.3 is about 27,537 patient-weeks, that is about 393 weeks per patient, matching the bin-weighted mean of Figure 3 (about 394 weeks). The two figures are mutually consistent.</p>
+<p><strong>There are no statistical fits in this paper.</strong> I searched the full text: no fitted exponential rate, no R squared, no chi square, no Kolmogorov-Smirnov test, no p value, no confidence interval, and no fitted curve overlaid on any histogram. The exponential and no-periodicity claims are purely qualitative, resting on "the absence of any peak in the distributions at some specific time" (page 3). Do not attempt to reproduce a published fit; there is none.</p>
+<h2 id="8-the-three-sample-patients">8. The three sample patients<a class="headerlink" href="#8-the-three-sample-patients" title="Permanent link">&para;</a></h2>
+<p>Printed in Section 3.4 (Model Solutions), page 6, as a three-line display:</p>
+<table>
+<thead>
+<tr>
+<th>Patient</th>
+<th>tau_x1 (health, weeks)</th>
+<th>tau_x2 (no health, weeks)</th>
+<th>dV1/dV2</th>
+<th>fitted beta (alpha = 1)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>no. 23</td>
+<td>117.7</td>
+<td>1.5</td>
+<td>11.8</td>
+<td>0.25</td>
+</tr>
+<tr>
+<td>no. 32</td>
+<td>54.0</td>
+<td>2.1</td>
+<td>5.3</td>
+<td>0.19</td>
+</tr>
+<tr>
+<td>no. 53</td>
+<td>47.0</td>
+<td>4.3</td>
+<td>2.7</td>
+<td>0.12</td>
+</tr>
+</tbody>
+</table>
+<p>Fitting procedure (page 6): "the potential V associated with each patient can be estimated by fixing alpha = 1 and changing beta so that the two wells are asymmetric in the predetermined ratio."</p>
+<p>Time series, measured by me at 400 dpi since the paper prints no numbers on Figure 2:</p>
+<table>
+<thead>
+<tr>
+<th>Patient</th>
+<th>Relapse episodes</th>
+<th>Approximate onset weeks</th>
+<th>Record length</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>no. 23</td>
+<td>2</td>
+<td>13 to 15, 189</td>
+<td>about 356 weeks</td>
+</tr>
+<tr>
+<td>no. 32</td>
+<td>8</td>
+<td>3, 88, 97, 165, 210, 318, 481, 501</td>
+<td>about 505 weeks</td>
+</tr>
+<tr>
+<td>no. 53</td>
+<td>4</td>
+<td>8 to 18, 45 to 48, 201 to 203, 245 to 248</td>
+<td>about 252 weeks</td>
+</tr>
+</tbody>
+</table>
+<p>Each record is consistent with n relapse segments and n+1 remission segments, counting both the leading and the trailing remission: 3 x 117.7 + 2 x 1.5 = 356.1; 9 x 54.0 + 8 x 2.1 = 502.8; 5 x 47.0 + 4 x 4.3 = 252.2. Use these as regression fixtures. The paper never states this censoring convention, and applied cohort-wide it would predict 288 health events rather than the 266 reported.</p>
+<p>Interpretation (page 6 into page 7): patient 23 has "a very deep well associated with the health state and a very shallow well associated with the no health state: this configuration lets the patient be affected by a few disease attacks of short duration"; patient 32 "is expected to have more attacks compared to the previous patient"; patient 53 "should experience disease events lasting more time because of the deeper well associated with the no health state".</p>
+<p>No age, sex, EDSS, onset date or treatment history is given for any of the three.</p>
+<h2 id="9-what-to-reproduce-for-each-figure">9. What to reproduce for each figure<a class="headerlink" href="#9-what-to-reproduce-for-each-figure" title="Permanent link">&para;</a></h2>
+<p><strong>Figure 1</strong> (page 3). Schematic cartoon only, no axes and no numbers. Deep well on the left labelled "Deep well", shallow well on the right labelled "Shallow well", central hump annotated "Potential barriers separating the wells". Panel (a) a particle falling into the deep well; panel (b) a particle hopping over the hump. Documentation art only; do not present it as a plot of equation (2) or (3).</p>
+<p><strong>Figure 2</strong> (page 4). Three binary step-function series. y-axis two levels only, +1 "No health sate" [sic] and -1 "Health state". x-axis "Time (week)" 0 to 500 ticked every 50. Episode counts and onsets as tabulated in section 8 above.</p>
+<p><strong>Figure 3</strong> (page 4). Histogram of relapsing-remitting phase length. y-axis "Counts (number of patients)" 0 to 30 ticked every 5. x-axis "Period of analysis (week)" with tick labels at the bin edges 40, 199, 358, 517, 676, 835, 994, 1153, 1312, giving 8 bins of 159 weeks. Bar heights, which I measured and which sum to exactly 70: <strong>25, 17, 9, 5, 7, 2, 2, 3</strong>.</p>
+<p><strong>Figure 4</strong> (page 5). Two histograms.
+Panel (a): y "Counts (no. of no health events)" 0 to 140 ticked every 20; x "Duration of no health events (week)" ticked 1, 3.5, 6, 8.5, 11, 13.5, 16, 18.5, 21, 23.5, 25, so bins are 2.5 weeks wide starting at 1; in-panel text "No health events: total = 218" and "Duration of no health events: mean = 4.3 weeks". Bar heights I measured, summing to exactly 218: <strong>127, 53, 16, 6, 1, 6, 0, 4, 5</strong>. The last bar is drawn wider than the uniform bin width and ends at about 24 weeks.
+Panel (b): y "Counts (no. of health events)" 0 to 200 ticked at 0, 50, 100, 150, 200; x "Duration of health events (week)" 0 to 1200 ticked every 200, bins 100 weeks wide; in-panel text "Health events: total = 266" and "Duration of health events: mean = 100 weeks". Bar heights I measured: <strong>192 or 193, 35, 18, 5, 0, 5, 4, 2, 0, 2, 2</strong>, summing to 265 against the printed 266. Treat the first two bins as uncertain by plus or minus 1; unlike Figures 3 and 4(a) these cannot be pinned exactly.</p>
+<p><strong>Figure 5</strong> (page 5). Two plots of the symmetric potential, equation (2). Axes x from -2 to 2 ticked every 1, V from -0.8 to 0.8 ticked every 0.2. Two horizontal dashed lines per panel (upper at V = 0 through x0, lower at the well depth) plus a vertical double-headed arrow labelled delta-V, and point labels x0, x1, x2. Panel (a) alpha = 1: minima at plus or minus 1, V = -0.25, delta-V = 0.25. Panel (b) alpha = 0.7: minima at plus or minus 1.195229, V = -0.357143, delta-V = 0.357143. <strong>This pair is the acceptance test for the potential convention.</strong> Any implementation where lowering alpha moves the wells inward or makes them shallower has the wrong convention.</p>
+<p><strong>Figure 6</strong> (page 7). Two plots of the asymmetric potential, equation (3), same axes. Three horizontal dashed lines per panel (through V(x0), V(x2), V(x1)) and two vertical arrows, dV1 on the left and taller, dV2 on the right and shorter, both anchored at the V(x0) line. Panel titles inside the axes at upper right. (a) alpha = 1, beta = 0.08; (b) alpha = 0.7, beta = 0.08. In both panels the deep well is on the negative x side. One caveat I measured: in panel (a) the x1 and x0 dashed lines match the formula to about 0.001, but the x2 dashed line is drawn at V = -0.1821 against the true -0.1717, about 0.010 too low. Trust the formula.</p>
+<p><strong>Figure 7</strong> (page 8). The key simulation figure. Two noisy traces from solutions of equation (4). y-axis "x" from -2 to 2 ticked at -2, -1, 0, 1, 2; x-axis "Time" 0 to 1000 ticked every 100, with <strong>no unit</strong> and no conversion to weeks; parameters printed as a title above each panel. Panel (a) alpha = 1, beta = 0, epsilon = 0.13: roughly balanced occupancy of the two states with residence times of order 100 to 300 time units. Panel (b) alpha = 1, beta = 0.08, epsilon = 0.13: the trace sits near -1 almost throughout with only two brief excursions to +1 (around Time 135 to 150 and 490 to 505). <strong>These traces cannot be reproduced bit for bit</strong>: no integration scheme, time step, seed, initial condition or realisation count is stated anywhere. Reproduce the qualitative behaviour and the occupancy asymmetry only, and document your own choices.</p>
+<p><strong>Figure 8</strong> (page 8). Three plots of equation (3), one per sample patient, axes x from -2 to 2 and V from -0.8 to 0.8. Panel titles above the axes; parameter pair inside the axes at upper right. A single horizontal dashed line per panel marks V(x0), the upper bound of both barriers. All three curves are strongly left skewed, with the right well deepening progressively from (a) to (c). Values as tabulated in section 6. Reproduce by fixing alpha = 1 and using the printed beta; do not derive beta from the printed ratio, because that gives 0.2565 rather than 0.25 for patient 23.</p>
+<h2 id="10-table-1-page-7-full-contents">10. Table 1 (page 7), full contents<a class="headerlink" href="#10-table-1-page-7-full-contents" title="Permanent link">&para;</a></h2>
+<p>Caption: "Disease characteristics and parameters of the mechanistic stochastic model. The table summarizes analogies and links between MS characteristics (left column) and model parameters in (4), in the right column."</p>
+<table>
+<thead>
+<tr>
+<th>Disease characteristics during the relapsing-remitting phase</th>
+<th>Mechanistic, stochastic model</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Two states are observed that we referred to as health and no health.</td>
+<td>V(x): double-well potential (two minima associated with the two states).</td>
+</tr>
+<tr>
+<td>The disease develops in patients with a certain degree of heritable and nonheritable risk.</td>
+<td>alpha: control parameter that sets the barrier to overcome for going from one state to the other.</td>
+</tr>
+<tr>
+<td>It is found that the time spent in the state of health is much longer than in the no health state.</td>
+<td>beta: asymmetry parameter of the potential.</td>
+</tr>
+<tr>
+<td>Random variability of biological processes (i.e. randomness in transcription and translation leading to cell-to-cell variations) [8].</td>
+<td>epsilon^(1/2) dw: stochastic perturbation with zero mean and variance epsilon.</td>
+</tr>
+<tr>
+<td>Genetic background and environmental factors alone are not enough to trigger the transitions between the two states.</td>
+<td>The noise provides the required energy for the random transitions.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="11-noise-description">11. Noise description<a class="headerlink" href="#11-noise-description" title="Permanent link">&para;</a></h2>
+<p>Section 2.2 (page 2): the random perturbation is the Wiener process [16], "which consists of a normally distributed white noise (i.e., the amplitude of the noise is normally distributed with given mean and standard deviation, and all frequencies are involved with no time periodicity)".</p>
+<p>Section 3.3 (page 6): "Let us suppose that on average the noise has zero effect (i.e., its time mean is zero), has a given variance, and it is time decorrelated (i.e., at a given time the value of the stimulus depends only on the previous time): this is the zero order approximation of the statistics of noise". The parenthetical is a Markov statement rather than a decorrelation statement, but the intended meaning (white, delta-correlated Wiener increments) is clear from the surrounding text.</p>
+<p>Why noise is needed (page 6): "Averaged over time it is impossible that x crosses the barrier since the noise, by construction, has zero mean. However, given the statistical property of the stimulus, in due time, we expect that a sequence of small driving occurrences may be equally signed so that x may overcome the barrier and switch from one state to the other. In other words, x is harvesting energy from the stimuli for crossing the barrier."</p>
+<p>The paper explicitly disclaims stochastic resonance (page 3 and page 9): there is no periodic forcing term in equation (4), and "In the case of relapsing-remitting MS, as clinical data suggest, there is not a typical periodicity of relapses induced by some external factors."</p>
+<p>Deterministic limit, printed as a lettered list on pages 4 to 5: "(a) if, by any chance, at initial time the patient is nearby x1, he will be there forever; (b) if, by any chance, at initial time the patient is nearby x2, he will be there forever; (c) if, by any chance, at initial time the patient is nearby x0, he will have 50% chance to be forever nearby x1 or x2."</p>
+<h2 id="12-implementation-checklist">12. Implementation checklist<a class="headerlink" href="#12-implementation-checklist" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Potential: <code>V(x) = -x**2/2 + alpha*x**4/4 + beta*x</code>.</li>
+<li>Drift: <code>f(x) = x*(1 - alpha*x**2) - beta</code>, which equals <code>-dV/dx</code> exactly.</li>
+<li>SDE: <code>dx = f(x)*dt + sqrt(epsilon)*dW</code>, with epsilon = 0.13 for the published simulations.</li>
+<li>Fixed points: real roots of <code>alpha*x**3 - x + beta = 0</code>, sorted ascending as x1 (health) &lt; x0 (saddle) &lt; x2 (no health). At beta = 0 these are <code>-1/sqrt(alpha)</code>, 0, <code>+1/sqrt(alpha)</code>.</li>
+<li>Barriers: <code>dV1 = V(x0) - V(x1)</code>, <code>dV2 = V(x0) - V(x2)</code>. At beta = 0 both equal <code>1/(4*alpha)</code>.</li>
+<li>Mean exit times: <code>tau_1 = exp(2*dV1/epsilon)</code>, <code>tau_2 = exp(2*dV2/epsilon)</code>, with no prefactor, as printed.</li>
+<li>Estimator: <code>dV1/dV2 = log(tau_1)/log(tau_2)</code>, with tau in WEEKS.</li>
+<li>Per-patient calibration: fix alpha = 1, solve for beta such that <code>dV1(beta)/dV2(beta)</code> equals that patient's log-ratio. Document that this returns 0.2565 for patient 23, against the published 0.25.</li>
+<li>Guard beta below <code>2/(3*sqrt(3)) = 0.384900179459750</code> at alpha = 1, above which bistability is lost.</li>
+<li>Everything else (time step, integrator, seed, run length in weeks, the rule converting x(t) into a plus-or-minus-one series) must be chosen by the implementer and clearly labelled as not from the paper.</li>
+</ol>
+<p>A caution on equations (5) to (7) that matters for any calibration layer. Because the prefactor is dropped, equation (7) is trivially self-consistent with (5) and (6): the ratio of the exponents equals the barrier ratio by construction, for any epsilon. That is why epsilon cancels. But it also means applying (7) to OBSERVED durations in weeks silently assumes the Kramers prefactor equals one week and that the two prefactors cancel, and neither holds. An independent numerical check of the same potential found that the relapse-side Kramers prefactor at alpha = 1 has a hard floor of <code>2*pi/sqrt(2) = 4.4429</code> weeks, which is larger than the observed 4.3 weeks, so no Kramers-based calibration to a 4.3-week relapse exists at all. Treat 3.1572 as a named, documented heuristic constant, never as the definition of the barrier ratio and never as a way to derive beta.</p>
+<p>A second caution. The same numerical check calibrated the exact mean first passage time to (100 weeks, 4.3 weeks) and obtained beta = 0.210435, sigma = 0.507768. That calibration was performed at a = 1, where the two conventions coincide, so it DOES transfer to this paper's potential. The implied noise variance is <code>sigma**2 = 0.2578</code>, roughly twice the paper's epsilon = 0.13. So the paper's own epsilon does not reproduce its own observed durations under an exact first-passage reading. Report this, do not paper over it.</p>
+<h2 id="13-what-the-paper-does-not-specify">13. What the paper does not specify<a class="headerlink" href="#13-what-the-paper-does-not-specify" title="Permanent link">&para;</a></h2>
+<ul>
+<li>No integration scheme, time step, random seed, initial condition or number of realisations for Figure 7. I confirmed the words "Euler" and "time step" appear nowhere in the paper.</li>
+<li>No conversion between the Figure 7 model time axis (0 to 1000, unitless) and clinical weeks.</li>
+<li>No statement of whether epsilon is a variance per unit time or a per-step variance.</li>
+<li>No Kramers prefactor, and no Kramers or first-passage-time citation. I grepped for both and got zero hits; equations (5) and (6) are attributed solely to reference [6], Benzi, Parisi, Sutera and Vulpiani, SIAM Journal on Applied Mathematics 43(3):565-578, 1983.</li>
+<li>No procedure, formula or tolerance for inverting the barrier ratio to obtain beta.</li>
+<li>No rule converting a continuous simulated x(t) into a binary plus-or-minus-one episode series, and no quantitative fit of simulated to observed exit-time distributions. The comparison in the paper is purely visual.</li>
+<li>No procedure for estimating alpha from data.</li>
+<li>No per-patient data table, no raw series, no supplementary material.</li>
+<li>No goodness-of-fit statistics of any kind.</li>
+</ul>
+<h2 id="14-ethics-licence-and-availability">14. Ethics, licence and availability<a class="headerlink" href="#14-ethics-licence-and-availability" title="Permanent link">&para;</a></h2>
+<p>Ethics (Section 2.1, page 2, verbatim, including the printed "a analysis"): "Being this a analysis of anonymous clinical data (collected until 1993, before the institution of ethics committee in Italy in 1998), stored for both clinical and research purposes in the database of the University hospital, ethics committee approval and written informed consent of patients are not needed (http://www.garanteprivacy.it/garante/doc.jsp?ID=1884019)."</p>
+<p>Licence (page 1): "Copyright (c) 2013 Isabella Bordi et al. This is an open access article distributed under the Creative Commons Attribution License, which permits unrestricted use, distribution, and reproduction in any medium, provided the original work is properly cited." CC BY, so the equations, figures and numbers may be reused in a derived package with citation.</p>
+<p>Authors' Contribution (page 9, a section of its own): "I. Bordi and R. Umeton contributed equally to the work and should be considered co-first authors."</p>
+<p>Acknowledgments (page 9): "This work was supported by Fondazione Italiana Sclerosi Multipla (FISM) and by Progetto Strategico 2007, Italian Ministry of Health. The funders had no role in study design, data collection and analysis, decision to publish, or preparation of the paper."</p>
+<p>Correspondence (page 1): Marco Salvetti, marco.salvetti@uniroma1.it, and Alfonso Sutera, alfonso.sutera@roma1.infn.it.</p>
+<p><strong>Absent from the article.</strong> I searched the complete text of all ten pages for "conflict", "competing", "availab" and "supplement" and got zero hits for every term. There is no data availability statement, no code availability statement, no supplementary material and no conflict of interest statement. The per-patient series are neither deposited nor referenced. A derived package must not claim the paper released data.</p>
+<p>The local PDF also carries a Wiley Online Library download stamp in the right margin of pages 2 to 10 and a "Check for updates" badge on page 1. These are retrieval artefacts, not part of the published article; strip them when quoting.</p>
+<h2 id="15-printed-typographical-slips-for-transcribers">15. Printed typographical slips, for transcribers<a class="headerlink" href="#15-printed-typographical-slips-for-transcribers" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Page 4: the steady states are printed <code>x1 = -1/sqrt(a)</code> and <code>x2 = +1/sqrt(a)</code> with a Latin italic <code>a</code> (U+1D44E) under the radical, while the control parameter in the prose is Greek alpha (U+1D6FC). Verified at the byte level. Read as alpha.</li>
+<li>Page 6: "the shapes of the potentials reflect the differences in the duration times ... observed in Figure 1". Figure 2 is meant; Figure 1 is the schematic cartoon.</li>
+<li>Figure 2, all three panels: the +1 tick is labelled "No health sate", missing the t in "state".</li>
+<li>Page 4: "such a barrier is though to be set by", for "thought".</li>
+<li>Page 2: "Being this a analysis of anonymous clinical data", for "an analysis".</li>
+<li>Page 2: "less than 6 month", for "months".</li>
+<li>Reference [27] lists "M. Prinen", almost certainly M. Pirinen.</li>
+</ul>
+<h2 id="16-key-references-for-the-mathematics">16. Key references for the mathematics<a class="headerlink" href="#16-key-references-for-the-mathematics" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[6] R. Benzi, G. Parisi, A. Sutera, A. Vulpiani, "A theory of stochastic resonance in climatic change", SIAM Journal on Applied Mathematics 43(3):565-578, 1983. Cited for BOTH the potential computation (equation (2), page 4) and the mean exit time estimate (equation (5), page 6). The single methodological source.</li>
+<li>[13] I. Bordi and A. Sutera, "Drought variability and its climatic implications", Global and Planetary Change 40(1-2):115-127, 2004. Cited as the source of "the equation for a double-well forced by a random perturbation (noise)" and of the mechanistic-plus-stochastic decomposition.</li>
+<li>[16] N. Wiener, "Differential-space", Journal of Mathematics and Physics 2:131-174, 1923. The Wiener process.</li>
+<li>[5] A. Sutera, "On stochastic perturbation and long-term climate behaviour", Quarterly Journal of the Royal Meteorological Society 107(451):137-151, 1981.</li>
+<li>[7] I. Bordi and A. Sutera, "Stochastic perturbation in meteorology", Waves in Random Media 10(3):R1-R30, 2000.</li>
+<li>[14] G. A. Schumacher et al., Annals of the New York Academy of Sciences 122:552-568, 1965. Relapse definition and MS diagnosis.</li>
+<li>[15] C. M. Poser et al., Annals of Neurology 13(3):227-231, 1983. Definite MS.</li>
+</ul>
+<p>There is no Kramers reference and no dedicated first-passage-time reference in the 35-item bibliography.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.sections", "navigation.top", "search.suggest", "content.code.copy", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../javascripts/mathjax.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

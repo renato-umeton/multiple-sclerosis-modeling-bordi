@@ -1,0 +1,1490 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Stochastic double-well model of relapsing-remitting multiple sclerosis (Bordi et al. 2013)">
+      
+      
+      
+        <link rel="canonical" href="https://renato-umeton.github.io/multiple-sclerosiss-modeling-bordi/reproducing/">
+      
+      
+        <link rel="prev" href="../theory/">
+      
+      
+        <link rel="next" href="../data/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Reproducing the paper - msrelapse</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#reproducing-the-paper" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="msrelapse" class="md-header__button md-logo" aria-label="msrelapse" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            msrelapse
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Reproducing the paper
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    renato-umeton/multiple-sclerosiss-modeling-bordi
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="msrelapse" class="md-nav__button md-logo" aria-label="msrelapse" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    msrelapse
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    renato-umeton/multiple-sclerosiss-modeling-bordi
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../theory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Theory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reproducing the paper
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reproducing the paper
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-run-writes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the run writes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-numbersjson-contains" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What numbers.json contains
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-closing-table-and-its-tolerances" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The closing table and its tolerances
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-four-notebooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The four notebooks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-inconsistencies-in-the-article" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The inconsistencies in the article
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#substituting-the-real-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Substituting the real data
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paper_facts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paper facts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/simulate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    simulate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/renewal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    renewal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/cohort/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cohort
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/fit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    fit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/stats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    stats
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/io/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    io
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/plots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    plots
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/datasets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cli
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/params/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    params
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../citing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Citing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CHANGELOG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-run-writes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the run writes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-numbersjson-contains" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What numbers.json contains
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-closing-table-and-its-tolerances" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The closing table and its tolerances
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-four-notebooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The four notebooks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-inconsistencies-in-the-article" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The inconsistencies in the article
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#substituting-the-real-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Substituting the real data
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="reproducing-the-paper">Reproducing the paper<a class="headerlink" href="#reproducing-the-paper" title="Permanent link">&para;</a></h1>
+<p>The whole reproduction is one command. It needs no arguments, no data of its
+own and no network, and it prints the closing table on standard output.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>msrelapse<span class="w"> </span>reproduce<span class="w"> </span>--out<span class="w"> </span>reproduction/
+</code></pre></div>
+<p>With no options it reads the synthetic twin shipped inside the package, the
+cohort that the seed 20130910 generated, and measures on it every aggregate the
+article reports. The options change the record, not the measurement.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--data FILE</code></td>
+<td>Measure a weekly CSV of your own instead of the shipped twin</td>
+</tr>
+<tr>
+<td><code>--engine {renewal,sde}</code></td>
+<td>Generate a fresh cohort with the named engine, not to be given with <code>--data</code></td>
+</tr>
+<tr>
+<td><code>--seed N</code></td>
+<td>Generate a fresh cohort under that seed, and draw every bootstrap of the run from it</td>
+</tr>
+<tr>
+<td><code>--out DIR</code></td>
+<td>Where to write, created if absent, <code>reproduction</code> by default</td>
+</tr>
+<tr>
+<td><code>--no-figures</code></td>
+<td>Skip the figures, which need the <code>plot</code> extra</td>
+</tr>
+</tbody>
+</table>
+<p>The run repeats itself exactly. Every random draw it makes, the cohort
+included, comes from the one seed it reports, so two runs with the same
+arguments write the same files. The exit status is 0 when every judged row of
+the closing table falls inside its tolerance and 1 when one of them does not,
+which makes the command usable as a check in a pipeline. A single failing row
+is usually the sampling noise of seventy records rather than a fault: see the
+tolerances below.</p>
+<div class="admonition warning">
+<p class="admonition-title">The shipped record is synthetic</p>
+<p>The article released no data, so this command reads a synthetic twin unless
+you give it a record of your own. Every run says so on standard output, and
+the file it writes carries the provenance sentence. Do not present a number
+or a figure from a default run as a clinical result. <a href="../data/">Data</a> has the
+whole story.</p>
+</div>
+<h2 id="what-the-run-writes">What the run writes<a class="headerlink" href="#what-the-run-writes" title="Permanent link">&para;</a></h2>
+<p>Two data files, one record of the numbers, and nine figures.</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>numbers.json</code></td>
+<td>Every number of the run, described below</td>
+</tr>
+<tr>
+<td><code>weekly.csv</code></td>
+<td>The record that was measured, in the weekly schema</td>
+</tr>
+<tr>
+<td><code>durations.csv</code></td>
+<td>The same record as runs of each state, with the censoring flag</td>
+</tr>
+<tr>
+<td><code>fig2_sample_patients.png</code></td>
+<td>Three binary series, the article's Figure 2</td>
+</tr>
+<tr>
+<td><code>fig3_rr_phase_histogram.png</code></td>
+<td>Record lengths, Figure 3</td>
+</tr>
+<tr>
+<td><code>fig4_duration_histograms.png</code></td>
+<td>The two duration histograms, Figure 4</td>
+</tr>
+<tr>
+<td><code>fig5_symmetric_potentials.png</code></td>
+<td>The symmetric potential at two values of alpha, Figure 5</td>
+</tr>
+<tr>
+<td><code>fig6_asymmetric_potential.png</code></td>
+<td>The asymmetric potential and its two barriers, Figure 6</td>
+</tr>
+<tr>
+<td><code>fig7_simulated_paths.png</code></td>
+<td>Two simulated paths of equation (4), Figure 7</td>
+</tr>
+<tr>
+<td><code>fig8_patient_potentials.png</code></td>
+<td>The three sample patients, Figure 8</td>
+</tr>
+<tr>
+<td><code>fig_survival_vs_exponential.png</code></td>
+<td>Observed survival against the fitted exponential, not in the article</td>
+</tr>
+<tr>
+<td><code>fig_poisson_to_nb.png</code></td>
+<td>Relapse counts against Poisson and negative binomial mass, not in the article</td>
+</tr>
+</tbody>
+</table>
+<p>The last two figures belong to the methods note rather than to the
+reproduction, because the article reports no fit and no test to compare them
+with.</p>
+<h2 id="what-numbersjson-contains">What <code>numbers.json</code> contains<a class="headerlink" href="#what-numbersjson-contains" title="Permanent link">&para;</a></h2>
+<p>One JSON object, with these keys.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>source</code></td>
+<td>Where the record came from, in words</td>
+</tr>
+<tr>
+<td><code>synthetic</code></td>
+<td>Whether the record is synthetic, true for every default run</td>
+</tr>
+<tr>
+<td><code>provenance</code></td>
+<td>The provenance note of the record, or null for a record read from a file</td>
+</tr>
+<tr>
+<td><code>seed</code>, <code>effective_seed</code></td>
+<td>The seed as given and the seed actually used</td>
+</tr>
+<tr>
+<td><code>engine</code></td>
+<td><code>renewal</code>, <code>sde</code>, or null for a record read from a file</td>
+</tr>
+<tr>
+<td><code>citation</code></td>
+<td>The one line citation of the article</td>
+</tr>
+<tr>
+<td><code>closing_table</code></td>
+<td>One object per row of the table below, with <code>quantity</code>, <code>paper</code>, <code>reproduced</code>, <code>tolerance</code> and <code>within_tolerance</code></td>
+</tr>
+<tr>
+<td><code>all_within_tolerance</code></td>
+<td>Whether every judged row is inside its tolerance, the value the exit status reports</td>
+</tr>
+<tr>
+<td><code>fits</code></td>
+<td>Six duration fits: naive, censored and geometric, for each of the two states</td>
+</tr>
+<tr>
+<td><code>memorylessness</code></td>
+<td>Four tests per state: increasing hazard, coefficient of variation, Kolmogorov-Smirnov and Anderson-Darling</td>
+</tr>
+<tr>
+<td><code>periodicity</code></td>
+<td>The pooled Fisher g test over the per patient relapse onsets</td>
+</tr>
+<tr>
+<td><code>barrier_ratio</code></td>
+<td>Equation (7) for the cohort, and for the three patients with the most relapses</td>
+</tr>
+<tr>
+<td><code>relapse_duration_range_weeks</code>, <code>longest_remission_weeks</code>, <code>followup_range_weeks</code></td>
+<td>The three ranges, read off the closing table</td>
+</tr>
+<tr>
+<td><code>calibration</code></td>
+<td>The alpha, beta and sigma fitted to the measured means</td>
+</tr>
+</tbody>
+</table>
+<p>Every value is a plain number, string, boolean or pair, so the file is readable
+by anything that reads JSON and needs no library of ours to open.</p>
+<h2 id="the-closing-table-and-its-tolerances">The closing table and its tolerances<a class="headerlink" href="#the-closing-table-and-its-tolerances" title="Permanent link">&para;</a></h2>
+<p>The table is built by <code>msrelapse.datasets.reproduction_table</code>, which takes any
+weekly record and measures on it the way the article measured its own: naive
+means over every recorded run, censored remissions included.</p>
+<p>The first column below is the row name the table itself prints, so a row on
+screen is found here by reading it off. The third column summarises the rule;
+the full sentence for each rule is in the <code>tolerance</code> column of the table and
+in <code>numbers.json</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th>Article</th>
+<th>Tolerance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mean relapse duration (weeks)</td>
+<td>4.3</td>
+<td>5 percent of the printed value</td>
+</tr>
+<tr>
+<td>mean remission duration (weeks)</td>
+<td>about 100</td>
+<td>10 percent of the printed value</td>
+</tr>
+<tr>
+<td>relapse duration range (weeks)</td>
+<td>1 to about 24</td>
+<td>shortest at least 1 and longest at most 30</td>
+</tr>
+<tr>
+<td>longest remission (weeks)</td>
+<td>about 1000</td>
+<td>between 0.1 and 3 times the printed value, an order of magnitude</td>
+</tr>
+<tr>
+<td>relapsing-remitting phase range (weeks)</td>
+<td>40 to 1311</td>
+<td>inside 40 to 1312 weeks, and exact only for the real series</td>
+</tr>
+<tr>
+<td>barrier ratio dV1/dV2, equation (7)</td>
+<td>about 3.1</td>
+<td>within 0.2 of 3.157, the value the printed durations imply</td>
+</tr>
+<tr>
+<td>exponential fit, relapse durations (KS p value)</td>
+<td>not reported</td>
+<td>Kolmogorov-Smirnov p above 0.05</td>
+</tr>
+<tr>
+<td>exponential fit, remission durations (KS p value)</td>
+<td>not reported</td>
+<td>Kolmogorov-Smirnov p above 0.05</td>
+</tr>
+<tr>
+<td>periodicity of the relapse onsets (pooled Fisher g p value)</td>
+<td>reported as absent</td>
+<td>pooled Fisher g p above 0.05</td>
+</tr>
+</tbody>
+</table>
+<p>Three of the tolerances are worth a sentence each.</p>
+<p><strong>The barrier ratio is compared against 3.157, not against 3.1.</strong> The article
+prints 3.1 for a value its own two durations put at 3.157, so the printed
+number is already 0.057 away from the arithmetic. The tolerance of 0.2 is set
+above three measured quantities: the propagation of the two mean duration
+tolerances (0.177), one standard error of the two means on a cohort of this
+size (0.128), and the article's own rounding (0.057). A bound of 0.05 would
+need about six times the cohort of the study.</p>
+<p><strong>The last three rows are not comparisons.</strong> The article reports no fit, no
+test and no interval anywhere, which section 7 of
+<a href="../paper_facts/">Paper facts</a> records in full, so these rows are read as the
+record declining to contradict the article's two claims in prose. Failing to
+reject is not evidence for a null, and the periodicity row in particular has
+almost no power on records that hold about four onsets each.</p>
+<p><strong>A false row is usually the cohort size.</strong> Regenerating the twin under sixty
+consecutive seeds and building the table on each, every judged row comes out
+true on 27 of them. The five percent rule on the mean relapse duration fails
+most often, on 24 of the 60, because five percent is narrower than one standard
+error of that mean on 261 relapses. The measurement sits beside each tolerance
+in the source of <code>msrelapse.datasets</code>.</p>
+<h2 id="the-four-notebooks">The four notebooks<a class="headerlink" href="#the-four-notebooks" title="Permanent link">&para;</a></h2>
+<p>They live in <code>notebooks/</code> and are executed end to end in continuous
+integration, by the tests carrying the <code>notebook</code> marker in
+<code>tests/test_notebooks.py</code>. Open them with
+<code>uv run --group notebooks --with jupyterlab jupyter lab</code>, which adds JupyterLab
+for that one command since the project does not depend on it, or execute them
+headlessly the way the tests do.</p>
+<p><strong><code>01_reproduce_bordi2013.ipynb</code></strong> is the reproduction, in the order the
+article presents it: load the record and say loudly what it is, redraw Figures
+2 to 4, fit the durations three ways (naive, censored and geometric), test
+memorylessness and periodicity, apply equation (7), calibrate the stochastic
+equation, simulate and overlay Figure 7, draw the three per patient potentials
+of Figure 8, and close with the table above. It is the notebook whose closing
+table has to stay inside tolerance in continuous integration.</p>
+<p><strong><code>02_sde_to_exponential.ipynb</code></strong> asks why the exit times look exponential. It
+sweeps the noise amplitude, shows the coefficient of variation of the measured
+exit times approaching 1 as the wells deepen relative to the noise, and puts
+the Kramers time, the exact mean first passage time and the simulated mean side
+by side so that the gaps between the three are visible at each noise level.</p>
+<p><strong><code>03_poisson_to_negative_binomial.ipynb</code></strong> is the trial statistics story: from
+an alternating renewal record to relapse counts, from counts at one shared rate
+to Poisson, and from per patient rates to the negative binomial, with the
+relapse free curve and the annualised relapse rate with its interval.</p>
+<p><strong><code>04_virtual_cohort_for_trial_design.ipynb</code></strong> is aimed at in-silico trial
+work. It generates a two arm virtual trial with a given rate ratio, computes
+the annualised relapse rate in each arm, compares them, and shows what a cohort
+of the size of the study can and cannot resolve.</p>
+<h2 id="the-inconsistencies-in-the-article">The inconsistencies in the article<a class="headerlink" href="#the-inconsistencies-in-the-article" title="Permanent link">&para;</a></h2>
+<p>A faithful reproduction runs into three, and the package reports each of them
+rather than smoothing it over. All three are recorded in
+<a href="../paper_facts/">Paper facts</a> with the measurement that established them.</p>
+<p><strong>Patient 23.</strong> The article prints, for that patient, durations of 117.7 and
+1.5 weeks, a barrier ratio of 11.8 and a fitted asymmetry of
+<span class="arithmatex">\(\beta = 0.25\)</span>. Those numbers are not consistent with each other: at
+<span class="arithmatex">\(\alpha = 1\)</span> the potential with <span class="arithmatex">\(\beta = 0.25\)</span> has a barrier ratio of 10.775,
+and the ratio of 11.8 needs <span class="arithmatex">\(\beta = 0.2565\)</span>. Rendering Figure 8(a) at 300 dots
+per inch shows the plotted curve matching the <span class="arithmatex">\(\beta = 0.25\)</span> values exactly, so
+the printed beta is the one the figure was drawn from and the mismatch is real
+rather than a transcription slip. The other two sample patients agree to two
+decimals. <code>msrelapse.cohort.paper_patients</code> returns all of it as one table,
+with a column for the ratio implied by the durations, a column for the beta
+that ratio needs, and a column for the ratio the printed beta actually
+delivers. Section 6 of Paper facts has the derivation.</p>
+<p><strong>3.1 against 3.157.</strong> The cohort barrier ratio is printed as about 3.1, while
+the printed durations of 100 and 4.3 weeks give 3.1572 through equation (7).
+The rounding direction is not uniform elsewhere in the article either: 5.3764
+is printed as 5.3 and 2.6396 as 2.7. The package compares against the
+arithmetic rather than against the printed rounding, which is why the closing
+table names 3.157 in its tolerance text.</p>
+<p><strong>The Figure 4(b) bin count.</strong> The panel states 266 health events, while the
+bar heights measured off the rendered figure sum to 265. The first two bins are
+the uncertain ones, by about one count. Figure 3 and Figure 4(a) both sum
+exactly, to 70 and 218, so this is the one histogram in the article that cannot
+be pinned. The digitised heights are in <code>PAPER</code> with that caveat attached, and
+section 9 of Paper facts records the measurement.</p>
+<h2 id="substituting-the-real-data">Substituting the real data<a class="headerlink" href="#substituting-the-real-data" title="Permanent link">&para;</a></h2>
+<p>The article released no per patient series. Anyone who obtains them from the
+corresponding authors, or who has a registry export of their own, can run the
+same pipeline on it: nothing in the analysis knows whether the record it is
+handed is synthetic.</p>
+<p>If the record is already a weekly series of <span class="arithmatex">\(+1\)</span> and <span class="arithmatex">\(-1\)</span> with the columns
+<code>patient_id</code>, <code>week</code> and <code>state</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>msrelapse<span class="w"> </span>reproduce<span class="w"> </span>--data<span class="w"> </span>my_cohort_weekly.csv<span class="w"> </span>--out<span class="w"> </span>reproduction/
+</code></pre></div>
+<p>If it is a registry export with one row per relapse and calendar dates, convert
+it first:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">msrelapse</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ms</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">events</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">read_events</span><span class="p">(</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="s2">"registry_export.csv"</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">date_cols</span><span class="o">=</span><span class="p">(</span><span class="s2">"start"</span><span class="p">,</span> <span class="s2">"end"</span><span class="p">,</span> <span class="s2">"onset"</span><span class="p">,</span> <span class="s2">"recovery"</span><span class="p">),</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">)</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">weekly</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">events_to_weekly</span><span class="p">(</span><span class="n">events</span><span class="p">)</span>         <span class="c1"># applies the weekly rounding rule</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">ms</span><span class="o">.</span><span class="n">write_csv</span><span class="p">(</span><span class="n">weekly</span><span class="p">,</span> <span class="s2">"my_cohort_weekly.csv"</span><span class="p">)</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">ms</span><span class="o">.</span><span class="n">reproduction_table</span><span class="p">(</span><span class="n">weekly</span><span class="p">))</span>
+</code></pre></div>
+<p><code>ms.validate(frame, "weekly")</code> checks a frame against the schema and explains
+the first thing that is wrong with it rather than failing later inside an
+analysis. <a href="../data/">Data</a> documents all three schemas, and the events to weekly
+direction is the one lossy conversion, because it applies the rounding rule of
+the study.</p>
+<p>Two things change when the record is real. The relapsing-remitting phase range
+row becomes an exact comparison rather than a range check, because 40 to 1311
+weeks is a property of that particular follow up. And the whole table becomes a
+statement about the study rather than about a generator, which is the point of
+running it.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.sections", "navigation.top", "search.suggest", "content.code.copy", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../javascripts/mathjax.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
