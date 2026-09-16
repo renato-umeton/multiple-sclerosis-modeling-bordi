@@ -7,6 +7,8 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from scipy import stats
 
 import msrelapse.simulate
@@ -570,6 +572,124 @@ def test_a_level_shift_that_closes_the_band_is_rejected(
     low, high = passage_endpoints(well, "health", "band", BAND_FRACTION)
     with pytest.raises(ValueError, match="closes the hysteresis band"):
         to_states(np.zeros(5), well, BAND_FRACTION, level_shift=high - low)
+
+
+# Properties of the state mapping, over generated paths rather than examples.
+#
+# The tests above pin the band and the shift on paths written out by hand, which
+# is where a reader sees what the rules are. The four below assert the same rules
+# over whatever path Hypothesis builds, which is where a threshold applied to the
+# wrong side, an off by one between a sample and the state it decides, or a code
+# other than the two the schema knows would show up on a shape no example
+# happens to have.
+
+BAND_POSITIONS = st.lists(
+    st.floats(min_value=-2.0, max_value=3.0, allow_nan=False, allow_infinity=False),
+    min_size=1,
+    max_size=40,
+)
+"""Positions in units of the band width, 0 at the health threshold and 1 at the relapse one."""
+
+SHIFT_FRACTIONS = st.floats(min_value=0.0, max_value=0.45, allow_nan=False, allow_infinity=False)
+"""How far the bridge shift brings each threshold in, as a fraction of the band width.
+
+Below half the width the two thresholds stay apart, which is what
+:func:`to_states` requires of the shift it is handed.
+"""
+
+
+def band_path(
+    well: DoubleWell,
+    positions: list[float],
+    shift_fraction: float,
+) -> tuple[npt.NDArray[np.float64], float, float, float]:
+    """Return a generated path and the band it has to be read against.
+
+    The positions arrive in units of the band width, so a generated path covers
+    both states and the band between them whatever potential it is mapped on.
+    What comes back with it is the level shift in units of x and the two
+    thresholds that shift leaves, spelled the way :func:`to_states` spells them
+    so that the comparisons here and the ones inside it round alike.
+    """
+    low, high = passage_endpoints(well, "health", "band", BAND_FRACTION)
+    width = high - low
+    path = low + np.asarray(positions, dtype=np.float64) * width
+    shift = shift_fraction * width
+    return path, shift, low + shift, high - shift
+
+
+@settings(deadline=None, max_examples=200, derandomize=True)
+@given(positions=BAND_POSITIONS, shift_fraction=SHIFT_FRACTIONS)
+def test_the_mapped_states_keep_the_shape_of_the_path(
+    saddle_well: tuple[DoubleWell, float],
+    positions: list[float],
+    shift_fraction: float,
+) -> None:
+    well, _ = saddle_well
+    path, shift, _, _ = band_path(well, positions, shift_fraction)
+    assert to_states(path, well, BAND_FRACTION, level_shift=shift).shape == path.shape
+
+
+@settings(deadline=None, max_examples=200, derandomize=True)
+@given(positions=BAND_POSITIONS, shift_fraction=SHIFT_FRACTIONS)
+def test_the_mapped_states_are_only_the_two_codes_of_the_schema(
+    saddle_well: tuple[DoubleWell, float],
+    positions: list[float],
+    shift_fraction: float,
+) -> None:
+    well, _ = saddle_well
+    path, shift, _, _ = band_path(well, positions, shift_fraction)
+    states = to_states(path, well, BAND_FRACTION, level_shift=shift)
+    assert set(np.unique(states).tolist()) <= {HEALTH, RELAPSE}
+
+
+@settings(deadline=None, max_examples=200, derandomize=True)
+@given(positions=BAND_POSITIONS, shift_fraction=SHIFT_FRACTIONS)
+def test_a_sample_inside_the_band_leaves_the_state_where_it_was(
+    saddle_well: tuple[DoubleWell, float],
+    positions: list[float],
+    shift_fraction: float,
+) -> None:
+    well, _ = saddle_well
+    path, shift, threshold_health, threshold_relapse = band_path(well, positions, shift_fraction)
+    states = to_states(path, well, BAND_FRACTION, level_shift=shift)
+    inside = (path >= threshold_health) & (path <= threshold_relapse)
+    assert np.all(states[1:][inside[1:]] == states[:-1][inside[1:]])
+
+
+@settings(deadline=None, max_examples=200, derandomize=True)
+@given(positions=BAND_POSITIONS, shift_fraction=SHIFT_FRACTIONS)
+def test_a_switch_lands_on_a_sample_that_crossed_the_threshold_it_enters_through(
+    saddle_well: tuple[DoubleWell, float],
+    positions: list[float],
+    shift_fraction: float,
+) -> None:
+    well, _ = saddle_well
+    path, shift, threshold_health, threshold_relapse = band_path(well, positions, shift_fraction)
+    states = to_states(path, well, BAND_FRACTION, level_shift=shift)
+    switched = states[1:] != states[:-1]
+    assert np.all(path[1:][switched & (states[1:] == RELAPSE)] > threshold_relapse)
+    assert np.all(path[1:][switched & (states[1:] == HEALTH)] < threshold_health)
+
+
+@settings(deadline=None, max_examples=25, derandomize=True)
+@given(offset=st.floats(min_value=0.05, max_value=0.95), rising=st.booleans())
+def test_a_zero_noise_path_starting_inside_the_band_never_switches(
+    saddle_well: tuple[DoubleWell, float],
+    offset: float,
+    rising: bool,
+) -> None:
+    # Inside the band the drift alone carries the path out of it, and it carries
+    # it towards the bottom of the well it is already counted in, so the only
+    # threshold it reaches is the one it is already past. A start anywhere in the
+    # band other than the saddle itself therefore holds its state for the whole
+    # run, however long the run is.
+    well, _ = saddle_well
+    low, high = passage_endpoints(well, "health", "band", BAND_FRACTION)
+    saddle = well.critical_points().saddle
+    x0 = saddle + offset * (high - saddle) if rising else saddle - offset * (saddle - low)
+    paths = simulate_paths(well, 0.0, 20.0, dt=0.02, x0=x0)
+    assert np.all(to_states(paths.x, well, BAND_FRACTION) == (RELAPSE if rising else HEALTH))
 
 
 @pytest.fixture(scope="module")

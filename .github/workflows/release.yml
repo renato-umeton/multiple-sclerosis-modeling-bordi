@@ -15,10 +15,16 @@
 #      review from the maintainer. An accidental tag push then waits for an
 #      approval instead of publishing on its own.
 #   3. Enable the Zenodo GitHub integration for this repository, at
-#      https://zenodo.org/account/settings/github/, before tagging v1.0.0.
-#      Zenodo archives the release and mints the DOI only for releases created
-#      after the switch is turned on. Once the DOI exists, add it to
-#      CITATION.cff and codemeta.json and enable the DOI badge in README.md.
+#      https://zenodo.org/account/settings/github/, before the first tag is
+#      pushed, whichever version that first tag carries. Zenodo archives the
+#      release and mints the DOI only for releases created after the switch is
+#      turned on. Once the DOI exists, add it to CITATION.cff and codemeta.json
+#      and enable the DOI badge in README.md.
+#   4. Turn on the two repository features the published metadata already points
+#      at, so that neither link answers with a 404: GitHub Pages, as the header
+#      of docs.yml describes, which is the site URL in CITATION.cff and
+#      codemeta.json, and Discussions, which the issue chooser in
+#      .github/ISSUE_TEMPLATE/config.yml sends a question to.
 #
 # Publishing to TestPyPI first is worth doing once: register a second trusted
 # publisher there and add "repository-url: https://test.pypi.org/legacy/" to
@@ -41,6 +47,7 @@ jobs:
   build:
     name: Build the distribution
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.1.0
@@ -72,6 +79,7 @@ jobs:
     name: Publish to PyPI
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment:
       name: pypi
       url: https://pypi.org/p/msrelapse
@@ -94,6 +102,7 @@ jobs:
     # failed to reach PyPI.
     needs: [build, publish]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
     steps:

@@ -31,16 +31,6 @@ def shipped_bytes(name: str) -> bytes:
     return resources.files("msrelapse").joinpath("data", name).read_bytes()
 
 
-def as_written(data: bytes) -> bytes:
-    """Return CSV bytes as msrelapse.io.write_csv wrote them, before any checkout.
-
-    The only thing a checkout changes in a text file is the line terminator, and
-    only ever from the single newline this package writes to the pair a Windows
-    checkout prefers, so undoing that conversion gives the bytes back.
-    """
-    return data.replace(b"\r\n", b"\n")
-
-
 @pytest.fixture(scope="module")
 def weekly() -> pd.DataFrame:
     return load_synthetic_bordi2013("weekly")
@@ -133,20 +123,19 @@ def test_regenerating_reproduces_the_shipped_file(
     # seed through a fixed pipeline, so a difference in any byte is a change in
     # the twin and the shipped files have to be rewritten with it.
     #
-    # The line terminator is the one exception, and it is an exception about the
-    # checkout rather than about the twin. msrelapse.io.write_csv writes a single
-    # newline on every platform, which is asserted here of the file this test
-    # wrote and measured in tests/test_io.py; but the repository pins no
-    # attribute on the shipped files, so a checkout is free to convert them, and
-    # git on Windows does so by default. Comparing their bytes without that
-    # conversion removed would fail on the checkout rather than on anything the
-    # pipeline did. A ".gitattributes" at the root of the repository carrying
-    # "src/msrelapse/data/*.csv text eol=lf" would pin those bytes and let the
-    # comparison below drop the conversion and read the shipped file as it is.
+    # The line terminator would be the one thing a checkout could change under
+    # this comparison, and the ".gitattributes" at the root of the repository
+    # holds it still: "*.csv text eol=lf" checks the shipped records out with a
+    # single newline on every platform, including a Windows checkout, which
+    # converts by default without it. msrelapse.io.write_csv writes that same
+    # single newline, which is asserted below of the file this test wrote and
+    # measured in tests/test_io.py, so the two sides are read exactly as they
+    # are: a shipped file carrying a carriage return is a fault to report here
+    # rather than something to convert away.
     path = regenerated[schema]
     written = path.read_bytes()
     assert b"\r" not in written
-    assert written == as_written(shipped_bytes(path.name))
+    assert written == shipped_bytes(path.name)
 
 
 def test_regenerating_with_another_seed_gives_another_cohort(
@@ -227,6 +216,44 @@ def relapse_only_weekly() -> pd.DataFrame:
 def test_the_closing_table_refuses_a_record_with_only_one_state() -> None:
     with pytest.raises(ValueError, match="remission run"):
         reproduction_table(relapse_only_weekly())
+
+
+def few_onset_weekly(patients: int = 2, weeks: int = 20) -> pd.DataFrame:
+    """Return a weekly record of two relapses per patient, too few to read a period.
+
+    Every patient opens in relapse, recovers, relapses once more and stays in
+    health to the end, which leaves two complete relapse durations and one
+    complete remission duration per patient and two relapse onsets, one short of
+    the three the periodogram of the pooled test needs.
+    """
+    states = [RELAPSE] * 2 + [HEALTH] * 4 + [RELAPSE] * 2 + [HEALTH] * (weeks - 8)
+    return pd.DataFrame(
+        {
+            "patient_id": pd.Series(
+                [f"p{n + 1:04d}" for n in range(patients) for _ in range(weeks)], dtype=object
+            ),
+            "week": pd.Series(list(range(weeks)) * patients, dtype=np.int64),
+            "state": pd.Series(states * patients, dtype=np.int64),
+        }
+    )
+
+
+def test_the_closing_table_refuses_a_record_no_periodogram_can_be_read_on() -> None:
+    # The periodicity row is the row a small record fails first, and the Raises
+    # section of reproduction_table says so: it needs one patient with eight
+    # weeks of follow up and three relapse onsets, and a handful of lightly
+    # relapsing records carries neither.
+    with pytest.raises(ValueError, match="no patient has a record this test can read"):
+        reproduction_table(few_onset_weekly())
+
+
+def test_the_closing_table_refuses_a_record_with_one_complete_duration() -> None:
+    # The other requirement the Raises section names: the two goodness of fit
+    # rows are fitted on complete durations, and a record whose only remission
+    # of each patient runs to the end of the follow up leaves none of them.
+    frame = pd.concat([one_record("p0001", 40), one_record("p0002", 40)], ignore_index=True)
+    with pytest.raises(ValueError, match="at least two complete durations"):
+        reproduction_table(frame)
 
 
 @pytest.mark.parametrize("alpha", [0.0, 1.0, -0.5])

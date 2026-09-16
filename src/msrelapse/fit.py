@@ -535,10 +535,18 @@ def fit_durations(  # noqa: PLR0917
     The exponential rate is the number of complete runs over the total time, the
     censored runs included, and the mean is its reciprocal. The geometric
     success probability is the same ratio, read on whole weeks. The Fisher
-    interval is symmetric on the log rate at ``z sqrt(1 / n_complete)``, the
-    information of an exponential sample of that many events; the geometric
-    family borrows it, which is accurate while the mean duration is long
-    compared with a week.
+    interval is symmetric on the log rate, at the half width the information of
+    that family gives: ``z / sqrt(n_complete)`` for the exponential and
+    ``z sqrt((1 - rate) / n_complete)`` for the geometric, the shorter of the two
+    by ``sqrt(1 - rate)``. At the 4.3 week relapse of the paper the exponential
+    interval is 14 percent the wider. See :func:`_fisher_interval`.
+
+    A weekly record is discrete, so the geometric family is the exact law of what
+    was recorded and is the one to read a weekly duration with. The exponential
+    family is kept because it is the law of the paper and of
+    :mod:`msrelapse.model`, and because the mean it reports is the arithmetic the
+    paper did; ``continuity_correction=0.5`` is the way to read an exponential on
+    durations that were rounded to whole weeks.
 
     The continuity correction is taken off the complete runs only. A run
     recorded as k weeks and censored there is known to have lasted at least k
@@ -609,7 +617,7 @@ def fit_durations(  # noqa: PLR0917
         )
         ci_method = "bootstrap"
     else:
-        ci_low, ci_high = _fisher_interval(mean, n_complete, ci)
+        ci_low, ci_high = _fisher_interval(mean, rate, family, n_complete, ci)
         ci_method = "fisher"
     return FitResult(
         family=family,
@@ -657,9 +665,8 @@ def test_memoryless(
         Kolmogorov-Smirnov and the Anderson-Darling distance from a fitted
         exponential.
     n_boot : int, optional
-        Number of bootstrap replicates behind the p value of ``cv``, ``ks`` and
-        ``ad``. Unused by ``hazard``, which reads its p value off the
-        regression.
+        Number of bootstrap replicates behind the p value. All four methods draw
+        them, under the same null and at the same scale.
     rng : numpy.random.Generator or int or None, optional
         Generator for the bootstrap, or a seed for
         :func:`numpy.random.default_rng`.
@@ -678,21 +685,21 @@ def test_memoryless(
         complete durations of `state` are available, or, for ``hazard``, if
         fewer than three times have enough records still at risk or if the
         hazard at those times lies exactly on a straight line, which leaves the
-        slope with no standard error and the regression with no p value.
+        slope with no standard error and its drift with nothing to measure.
 
     Notes
     -----
-    The null hypothesis of ``cv``, ``ks`` and ``ad`` is that the durations are
-    an exponential sample rounded up to whole weeks, which is the rounding rule
-    of the study and the only shape a durations frame can hold. Their p values
-    come from replicates drawn under exactly that null and rounded the same way,
-    a parametric bootstrap in the manner of Lilliefors, because the scale is
+    The null hypothesis of all four methods is that the durations are an
+    exponential sample rounded up to whole weeks, which is the rounding rule of
+    the study and the only shape a durations frame can hold. Their p values come
+    from replicates drawn under exactly that null and rounded the same way, a
+    parametric bootstrap in the manner of Lilliefors, because the scale is
     estimated from the sample rather than given. Testing whole week durations
     against an unrounded exponential instead would reject a perfectly memoryless
     record on the rounding alone.
 
     The scale the replicates are drawn at is the scale of the exponential behind
-    the rounding, reported as ``details['scale']`` by all three, and it is about
+    the rounding, reported as ``details['scale']`` by all four, and it is about
     half a week shorter than the mean of the durations themselves. That
     difference is the whole test at the four or five weeks the paper reports for
     a relapse: replicates drawn at the mean are rounded twice over, land further
@@ -706,10 +713,18 @@ def test_memoryless(
     of replicates at least as far from it as the sample is. Comparing with a
     literal 1 instead rejects two thirds of memoryless cohorts of relapses.
 
-    The null hypothesis of ``hazard`` is only that the hazard does not drift
-    with time, which is weaker: it says nothing about the shape between the
-    integers, and its p value comes from an ordinary least squares fit whose
-    residuals grow as the number still at risk falls.
+    ``hazard`` reads only the drift of the weekly hazard, which is less than the
+    other three ask: its statistic says nothing about the shape between the
+    integers, and it is kept signed, positive for a rising hazard and negative
+    for a falling one, so that the direction can be read off it. Its p value is
+    the share of replicates whose drift is at least as far from zero, and not
+    the p value the least squares fit prints. Least squares takes the hazard
+    points as equally precise, while the variance of the hazard at a week is
+    ``h (1 - h) / at_risk`` and grows sharply as the at risk set empties, so the
+    printed p value is too small: on memoryless durations of the length and
+    number the paper reports for a relapse it falls below 0.05 for nearly one
+    cohort in ten rather than one in twenty, and worse as the cohort grows. See
+    :func:`_hazard_test`.
 
     ``ks`` has little to say about short durations. Its distance from a
     continuous exponential is dominated there by the width of the weekly step,
@@ -719,9 +734,12 @@ def test_memoryless(
     record, whose steps do not follow the mean the same way, but read ``ad`` or
     ``cv`` beside it before concluding that a short duration is memoryless.
 
-    Every p value of ``cv``, ``ks`` and ``ad`` is ``(1 + exceedances) /
-    (n_boot + 1)``, so none of them is ever exactly 0 and the smallest one a run
-    can report is set by ``details['n_boot']``.
+    Every p value here is ``(1 + exceedances) / (replicates + 1)``, so none of
+    them is ever exactly 0 and the smallest one a run can report is set by
+    ``details['n_boot']``. That count is `n_boot` itself for ``cv``, ``ks`` and
+    ``ad``, and for ``hazard`` it is the replicates whose hazard could be read
+    at all, which is `n_boot` less the few too short to carry three weeks with
+    enough still at risk.
     """
     _validate_choice("method", method, _MEMORYLESS_METHODS)
     _validate_state(state)
@@ -737,7 +755,7 @@ def test_memoryless(
             f"memorylessness, got {values.size}"
         )
     if method == "hazard":
-        return _hazard_test(values)
+        return _hazard_test(values, n_boot, rng)
     if method == "cv":
         return _cv_test(values, n_boot, rng)
     return _distance_test(values, method, n_boot, rng)
@@ -1272,9 +1290,53 @@ def _log_scale_interval(centre: float, half_width: float) -> tuple[float, float]
     return centre * math.exp(-half_width), centre * math.exp(half_width)
 
 
-def _fisher_interval(mean: float, n_complete: int, ci: float) -> tuple[float, float]:
-    """Return the interval of `mean` from the information on the log rate."""
-    return _log_scale_interval(mean, _z_value(ci) / math.sqrt(n_complete))
+def _fisher_interval(
+    mean: float, rate: float, family: str, n_complete: int, ci: float
+) -> tuple[float, float]:
+    """Return the interval of `mean` from the information on the log rate.
+
+    Parameters
+    ----------
+    mean : float
+        The fitted mean in weeks, which the interval is centred on.
+    rate : float
+        The fitted rate: the weekly rate of the exponential family, or the
+        success probability of the geometric one.
+    family : str
+        ``'exponential'`` or ``'geometric'``.
+    n_complete : int
+        Number of complete runs, the events the information counts.
+    ci : float
+        Coverage of the interval.
+
+    Returns
+    -------
+    tuple of float
+        The two endpoints. The interval is degenerate at a geometric rate of
+        exactly 1, where every run ended in its first week: the information on
+        the log rate is then infinite and the half width vanishes, which is the
+        Wald interval at the boundary of the parameter and not a claim that the
+        mean is known. Ask for a bootstrap interval there instead.
+
+    Notes
+    -----
+    Each family carries the observed information of its own log likelihood on
+    the log rate, and the mean is the reciprocal of that rate, so the half width
+    reads across to the mean unchanged. The exponential likelihood is
+    ``n_complete log(rate) - rate * total``, whose information on the log rate is
+    `n_complete` however long the censored runs make the total, so the half width
+    is ``z / sqrt(n_complete)``. The geometric likelihood is the binomial one of
+    `n_complete` weeks that ended out of the total weeks recorded, whose
+    information on the log success probability is ``n_complete / (1 - rate)``, so
+    the half width is ``z sqrt((1 - rate) / n_complete)``. The two differ by
+    ``sqrt(1 - rate)``: at the 4.3 week relapse of the paper the exponential half
+    width is 14 percent the wider of the two, and at the 100 week remission half
+    a percent.
+    """
+    half_width = _z_value(ci) / math.sqrt(n_complete)
+    if family == "geometric":
+        half_width *= math.sqrt(1.0 - rate)
+    return _log_scale_interval(mean, half_width)
 
 
 def _bootstrap_interval(
@@ -1312,8 +1374,61 @@ def _bootstrap_interval(
     return float(low), float(high)
 
 
-def _hazard_test(values: _Vector) -> TestResult:
-    """Return the regression of the discrete hazard on time.
+def _hazard_points(values: _Vector) -> tuple[_Vector, _Vector]:
+    """Return the weeks a hazard can be read at and the hazard at each of them.
+
+    Parameters
+    ----------
+    values : numpy.ndarray
+        Complete durations, whole weeks and at least one week each.
+
+    Returns
+    -------
+    tuple of numpy.ndarray
+        The weeks at which at least :data:`_MIN_AT_RISK` of the durations were
+        still at risk, and the share of those that ended in each of them. Both
+        are empty when no week holds that many.
+    """
+    weeks = values.astype(np.int64)
+    deaths = np.bincount(weeks)[1:]
+    times = np.arange(1, deaths.size + 1, dtype=np.float64)
+    at_risk = weeks.size - np.concatenate(([0], np.cumsum(deaths)[:-1]))
+    keep = at_risk >= _MIN_AT_RISK
+    hazard: _Vector = deaths[keep] / at_risk[keep]
+    return times[keep], hazard
+
+
+def _hazard_drift(values: _Vector) -> float | None:
+    """Return the slope of the hazard over its standard error, or None.
+
+    Parameters
+    ----------
+    values : numpy.ndarray
+        Complete durations, whole weeks and at least one week each.
+
+    Returns
+    -------
+    float or None
+        The signed ratio, positive when the hazard rises. None says these
+        durations carry no readable drift at all: fewer than
+        :data:`_MIN_HAZARD_TIMES` weeks have :data:`_MIN_AT_RISK` still at risk,
+        or the hazard at those weeks lies exactly on a straight line, which
+        leaves the slope with no standard error. A replicate of the null that
+        lands there is dropped rather than counted; :func:`_hazard_test` raises
+        on either case for the durations themselves.
+    """
+    times, hazard = _hazard_points(values)
+    if times.size < _MIN_HAZARD_TIMES:
+        return None
+    line = stats.linregress(times, hazard)
+    standard_error = float(line.stderr)
+    if not standard_error > 0.0:
+        return None
+    return float(line.slope) / standard_error
+
+
+def _hazard_test(values: _Vector, n_boot: int, rng: Seed) -> TestResult:
+    """Return the drift of the discrete hazard, read against the rounded null.
 
     Raises
     ------
@@ -1321,39 +1436,64 @@ def _hazard_test(values: _Vector) -> TestResult:
         If fewer than :data:`_MIN_HAZARD_TIMES` times have at least
         :data:`_MIN_AT_RISK` records still at risk, or if the hazard at those
         times lies exactly on a straight line, which leaves the slope with no
-        standard error and the regression with no p value.
+        standard error and the drift with nothing to measure.
+
+    Notes
+    -----
+    The statistic is the slope of the hazard over time divided by its standard
+    error, kept signed so that a rising hazard reads positive and a falling one
+    negative. Its p value is not the one the regression prints. Ordinary least
+    squares takes the points as equally precise, while the variance of a weekly
+    hazard is ``h (1 - h) / at_risk`` and grows sharply as the at risk set
+    empties, and those late imprecise points sit at the end of the time axis
+    where they pull the line hardest. The printed p value is too small for that
+    reason: on 218 durations drawn as ``ceil(Exp(4.3))``, memoryless by
+    construction and the relapses the paper reports, it falls below 0.05 for
+    nearly one cohort in ten rather than one in twenty, and the share grows with
+    the number of durations rather than falling away.
+
+    So the p value here is the share of replicates drawn under the rounded
+    exponential null whose drift is at least as far from zero as the sample's,
+    the same parametric bootstrap :func:`_cv_test` and :func:`_distance_test`
+    draw, at the same scale and rounded the same way. That share holds its level
+    at every sample size checked and keeps the power of the statistic against an
+    ageing record.
     """
-    weeks = values.astype(np.int64)
-    deaths = np.bincount(weeks)[1:]
-    times = np.arange(1, deaths.size + 1, dtype=np.float64)
-    at_risk = weeks.size - np.concatenate(([0], np.cumsum(deaths)[:-1]))
-    keep = at_risk >= _MIN_AT_RISK
-    if int(np.count_nonzero(keep)) < _MIN_HAZARD_TIMES:
+    times, hazard = _hazard_points(values)
+    if times.size < _MIN_HAZARD_TIMES:
         raise ValueError(
             f"a hazard regression needs at least {_MIN_HAZARD_TIMES} weeks with "
             f"{_MIN_AT_RISK} or more durations still at risk, got "
-            f"{int(np.count_nonzero(keep))} from {weeks.size} duration(s)"
+            f"{times.size} from {values.size} duration(s)"
         )
-    hazard = deaths[keep] / at_risk[keep]
-    line = stats.linregress(times[keep], hazard)
+    line = stats.linregress(times, hazard)
     standard_error = float(line.stderr)
     if not standard_error > 0.0:
         raise ValueError(
             f"the hazard of these durations lies exactly on the straight line of slope "
-            f"{float(line.slope)!r} across the {int(np.count_nonzero(keep))} week(s) with "
-            f"{_MIN_AT_RISK} or more at risk, so the slope has no standard error and the "
-            f"regression has no p value; test the durations another way"
+            f"{float(line.slope)!r} across the {times.size} week(s) with "
+            f"{_MIN_AT_RISK} or more at risk, so the slope has no standard error and its "
+            f"drift cannot be measured; test the durations another way"
         )
+    statistic = float(line.slope) / standard_error
+    scale = _exponential_scale(values)
+    draws = _null_draws(scale, (n_boot, values.size), _generator(rng))
+    replicates = np.array(
+        [drift for row in draws if (drift := _hazard_drift(row)) is not None], dtype=np.float64
+    )
+    exceeded = int(np.count_nonzero(np.abs(replicates) >= abs(statistic)))
     return TestResult(
         method="hazard",
-        statistic=float(line.slope) / standard_error,
-        p_value=float(line.pvalue),
+        statistic=statistic,
+        p_value=float(1 + exceeded) / (replicates.size + 1),
         n=int(values.size),
         details={
             "mean": float(values.mean()),
+            "scale": scale,
             "slope": float(line.slope),
             "intercept": float(line.intercept),
-            "n_times": float(np.count_nonzero(keep)),
+            "n_times": float(times.size),
+            "n_boot": float(replicates.size),
         },
     )
 

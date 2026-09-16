@@ -16,12 +16,17 @@ sentence it comes from, and the code reads them from there rather than writing
 them down again. :func:`cite` prints the citation of the article and of this
 package, and every result object, from a duration fit to a cohort to a rate
 ratio, carries a one line citation of its own and repeats it in its repr. What
-is re-exported here are the functions, the result classes and the type aliases
-they are annotated with, among them ``Side`` and ``Passage`` from
-:mod:`msrelapse.model`, ``Seed`` from :mod:`msrelapse.simulate`, which every
-module spells the same way, and ``Schema`` from :mod:`msrelapse.io`. Drawing
-lives in :mod:`msrelapse.plots`, which is imported explicitly, so that importing
-this package needs no matplotlib.
+is re-exported here are the functions a reader calls directly, the result
+classes and the type aliases they are annotated with, among them ``Side`` and
+``Passage`` from :mod:`msrelapse.model`, ``Seed`` from :mod:`msrelapse.simulate`,
+which every module spells the same way, and ``Schema`` from :mod:`msrelapse.io`.
+The helpers that support those calls stay on their own modules and are reached
+through them: the calibration pair :func:`msrelapse.cohort.continuous_targets`
+and :func:`msrelapse.cohort.naive_mean_targets`, the sampler helper
+:func:`msrelapse.cohort.draw`, and the follow up helper
+:func:`msrelapse.stats.patient_followup`. Drawing lives in
+:mod:`msrelapse.plots`, which is imported explicitly, so that importing this
+package needs no matplotlib.
 
 Examples
 --------
@@ -40,7 +45,7 @@ International Journal of Genomics, 2013, doi 10.1155/2013/910321.
 
 from __future__ import annotations
 
-from typing import TextIO
+from typing import TYPE_CHECKING as _TYPE_CHECKING
 
 from msrelapse._citation import citation, short_citation
 from msrelapse._params import PAPER
@@ -142,6 +147,13 @@ from msrelapse.stats import (
     relapse_free_curve,
     sample_size_arr,
 )
+
+# The namespace of this package is the public API, so nothing lands in it that
+# the export list does not name: the sentinel is imported under a private name,
+# and ``TextIO`` is needed only by the type checker, since ``from __future__
+# import annotations`` leaves the annotation below a string.
+if _TYPE_CHECKING:  # pragma: no cover - the name is needed only by the type checker
+    from typing import TextIO
 
 __version__ = "0.1.0"
 

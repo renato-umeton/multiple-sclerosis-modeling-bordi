@@ -41,7 +41,6 @@ doi 10.1002/sim.5947.
 
 from __future__ import annotations
 
-import importlib
 import math
 from dataclasses import dataclass
 from typing import Final, Literal
@@ -51,7 +50,7 @@ import numpy.typing as npt
 import pandas as pd
 from scipy import optimize, special, stats
 
-from msrelapse._params import PAPER
+from msrelapse import _citation
 from msrelapse.io import EVENTS_COLUMNS, validate
 from msrelapse.renewal import relapse_counts, relapse_free
 
@@ -78,7 +77,6 @@ Seed = np.random.Generator | int | None
 
 _CI_METHODS: Final = ("poisson_exact", "nb", "bootstrap")
 _MODELS: Final = ("nb", "poisson")
-_FALLBACK_CITATION: Final = "Bordi 2013, doi:" + PAPER.paper_doi.value
 
 _NEWTON_STEPS: Final = 100
 _NEWTON_TOLERANCE: Final = 1e-12
@@ -121,23 +119,6 @@ _Matrix = npt.NDArray[np.float64]
 """A design matrix, one row per patient, or the Hessian of a fitted model."""
 
 
-def _short_citation() -> str:
-    """Return the one line citation the result objects of this module carry.
-
-    Returns
-    -------
-    str
-        The short citation of :mod:`msrelapse._citation`, or the paper and its
-        DOI when that module cannot be imported.
-    """
-    try:
-        module = importlib.import_module("msrelapse._citation")
-    except ImportError:
-        return _FALLBACK_CITATION
-    short: str = module.short_citation()
-    return short
-
-
 @dataclass(frozen=True, repr=False)
 class ARRResult:
     """An annualised relapse rate with its interval estimate.
@@ -178,10 +159,9 @@ class ARRResult:
         Returns
         -------
         str
-            The short citation of :mod:`msrelapse._citation`, or the paper and
-            its DOI when that module is not installed.
+            The short citation of :mod:`msrelapse._citation`.
         """
-        return _short_citation()
+        return _citation.short_citation()
 
     def __repr__(self) -> str:
         """Return the rate, its interval and the citation, on one line.
@@ -244,10 +224,9 @@ class RateRatioResult:
         Returns
         -------
         str
-            The short citation of :mod:`msrelapse._citation`, or the paper and
-            its DOI when that module is not installed.
+            The short citation of :mod:`msrelapse._citation`.
         """
-        return _short_citation()
+        return _citation.short_citation()
 
     def __repr__(self) -> str:
         """Return the rate ratio, the fit behind it and the citation, on one line.
@@ -387,11 +366,21 @@ def arr(  # noqa: PLR0917
     ``'nb'`` is a Wald interval on the log rate whose variance is
     (1 + a m) / k, with m the mean count per patient, k the total count and a
     the method of moments dispersion max(0, (var(c) - mean(c)) / mean(c)^2) of
-    the per patient counts c. The approximation this makes is that patients are
-    followed for comparable lengths of time: the moment estimator reads all the
-    spread of the counts as a spread of rates, so with widely unequal follow up
-    it also reads the spread of the exposure as over dispersion and the
-    interval comes out too wide. Prefer the bootstrap in that case.
+    the per patient counts c, where var is the unbiased sample variance, the
+    one divided by n - 1, as the moment estimator behind a Wald interval
+    conventionally takes. :func:`msrelapse.fit.fit_nb_counts` weighs those same
+    two quantities against one another with the population variance instead,
+    divided by n, and its own Notes say why that is the right comparison there:
+    it screens on whether the maximum likelihood dispersion is positive at all,
+    and that turns exactly where the population variance meets the mean. The
+    two variances differ by the factor n / (n - 1), so the formula above and
+    that screen do not answer with the same number on the same counts, and
+    neither of them is a slip. The approximation this interval makes is that
+    patients are followed for comparable lengths of time: the moment estimator
+    reads all the spread of the counts as a spread of rates, so with widely
+    unequal follow up it also reads the spread of the exposure as over
+    dispersion and the interval comes out too wide. Prefer the bootstrap in
+    that case.
 
     ``'bootstrap'`` resamples patients with replacement, recomputes the rate
     from the resampled counts and their resampled follow up, and takes the
@@ -690,8 +679,10 @@ def sample_size_arr(  # noqa: PLR0917
     Raises
     ------
     ValueError
-        If `rate_ratio` is 1, where no sample size answers the question, or if
-        any input is out of range.
+        If `rate_ratio` is 1, where no sample size answers the question, if
+        `power` is at or below `alpha` / 2, where the two normal quantiles of
+        the formula cancel and below which it runs backwards, or if any input
+        is out of range.
 
     Examples
     --------
@@ -716,6 +707,18 @@ def sample_size_arr(  # noqa: PLR0917
     arr_treated = arr_control * rate_ratio
     z_alpha = float(stats.norm.ppf(1.0 - alpha / 2.0))
     z_power = float(stats.norm.ppf(power))
+    # The formula squares the sum of the two quantiles, and that sum falls
+    # through zero as the power falls through alpha / 2: below there squaring
+    # sends the answer back up, so an ever weaker request would be met with an
+    # ever larger trial. A power no better than the share of alpha a two sided
+    # test spends on one tail is not a request a sample size answers, and it is
+    # refused rather than answered with a number that runs the wrong way.
+    if z_alpha + z_power <= 0.0:
+        raise ValueError(
+            f"power must be above alpha / 2, got power={power!r} with alpha={alpha!r}: "
+            "at and below that point the two normal quantiles cancel and no sample size "
+            "answers the question"
+        )
     variance = (1.0 / (followup_years * arr_control) + dispersion) + (
         1.0 / (followup_years * arr_treated) + dispersion
     ) / allocation
@@ -723,8 +726,9 @@ def sample_size_arr(  # noqa: PLR0917
     # Every term of the formula is positive, so rounding a fraction of a
     # patient up already answers with at least one patient. The floor is the
     # postcondition of the docstring written down, for the one case the
-    # arithmetic does not cover: a power so far below the significance level
-    # that the squared sum of the two quantiles underflows to zero.
+    # arithmetic does not cover: a request extreme enough that the whole
+    # expression underflows to zero, such as a rate ratio so far from one that
+    # the square of its logarithm dwarfs everything above it.
     return max(1, math.ceil(n_control))
 
 

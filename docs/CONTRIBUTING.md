@@ -134,6 +134,11 @@ Releases are the maintainer's, and the steps are:
    into `CITATION.cff`, `codemeta.json` and the software BibTeX entry in
    `src/msrelapse/_citation.py`, replacing the placeholder, and release the
    patch that carries them.
+6. Before submitting `docs/paper/paper.md` to the Journal of Open Source
+   Software, fill in the affiliation and the ORCID the header leaves as
+   placeholders, and turn the fenced `yaml` block at the top of that file into
+   the front matter JOSS asks for. It is fenced in the repository because the
+   house style keeps a line of three hyphens out of every file here.
 
 ## Conduct
 

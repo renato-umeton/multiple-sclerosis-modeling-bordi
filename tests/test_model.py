@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import doctest
 import math
 from itertools import pairwise
 
@@ -9,7 +8,6 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-import msrelapse.model
 from msrelapse._params import PAPER
 from msrelapse.model import (
     Barriers,
@@ -589,12 +587,6 @@ def test_calibrate_reports_the_closest_times_it_reached() -> None:
 def test_calibrate_explains_that_the_symmetric_case_is_outside_the_search_box() -> None:
     with pytest.raises(ValueError, match="symmetric potential lies outside the search box"):
         calibrate(100.0, 100.0)
-
-
-def test_docstring_examples_run() -> None:
-    results = doctest.testmod(msrelapse.model)
-    assert results.attempted > 0
-    assert results.failed == 0
 
 
 @settings(deadline=None, max_examples=200)

@@ -229,9 +229,10 @@ construction, while the same passages taken all the way to the far well bottom
 take 209.5 and 11.99 weeks, and the Kramers formula, which is a well-to-well
 time, gives 194.4 and 10.76 weeks. The article never says which of the two it
 means. `msrelapse.model.passage_endpoints` names three readings,
-`bottom_to_saddle` (the default), `bottom_to_bottom` and `band`, and every
-function that consumes an episode time takes the same argument, so the choice
-is always visible in the call.
+`bottom_to_saddle` (the default), `bottom_to_bottom` and `band`. `calibrate`
+and `exit_times` take that same argument, and `mfpt` takes instead the pair of
+endpoints `passage_endpoints` returns, as its `x0` and `x_absorb`, so either
+way the reading is named in the call rather than assumed.
 
 ## The barrier ratio, equation (7)
 
@@ -287,13 +288,17 @@ health side and **0.58 on the relapse side**, so the shallow relapse well is
 nowhere near the small noise regime and nothing guarantees an exponential
 there. Measured rather than assumed, over 4000 paths at a step of 0.01 weeks
 and over the seeds 0 to 4, the coefficient of variation of the exit time lies
-between 0.98 and 1.03 on the health side and between 0.91 and 0.96 on the
-relapse side, close to the exponential value of 1 but arrived at by
+between 0.9799 and 1.0332 on the health side and between 0.9137 and 0.9569 on
+the relapse side, close to the exponential value of 1 but arrived at by
 measurement. The recipe is `exit_times(well, sigma, side, n_paths=4000,
 dt=0.01, rng=seed)` on the potential the published pair calibrates to, so the
 range above can be reproduced digit for digit. The second notebook sweeps
-$\sigma$ and shows the approach, together with the gap between the Kramers
-time, the exact first passage time and the simulation.
+$\sigma$ and puts the measured coefficient of variation beside the exponential
+value of 1, together with the gap between the Kramers time, the exact first
+passage time and the simulation. At the few hundred paths behind each of its
+points that panel rules out an exit time far from exponential without
+separating the two wells; it is the regime table beside it that shows how far
+the relapse well sits from the small noise limit.
 
 ## From one patient to a cohort
 
@@ -381,11 +386,11 @@ $$
 \tau^{\text{continuous}}_{\text{health}} = \tau_{x_1} + 1 ,
 $$
 
-which is what `msrelapse.cohort.continuous_targets` returns: 3.3 and 101 weeks
-for the published pair. It is not a complete correction. Two relapses separated
-by less than a week fall in the same week and merge into one longer weekly
-episode, which no aim can undo; how often that happens is set by the width of
-the hysteresis band and is measured in the documentation of
+which is what `msrelapse.cohort.continuous_targets` returns, health first: 101
+and 3.3 weeks for the published pair. It is not a complete correction. Two
+relapses separated by less than a week fall in the same week and merge into one
+longer weekly episode, which no aim can undo; how often that happens is set by
+the width of the hysteresis band and is measured in the documentation of
 `msrelapse.cohort.CohortSpec`.
 
 A second measurement artefact sits beside it. The article averaged every
@@ -490,6 +495,28 @@ a state changes only when the path crosses the far one. The fraction is 0.3 in
 more of the sub-week remissions that the weekly rounding would merge. Passing
 the same fraction to `calibrate` with `passage='band'` makes the simulated
 durations approach the calibration targets.
+
+## Other relapsing conditions
+
+Nothing in `model`, `simulate`, `renewal`, `fit` or `stats` knows what the two
+states mean. The mechanism is a particle in an asymmetric double well, and the
+statistics is that of an alternating renewal process with exponential sojourns,
+so any condition recorded as two clinical states with memoryless transitions
+fits the same interface: relapsing neuromyelitis optica spectrum disorder,
+relapsing inflammatory conditions recorded as episodes, or the asthma and
+chronic obstructive pulmonary disease exacerbation counts that Keene et al.
+(2007) analyse, which is where the negative binomial of the counts section
+comes from in the first place.
+
+What has to be redone for another condition is the calibration and not the
+mathematics: the two mean durations handed to `calibrate`, which fix $\beta$
+and $\sigma$ at a chosen $\alpha$; the follow up lengths and the cohort size of
+`CohortSpec`; the time unit, a week here only because the study recorded weeks;
+and the rounding correction of `continuous_targets`, which is a whole-week
+correction and has to be rederived in whatever unit the new record keeps. What
+does not transfer is every number in `msrelapse.PAPER`. Those belong to the
+2013 multiple sclerosis cohort, and a reproduction of this article is not a
+statement about any other disease.
 
 ## What the article leaves open
 

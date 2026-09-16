@@ -142,7 +142,10 @@ def fig2_sample_patients(
     """Draw the weekly record of a few patients as step functions, Figure 2.
 
     Each panel holds the plus one and minus one series of one patient against
-    the week, with the two levels labelled as the paper labels them.
+    the week, with the two levels named as the paper names the two states,
+    health at minus one and no health at plus one. The tick labels are written
+    out without the printed typo of the article, whose Figure 2 ticks read
+    "Health state" and "No health sate".
 
     Parameters
     ----------
@@ -506,7 +509,10 @@ def fig8_patient_potentials(
 
     Every panel is drawn the way :func:`fig6_asymmetric_potential` draws one, at
     the reference control parameter of the paper, which is the only value the
-    paper ever fits a patient with.
+    paper ever fits a patient with. The one difference is the dashed guides: the
+    article draws a single horizontal line per panel here, through V(x0), the
+    level both barriers are measured down from, where its Figure 6 draws one
+    line through each of the three stationary levels.
 
     Parameters
     ----------
@@ -552,7 +558,7 @@ def fig8_patient_potentials(
     wells = tuple(_well_and_points(PAPER.alpha_reference.value, beta) for beta in values)
     panels = _panel_axes(axes, len(wells), stacked=False)
     for panel, (well, points), name in zip(panels, wells, names, strict=True):
-        _draw_asymmetric_potential(panel, well, points)
+        _draw_asymmetric_potential(panel, well, points, guides=(points.saddle,))
         panel.set_title(name)
     return panels
 
@@ -812,7 +818,7 @@ def save_all_paper_figures(
         ("fig_survival_vs_exponential", lambda: fig_survival_vs_exponential(durations, _NO_HEALTH)),
         ("fig_poisson_to_nb", lambda: fig_poisson_to_nb(counts)),
     ]
-    plt = _pyplot()
+    plt = require_matplotlib()
     opened_before = set(plt.get_fignums())
     written: list[Path] = []
     try:
@@ -858,22 +864,6 @@ def require_matplotlib() -> ModuleType:
     return plt
 
 
-def _pyplot() -> ModuleType:
-    """Return the pyplot module, the spelling the drawing helpers below use.
-
-    Returns
-    -------
-    types.ModuleType
-        The ``matplotlib.pyplot`` module, from :func:`require_matplotlib`.
-
-    Raises
-    ------
-    ImportError
-        If matplotlib is not installed.
-    """
-    return require_matplotlib()
-
-
 def _single_axes(ax: Axes | None) -> Axes:
     """Return the panel to draw on, creating a figure when none was given.
 
@@ -894,7 +884,7 @@ def _single_axes(ax: Axes | None) -> Axes:
     """
     if ax is not None:
         return ax
-    plt = _pyplot()
+    plt = require_matplotlib()
     created: Axes = plt.subplots(figsize=_SINGLE_SIZE, layout="constrained")[1]
     return created
 
@@ -934,7 +924,7 @@ def _panel_axes(axes: Sequence[Axes] | None, n_panels: int, *, stacked: bool) ->
                 f"axes must hold one Axes per panel, got {len(given)} for {n_panels} panel(s)"
             )
         return given
-    plt = _pyplot()
+    plt = require_matplotlib()
     if stacked:
         rows, cols = n_panels, 1
         size = (_STACKED_PANEL_SIZE[0], _STACKED_PANEL_SIZE[1] * n_panels)
@@ -966,7 +956,7 @@ def _save_figure(ax: Axes, path: Path) -> Path:
     ImportError
         If matplotlib is not installed.
     """
-    plt = _pyplot()
+    plt = require_matplotlib()
     # Every panel handed to this function was created by plt.subplots above, so
     # the figure it belongs to is a figure and not a sub figure.
     figure = cast("Figure", ax.get_figure())
@@ -1370,7 +1360,13 @@ def _well_and_points(alpha: float, beta: float) -> tuple[DoubleWell, CriticalPoi
     return well, well.critical_points()
 
 
-def _draw_asymmetric_potential(ax: Axes, well: DoubleWell, points: CriticalPoints) -> None:
+def _draw_asymmetric_potential(
+    ax: Axes,
+    well: DoubleWell,
+    points: CriticalPoints,
+    *,
+    guides: Sequence[float] | None = None,
+) -> None:
     """Draw a tilted double well with both of its barriers marked.
 
     Parameters
@@ -1381,6 +1377,10 @@ def _draw_asymmetric_potential(ax: Axes, well: DoubleWell, points: CriticalPoint
         The potential to draw.
     points : CriticalPoints
         Its three stationary points, from :func:`_well_and_points`.
+    guides : sequence of float, optional
+        The stationary points whose level gets a dashed horizontal guide. The
+        default marks all three, which is what Figure 6 of the paper draws;
+        Figure 8 marks the saddle alone.
 
     Returns
     -------
@@ -1391,8 +1391,9 @@ def _draw_asymmetric_potential(ax: Axes, well: DoubleWell, points: CriticalPoint
     top = float(well.V(points.saddle))
     health = float(well.V(points.health))
     relapse = float(well.V(points.relapse))
-    for level in (top, health, relapse):
-        _guide_line(ax, level)
+    marked = (points.health, points.saddle, points.relapse) if guides is None else tuple(guides)
+    for position in marked:
+        _guide_line(ax, float(well.V(position)))
     _barrier_arrow(ax, 0.5 * (points.health + points.saddle), top, health, r"$\Delta V_1$")
     _barrier_arrow(ax, 0.5 * (points.saddle + points.relapse), top, relapse, r"$\Delta V_2$")
     _mark_critical_points(ax, well, points)

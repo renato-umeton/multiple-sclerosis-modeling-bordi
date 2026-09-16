@@ -42,8 +42,14 @@ print(weekly.attrs["provenance"])
 print(ms.provenance())                               # the whole note
 ```
 
-`ms.regenerate_synthetic_bordi2013()` writes the three files again from the
-same seed, which is how they were made in the first place.
+`ms.regenerate_synthetic_bordi2013("regenerated/")` writes the three files again
+from the same seed, which is how they were made in the first place. Called with
+no directory it writes them back into the data directory of the installed
+package, which is how the shipped copies were produced and which needs an
+install that can be written to: from a zip archive or a read-only install, name
+a directory of your own. Any seed but 20130910 is refused unless a directory is
+named, since a cohort under another seed is not the twin that the provenance
+note and the closing table describe.
 
 ### How they were made
 
@@ -53,7 +59,7 @@ same seed, which is how they were made in the first place.
 | Engine | `renewal`, the alternating renewal process, not the stochastic equation |
 | Seed | 20130910, which opens with the year of the volume and closes with four arbitrary digits |
 | Cohort size | 70 patients, because the study followed 70 |
-| Follow up length | One draw per patient from the Figure 3 histogram of relapsing-remitting phase lengths, which spans 40 to 1311 weeks in eight bins of 159 weeks |
+| Follow up length | One draw per patient from the Figure 3 histogram of relapsing-remitting phase lengths, which spans 40 to 1312 weeks in eight bins of 159 weeks, one week above the printed 1311 week maximum |
 | Generative mean remission | 134.21 weeks |
 | Generative mean relapse | 4.34415 weeks |
 | Start state | Relapse, because the records of the study start at the first relapse |

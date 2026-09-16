@@ -370,7 +370,14 @@ def reproduction_table(weekly: pd.DataFrame, alpha: float | None = None) -> pd.D
     ------
     ValueError
         If `weekly` does not obey the weekly schema, if it holds no run of one
-        of the two states, or if `alpha` is not strictly between 0 and 1.
+        of the two states, or if `alpha` is not strictly between 0 and 1. Two
+        rows carry a requirement of their own on top of that, and a short record
+        meets both easily: the goodness of fit rows need at least two complete,
+        uncensored durations of each state, and the periodicity row needs at
+        least one patient whose periodogram the pooled test can read, which asks
+        for eight weeks of follow up, three relapse onsets and onsets that do
+        not fall in every other week. The table is a cohort measurement; a
+        handful of records does not carry it.
 
     Notes
     -----
@@ -385,6 +392,16 @@ def reproduction_table(weekly: pd.DataFrame, alpha: float | None = None) -> pd.D
     about 0.18. A bound as tight as 0.05 needs a cohort several times larger than
     the seventy records the article followed, whatever the pipeline does; the
     source of this module carries the measurement beside the constant.
+
+    That row is the only barrier ratio row of the table, and the three worked
+    examples of Section 3.4 are deliberately not rows of it. The ratios of
+    patients 23, 32 and 53 are read off the durations the article prints for
+    each of them and not off any record, so there is nothing in a weekly frame
+    to put beside them: the twin holds no counterpart of those three patients,
+    and a real series obtained from the corresponding authors would number its
+    own. :func:`msrelapse.cohort.paper_patients` recomputes the three from the
+    printed durations, one row per patient, which is where that comparison
+    belongs.
 
     How often the whole table comes out True is worth knowing before reading one:
     not every time. Regenerating the twin under the sixty consecutive seeds from

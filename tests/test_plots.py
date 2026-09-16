@@ -439,6 +439,18 @@ def test_fig8_draws_the_three_sample_patients() -> None:
         assert by_label[r"$x_2$"] == pytest.approx(points.relapse)
 
 
+def test_fig8_marks_the_saddle_level_alone() -> None:
+    axes = plots.fig8_patient_potentials()
+
+    # Figure 8 of the paper draws one dashed line per panel, through V(x0), the
+    # level both barriers hang from, where Figure 6 draws one through each of
+    # the three stationary levels.
+    for ax, beta in zip(axes, PATIENT_BETAS, strict=True):
+        well = DoubleWell(ALPHA, beta)
+        saddle = well.critical_points().saddle
+        assert dashed_levels(ax) == pytest.approx([float(well.V(saddle))])
+
+
 def test_fig8_needs_one_label_per_asymmetry() -> None:
     with pytest.raises(ValueError, match="one label per panel"):
         plots.fig8_patient_potentials(

@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 
 from msrelapse._params import PAPER
+from msrelapse.io import weekly_to_events
 from msrelapse.renewal import (
     alternating_renewal,
     effective_onset_rate,
@@ -364,8 +365,7 @@ def test_relapse_counts_counts_every_onset_of_the_follow_up() -> None:
     assert counts.dtype == np.int64
 
 
-def test_relapse_counts_applies_the_schema_validator_when_it_is_installed() -> None:
-    pytest.importorskip("msrelapse.io")
+def test_relapse_counts_applies_the_schema_validator() -> None:
     overlapping = example_events()
     overlapping.loc[1, "relapse_onset"] = 2.0
     with pytest.raises(ValueError, match="overlapping"):
@@ -381,7 +381,6 @@ def test_relapse_counts_accepts_a_frame_carrying_extra_columns() -> None:
 
 
 def test_relapse_counts_accepts_the_dated_export_of_the_reader_module() -> None:
-    io_module = pytest.importorskip("msrelapse.io")
     weekly = pd.DataFrame(
         {
             "patient_id": ["p0001", "p0001", "p0001", "p0001"],
@@ -397,7 +396,7 @@ def test_relapse_counts_accepts_the_dated_export_of_the_reader_module() -> None:
             ),
         }
     )
-    dated = io_module.weekly_to_events(weekly, origin=pd.Timestamp("2020-01-01"))
+    dated = weekly_to_events(weekly, origin=pd.Timestamp("2020-01-01"))
     assert relapse_counts(dated).tolist() == [2]
 
 

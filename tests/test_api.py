@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import inspect
 import io
 import math
 import subprocess
 import sys
+import types
 from importlib import import_module, metadata
 
 import numpy as np
@@ -37,6 +39,20 @@ TYPE_ALIASES = (
     ("PeriodicityMethod", "fit"),
     ("CIMethod", "stats"),
     ("ModelName", "stats"),
+)
+
+# The modules the package re-exports from. Drawing and the command line stay
+# out: plots needs matplotlib, and the command line is entered through the
+# ``msrelapse`` executable rather than through the package namespace.
+EXPORTING_MODULES = (
+    "cohort",
+    "datasets",
+    "fit",
+    "io",
+    "model",
+    "renewal",
+    "simulate",
+    "stats",
 )
 
 
@@ -93,6 +109,43 @@ def test_the_export_list_names_nothing_twice() -> None:
     names = list(msrelapse.__all__)
 
     assert sorted(names) == sorted(set(names))
+
+
+def test_every_public_function_is_re_exported_or_placed_by_the_docstring() -> None:
+    # A function a submodule calls public is either re-exported here, so that
+    # `msrelapse.name` finds it, or the package docstring says which module
+    # holds it. Otherwise a reader who meets it in the documentation reaches
+    # for `msrelapse.name` and gets an AttributeError.
+    assert msrelapse.__doc__ is not None
+    stranded = []
+    for module_name in EXPORTING_MODULES:
+        module = import_module(f"msrelapse.{module_name}")
+        for name in module.__all__:
+            if not inspect.isfunction(getattr(module, name)):
+                continue
+            if name in msrelapse.__all__:
+                continue
+            if f"msrelapse.{module_name}.{name}" not in msrelapse.__doc__:
+                stranded.append(f"{module_name}.{name}")
+
+    assert stranded == []
+
+
+def test_the_namespace_carries_nothing_public_beside_the_exports_and_the_submodules() -> None:
+    # An import at module scope of the package, such as a name off `typing`,
+    # becomes an attribute of `msrelapse` and shows up in `dir()` and in editor
+    # completion beside the real API. Only submodules belong there, and the
+    # feature flag that `from __future__ import annotations` binds.
+    leaked = [
+        name
+        for name in dir(msrelapse)
+        if not name.startswith("_")
+        and name not in msrelapse.__all__
+        and name != "annotations"
+        and not isinstance(getattr(msrelapse, name), types.ModuleType)
+    ]
+
+    assert leaked == []
 
 
 def test_the_package_docstring_carries_the_reference() -> None:

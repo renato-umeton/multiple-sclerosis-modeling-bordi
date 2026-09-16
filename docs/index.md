@@ -39,6 +39,18 @@ BibTeX entries.
 
 ## Installation
 
+There has been no release yet, so until the first one the package installs from
+a clone of the repository:
+
+```bash
+git clone https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi
+cd multiple-sclerosiss-modeling-bordi
+uv sync --all-extras
+uv run --all-extras pytest
+```
+
+From the first release on it will install from PyPI as well:
+
 ```bash
 uv add msrelapse          # in a uv project
 pip install msrelapse     # anywhere else
@@ -55,15 +67,6 @@ pip install "msrelapse[all]"    # both
 Neither extra changes a result. Without `plot` every function that draws raises
 with the name of the extra to install; without `fast` the same integration runs
 in numpy.
-
-From a clone of the repository:
-
-```bash
-git clone https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi
-cd multiple-sclerosiss-modeling-bordi
-uv sync --all-extras
-uv run --all-extras pytest
-```
 
 ## Quick start
 

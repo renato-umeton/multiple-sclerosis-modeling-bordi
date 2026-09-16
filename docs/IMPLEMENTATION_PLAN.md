@@ -19,10 +19,10 @@ and records the decisions taken where the specification left a choice open.
   until the maintainer fills them.
 - The paper's printed mean durations are naive means over its own follow up
   windows (all runs including the censored final remission). A cohort generated
-  at a true mean of 100 weeks shows a naive mean near 73 weeks over the Figure 3
-  windows, so the paper twin is generated from generative means chosen so that
-  the naive means reproduce the printed 4.3 and 100 weeks (cohort.naive_mean_targets,
-  bordi2013_spec with match_naive_means True).
+  at a true mean of 100 weeks shows a naive mean near 80 weeks over the Figure 3
+  windows (79.7 measured over 20000 windows), so the paper twin is generated from
+  generative means chosen so that the naive means reproduce the printed 4.3 and
+  100 weeks (cohort.naive_mean_targets, bordi2013_spec with match_naive_means True).
 - The weekly rounding rule marks every week a relapse touches, so continuous
   time engines are aimed at tau_relapse minus 1 and tau_health plus 1 weeks
   (cohort.continuous_targets). Sub week remissions merge neighbouring relapses;

@@ -648,8 +648,15 @@ class CohortSpec:
         Position of the two hysteresis thresholds that cut a simulated path into
         episodes, as a fraction of the distance from the saddle to each well
         bottom. Must lie strictly between 0 and 1. Used by the ``sde`` engine
-        alone. The default of 0.4 is wider than the 0.3 of
-        :mod:`msrelapse.simulate`, for the reason in the Notes.
+        alone. The default of 0.4 is wider than the 0.3 that every band taking
+        function of :mod:`msrelapse.model` and :mod:`msrelapse.simulate`
+        defaults to, for the reason in the Notes. The two defaults cut a path
+        into episodes differently, so a path segmented by
+        :func:`msrelapse.simulate.to_states` at its own default and a record
+        generated from a spec here do not agree unless the same fraction is
+        passed to both. A pair of target durations more extreme than the cohort
+        of the paper can also calibrate at 0.3 and raise at 0.4; the Notes name
+        a worked example.
     dt : float, optional
         Integration step, in weeks. Must be positive and no larger than
         :data:`msrelapse.simulate.MAX_DT`. Used by the ``sde`` engine alone.

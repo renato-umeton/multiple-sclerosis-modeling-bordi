@@ -26,13 +26,14 @@ of Genomics, vol. 2013, 910321, 2013, doi 10.1155/2013/910321.
 
 from __future__ import annotations
 
-import importlib
 import math
 from typing import Final, Literal
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+
+from msrelapse.io import validate
 
 __all__ = [
     "alternating_renewal",
@@ -503,23 +504,17 @@ def _draw_duration(
 def _validate_events(events: pd.DataFrame) -> None:
     """Check that `events` follows the events schema.
 
-    The columns are checked here so that this module needs nothing beyond numpy
-    and pandas. When :mod:`msrelapse.io` is installed alongside it, its full
-    schema validator runs as well; the import is made here rather than at the
-    top of the module so that a stripped down install without the reader and
-    writer module still counts relapses.
+    The missing columns are named here first, so that a table lacking one of
+    them raises a plain message instead of the key error that selecting the
+    schema columns would give.
 
-    Only the five schema columns are handed to that validator, because it
-    rejects any column it does not know and a caller may well be counting a
-    table that carries extra columns, such as the dated export of
+    Only the five schema columns are handed to :func:`msrelapse.io.validate`,
+    because it rejects any column it does not know and a caller may well be
+    counting a table that carries extra columns, such as the dated export of
     :func:`msrelapse.io.weekly_to_events`. Every other rule of the schema, on
     dtypes, ordering, overlap and follow up windows, still runs.
     """
     missing = [name for name in _EVENTS_COLUMNS if name not in events.columns]
     if missing:
         raise ValueError(f"events table is missing the columns {missing}")
-    try:
-        io_module = importlib.import_module("msrelapse.io")
-    except ImportError:
-        return
-    io_module.validate(events[list(_EVENTS_COLUMNS)], "events")
+    validate(events[list(_EVENTS_COLUMNS)], "events")

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 import math
 
 import numpy as np
@@ -10,6 +9,7 @@ import pytest
 from scipy import stats as scipy_stats
 from statsmodels.discrete.discrete_model import NegativeBinomial, Poisson
 
+from msrelapse import _citation
 from msrelapse._params import PAPER
 from msrelapse.renewal import alternating_renewal, gamma_rates, rates_from_means, relapse_counts
 from msrelapse.stats import (
@@ -64,6 +64,15 @@ SMALL_FOLLOWUP_W = 104.0
 # is passed through, ignored, and warned about, and leaves the reference
 # dispersion a part in ten thousand short of the maximum.
 REFERENCE_TOLERANCE = 1e-10
+
+# Relative agreement asked of every comparison against a reference fit. The two
+# fits agree far more closely than this on the cohort below: the negative
+# binomial rate ratio to 2e-16, its dispersion to 5e-11 and its standard error
+# to 9e-12, and the Poisson pair to 5e-16 and 2e-16. The bound is not drawn any
+# tighter because the reference is an iterative fit whose own stopping point
+# moves by up to 2e-8 when it is started somewhere else, so a tighter bound
+# would be measuring the reference optimiser rather than this package.
+REFERENCE_AGREEMENT = 1e-6
 
 
 def events_from_counts(counts: dict[str, int], followup_w: float) -> pd.DataFrame:
@@ -468,15 +477,14 @@ def test_the_rate_ratio_repr_names_the_ratio_it_reports(
     assert "rate_ratio=" in text
 
 
-def test_the_citation_falls_back_when_the_citation_module_is_missing(
-    monkeypatch: pytest.MonkeyPatch,
+def test_both_results_carry_the_citation_of_the_citation_module(
+    two_arms: tuple[pd.DataFrame, pd.DataFrame],
 ) -> None:
-    def refuse(name: str) -> object:
-        raise ImportError(name)
-
-    result = arr(ten_relapses_in_twenty_patient_years())
-    monkeypatch.setattr(importlib, "import_module", refuse)
-    assert result.citation == "Bordi 2013, doi:" + PAPER.paper_doi.value
+    # One citation is built in one place and read from everywhere else, so the
+    # results of this module quote it rather than spelling it out again.
+    expected = _citation.short_citation()
+    assert arr(ten_relapses_in_twenty_patient_years()).citation == expected
+    assert compare_arr(two_arms[0], None, two_arms[1], None, model="poisson").citation == expected
 
 
 def test_negative_binomial_rate_ratio_matches_statsmodels(
@@ -484,7 +492,9 @@ def test_negative_binomial_rate_ratio_matches_statsmodels(
     reference_negative_binomial: npt.NDArray[np.float64],
 ) -> None:
     result = compare_arr(two_arms[0], None, two_arms[1], None)
-    assert result.rate_ratio == pytest.approx(math.exp(reference_negative_binomial[1]), rel=1e-5)
+    assert result.rate_ratio == pytest.approx(
+        math.exp(reference_negative_binomial[1]), rel=REFERENCE_AGREEMENT
+    )
 
 
 def test_negative_binomial_dispersion_matches_statsmodels(
@@ -492,7 +502,9 @@ def test_negative_binomial_dispersion_matches_statsmodels(
     reference_negative_binomial: npt.NDArray[np.float64],
 ) -> None:
     result = compare_arr(two_arms[0], None, two_arms[1], None)
-    assert result.dispersion == pytest.approx(reference_negative_binomial[2], rel=1e-4)
+    assert result.dispersion == pytest.approx(
+        reference_negative_binomial[2], rel=REFERENCE_AGREEMENT
+    )
 
 
 def test_negative_binomial_standard_error_matches_statsmodels(
@@ -502,7 +514,7 @@ def test_negative_binomial_standard_error_matches_statsmodels(
     result = compare_arr(two_arms[0], None, two_arms[1], None)
     half_width = math.log(result.ci_high / result.rate_ratio)
     standard_error = half_width / scipy_stats.norm.ppf(0.975)
-    assert standard_error == pytest.approx(reference_negative_binomial[4], rel=1e-3)
+    assert standard_error == pytest.approx(reference_negative_binomial[4], rel=REFERENCE_AGREEMENT)
 
 
 def test_poisson_rate_ratio_matches_statsmodels(
@@ -510,7 +522,9 @@ def test_poisson_rate_ratio_matches_statsmodels(
     reference_poisson: npt.NDArray[np.float64],
 ) -> None:
     result = compare_arr(two_arms[0], None, two_arms[1], None, model="poisson")
-    assert result.rate_ratio == pytest.approx(math.exp(reference_poisson[1]), rel=1e-6)
+    assert result.rate_ratio == pytest.approx(
+        math.exp(reference_poisson[1]), rel=REFERENCE_AGREEMENT
+    )
     assert result.model == "poisson"
 
 
@@ -521,7 +535,7 @@ def test_poisson_standard_error_matches_statsmodels(
     result = compare_arr(two_arms[0], None, two_arms[1], None, model="poisson")
     half_width = math.log(result.ci_high / result.rate_ratio)
     standard_error = half_width / scipy_stats.norm.ppf(0.975)
-    assert standard_error == pytest.approx(reference_poisson[3], rel=1e-6)
+    assert standard_error == pytest.approx(reference_poisson[3], rel=REFERENCE_AGREEMENT)
 
 
 def test_the_interval_covers_the_simulated_rate_ratio(
@@ -542,6 +556,34 @@ def test_a_small_cohort_still_reports_a_converged_fit() -> None:
     assert result.converged
     assert 0.0 < result.rate_ratio < 1.0
     assert result.dispersion > 0.0
+
+
+def test_a_poisson_fit_that_never_meets_its_tolerance_reports_a_failure(
+    two_arms: tuple[pd.DataFrame, pd.DataFrame],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The flag reports the iteration rather than the data. Asked for a step no
+    # iteration can deliver, the loop spends its whole budget and comes back
+    # saying so, with the estimate the settled fit stops on.
+    settled = compare_arr(two_arms[0], None, two_arms[1], None, model="poisson")
+    monkeypatch.setattr("msrelapse.stats._NEWTON_TOLERANCE", 0.0)
+    result = compare_arr(two_arms[0], None, two_arms[1], None, model="poisson")
+    assert result.converged is False
+    assert result.rate_ratio == pytest.approx(settled.rate_ratio)
+
+
+def test_a_negative_binomial_refinement_that_never_settles_reports_a_failure(
+    two_arms: tuple[pd.DataFrame, pd.DataFrame],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # As above for the refinement of the negative binomial fit, which carries
+    # the convergence flag of that model.
+    settled = compare_arr(two_arms[0], None, two_arms[1], None)
+    monkeypatch.setattr("msrelapse.stats._POLISH_TOLERANCE", 0.0)
+    result = compare_arr(two_arms[0], None, two_arms[1], None)
+    assert result.converged is False
+    assert result.rate_ratio == pytest.approx(settled.rate_ratio)
+    assert result.dispersion == pytest.approx(settled.dispersion)
 
 
 def test_a_supplied_follow_up_is_the_exposure_of_the_arm_it_belongs_to(
@@ -752,6 +794,23 @@ def test_sample_size_rounds_a_fraction_of_a_patient_up(rate_ratio: float, over_h
 def test_sample_size_rejects_a_rate_ratio_of_one() -> None:
     with pytest.raises(ValueError, match="rate_ratio must not be 1"):
         sample_size_arr(0.5, 1.0, 0.8, 2.0)
+
+
+def test_sample_size_rejects_a_power_at_or_below_half_the_significance_level() -> None:
+    # The formula squares the sum of the two normal quantiles. They cancel at
+    # this point and the sum turns negative below it, so answering would hand
+    # back a trial that grows as the request for power gets weaker.
+    with pytest.raises(ValueError, match="power must be above alpha"):
+        sample_size_arr(0.5, 0.7, 0.8, 2.0, power=0.025, alpha=0.05)
+    with pytest.raises(ValueError, match="power must be above alpha"):
+        sample_size_arr(0.5, 0.7, 0.8, 2.0, power=0.01, alpha=0.99)
+
+
+def test_sample_size_falls_with_the_power_all_the_way_to_that_point() -> None:
+    # Everywhere the function answers, a weaker request asks for fewer
+    # patients, which is the property the refusal below the turn protects.
+    sizes = [sample_size_arr(0.5, 0.7, 0.8, 2.0, power=power) for power in (0.03, 0.1, 0.5, 0.9)]
+    assert sizes == sorted(sizes)
 
 
 @pytest.mark.parametrize(

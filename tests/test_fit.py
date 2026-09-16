@@ -45,8 +45,10 @@ RESULT_FIELDS = {
     "GammaFit": "k=",
 }
 
-# The three methods whose p value comes from replicates drawn under the rounded
-# exponential null, rather than off a regression.
+# All four methods read their p value off replicates drawn under the rounded
+# exponential null. These three are the ones that read any sample at all: the
+# hazard needs three weeks with enough runs still at risk, so it is left out of
+# the tests that feed a degenerate sample.
 BOOTSTRAP_METHODS = ("cv", "ks", "ad")
 
 # Sample sizes and shapes of the memorylessness fixtures, from the task
@@ -63,6 +65,11 @@ AGEING_SHAPE = 2.0
 CALIBRATION_COHORTS = 40
 CALIBRATION_BOOT = 150
 CALIBRATION_ALLOWED_REJECTIONS = 6
+
+# Seed of the generator the hazard replicates of that calibration are drawn
+# from. It is separate from SEED so that the cohorts and the other three methods
+# read exactly the draws they read before the hazard method joined them.
+CALIBRATION_HAZARD_SEED = 20130911
 
 # The overdispersed counts of the specification: mean 3, dispersion 0.5.
 NB_MEAN = 3.0
@@ -115,6 +122,12 @@ N_PERM = 200
 # Shortest record the periodicity test reads, and the length at which leaving the
 # Nyquist ordinate in distorts the exact p value the most.
 _MIN_WEEKS = 8
+
+# Record lengths the size of the exact g test is measured at: the eight week
+# minimum, a record of the length the study follows patients for, and one long
+# enough to carry hundreds of ordinates. All three are even, which is the parity
+# that has a Nyquist ordinate to leave out.
+WHITE_NOISE_WEEKS = (_MIN_WEEKS, 200, 1000)
 
 
 def one_run_per_patient(values: npt.NDArray[np.int64], state: int) -> pd.DataFrame:
@@ -284,7 +297,12 @@ def coverage_counts() -> dict[int, int]:
 def rejection_counts() -> dict[str, int]:
     """Return how many of forty memoryless cohorts each method rejected at 0.05."""
     generator = np.random.default_rng(SEED)
-    counts = {method: 0 for method in BOOTSTRAP_METHODS}
+    # The hazard replicates are drawn from a generator of their own. The forty
+    # cohorts and the replicates of the other three methods come off `generator`
+    # in the order they always did, so the counts they had are unchanged and the
+    # method added here reads the same cohorts they do.
+    hazard_generator = np.random.default_rng(CALIBRATION_HAZARD_SEED)
+    counts = {method: 0 for method in MEMORYLESS_METHODS}
     for _ in range(CALIBRATION_COHORTS):
         values = rounded_exponential(
             PAPER.tau_no_health_cohort_weeks.value,
@@ -292,6 +310,11 @@ def rejection_counts() -> dict[str, int]:
             generator,
         )
         frame = one_run_per_patient(values, RELAPSE)
+        counts["hazard"] += int(
+            fit.test_memoryless(
+                frame, RELAPSE, method="hazard", n_boot=CALIBRATION_BOOT, rng=hazard_generator
+            ).reject(0.05)
+        )
         for method in BOOTSTRAP_METHODS:
             result = fit.test_memoryless(
                 frame,
@@ -372,12 +395,72 @@ def large_cohort_frame() -> pd.DataFrame:
     return cohort_durations(n=300)
 
 
+# Bounds on how many of the 200 replicates a nominal 95 percent interval may
+# cover. At 95 percent the count has a binomial standard error of 3.1, so 182 is
+# about three of them below 190 and the run here lands at 192 and 189. The upper
+# bound is what makes this a calibration rather than a floor: an interval that
+# lost its 1 / sqrt(n) factor, or a bootstrap that came back as (0, inf), would
+# cover all 200 and has to fail here too.
+COVERAGE_BOUNDS = (182, 199)
+
+
 def test_fisher_intervals_cover_the_remission_mean(coverage_counts: dict[int, int]) -> None:
-    assert coverage_counts[REMISSION] >= 182
+    low, high = COVERAGE_BOUNDS
+    assert low <= coverage_counts[REMISSION] <= high
 
 
 def test_fisher_intervals_cover_the_relapse_mean(coverage_counts: dict[int, int]) -> None:
-    assert coverage_counts[RELAPSE] >= 182
+    low, high = COVERAGE_BOUNDS
+    assert low <= coverage_counts[RELAPSE] <= high
+
+
+def test_the_exponential_fisher_interval_is_the_closed_form_of_its_information(
+    cohort_frame: pd.DataFrame,
+) -> None:
+    # The width itself, not only its coverage. An exponential run carries one
+    # unit of information on the log rate however long it lasted, so the half
+    # width is z / sqrt(n_complete) whatever the censored runs add to the total
+    # time, and the interval is that half width either side of the mean on the
+    # log scale.
+    result = fit.fit_durations(cohort_frame, REMISSION)
+    z = float(stats.norm.ppf(0.5 * (1.0 + result.ci_level)))
+    half_width = z / math.sqrt(result.n - result.n_censored)
+    assert result.n_censored > 0
+    assert result.ci_low == pytest.approx(result.mean * math.exp(-half_width), rel=1e-12)
+    assert result.ci_high == pytest.approx(result.mean * math.exp(half_width), rel=1e-12)
+
+
+def test_the_geometric_fisher_interval_is_narrower_by_its_own_information(
+    cohort_frame: pd.DataFrame,
+) -> None:
+    # A geometric week that ends is one binomial success out of the weeks
+    # recorded, so the information on the log success probability is
+    # n_complete / (1 - p) rather than the n_complete of an exponential sample,
+    # and the interval is shorter by sqrt(1 - p). At the four week relapse of the
+    # paper the exponential interval is a seventh the wider of the two, which is
+    # not a rounding detail.
+    result = fit.fit_durations(cohort_frame, RELAPSE, family="geometric")
+    exponential = fit.fit_durations(cohort_frame, RELAPSE)
+    z = float(stats.norm.ppf(0.5 * (1.0 + result.ci_level)))
+    half_width = z * math.sqrt((1.0 - result.rate) / (result.n - result.n_censored))
+
+    assert result.ci_low == pytest.approx(result.mean * math.exp(-half_width), rel=1e-12)
+    assert result.ci_high == pytest.approx(result.mean * math.exp(half_width), rel=1e-12)
+    assert math.log(result.ci_high / result.ci_low) == pytest.approx(
+        math.log(exponential.ci_high / exponential.ci_low) * math.sqrt(1.0 - result.rate),
+        rel=1e-12,
+    )
+
+
+def test_the_geometric_interval_of_runs_that_all_ended_at_once_is_degenerate() -> None:
+    # Every run ending in its first week puts the success probability at 1, where
+    # the information on it is infinite and the Wald half width vanishes. The
+    # interval is the point itself, which is what a Wald interval says at the
+    # boundary of a parameter rather than a claim that the mean is known.
+    frame = one_run_per_patient(np.ones(3, dtype=np.int64), RELAPSE)
+    result = fit.fit_durations(frame, RELAPSE, family="geometric")
+    assert result.rate == 1.0
+    assert (result.ci_low, result.ci_high) == (1.0, 1.0)
 
 
 def test_censored_remission_mean_is_at_least_the_naive_mean(cohort_frame: pd.DataFrame) -> None:
@@ -590,7 +673,7 @@ def test_geometric_durations_pass_as_memoryless(
     assert result.n == N_DURATIONS
 
 
-@pytest.mark.parametrize("method", BOOTSTRAP_METHODS)
+@pytest.mark.parametrize("method", MEMORYLESS_METHODS)
 def test_relapses_of_the_length_the_paper_reports_are_not_called_ageing(
     rejection_counts: dict[str, int], method: str
 ) -> None:
@@ -599,6 +682,12 @@ def test_relapses_of_the_length_the_paper_reports_are_not_called_ageing(
     # is its own level. The replicates it calibrates against must therefore be
     # drawn at the scale of the exponential behind the rounding, not at the mean
     # of the durations after it, which is about half a week longer.
+    #
+    # The hazard method is read here beside the other three, and it is the one
+    # this matters most for: it is the default of test_memoryless and of the
+    # command line. Its p value used to come from the least squares fit of the
+    # slope, which takes the weekly hazards as equally precise, and that reading
+    # called nearly one memoryless cohort in ten ageing at the 0.05 level.
     assert rejection_counts[method] <= CALIBRATION_ALLOWED_REJECTIONS
 
 
@@ -635,7 +724,7 @@ def test_cv_details_name_the_null_it_is_compared_with(memoryless_frame: pd.DataF
     assert result.details["null_cv"] < 1.0
 
 
-@pytest.mark.parametrize("method", BOOTSTRAP_METHODS)
+@pytest.mark.parametrize("method", MEMORYLESS_METHODS)
 def test_details_name_the_scale_the_replicates_were_drawn_at(
     memoryless_frame: pd.DataFrame, method: str
 ) -> None:
@@ -694,6 +783,46 @@ def test_hazard_test_needs_enough_times_at_risk() -> None:
     frame = one_run_per_patient(np.array([1, 1, 2, 2, 3, 3], dtype=np.int64), RELAPSE)
     with pytest.raises(ValueError, match="at risk"):
         fit.test_memoryless(frame, RELAPSE, method="hazard")
+
+
+def test_the_hazard_p_value_counts_replicates_rather_than_reading_the_regression(
+    memoryless_frame: pd.DataFrame,
+) -> None:
+    # The least squares fit takes every weekly hazard as equally precise, while
+    # the variance of one is h (1 - h) / at_risk and grows as the at risk set
+    # empties, so the p value the fit prints is too small. What the test reports
+    # is the share of replicates of the rounded exponential null whose drift is
+    # at least as far from zero, so it lands on a multiple of 1 / (n_boot + 1)
+    # and is never exactly 0. The statistic stays the slope over its standard
+    # error, signed, which is what the survival inset is drawn against.
+    result = fit.test_memoryless(memoryless_frame, RELAPSE, method="hazard", n_boot=100, rng=SEED)
+    values = memoryless_frame["duration_w"].to_numpy(dtype=np.float64)
+    times, hazard = fit._hazard_points(values)
+    line = stats.linregress(times, hazard)
+
+    assert result.details["n_boot"] == 100.0
+    assert result.details["n_times"] == float(times.size)
+    assert result.p_value >= 1.0 / 101.0
+    assert result.p_value * 101.0 == pytest.approx(round(result.p_value * 101.0))
+    assert result.p_value != pytest.approx(float(line.pvalue))
+    assert result.statistic == pytest.approx(float(line.slope) / float(line.stderr))
+    assert result.details["slope"] == pytest.approx(float(line.slope))
+    assert result.details["intercept"] == pytest.approx(float(line.intercept))
+
+
+def test_a_generator_gives_the_same_hazard_p_value_as_its_seed(
+    memoryless_frame: pd.DataFrame,
+) -> None:
+    from_seed = fit.test_memoryless(memoryless_frame, RELAPSE, method="hazard", n_boot=50, rng=SEED)
+    from_generator = fit.test_memoryless(
+        memoryless_frame,
+        RELAPSE,
+        method="hazard",
+        n_boot=50,
+        rng=np.random.default_rng(SEED),
+    )
+    assert from_seed.p_value == from_generator.p_value
+    assert from_seed.statistic == from_generator.statistic
 
 
 @pytest.mark.slow
@@ -862,15 +991,26 @@ def test_fisher_g_leaves_the_nyquist_ordinate_out() -> None:
     assert read[2] == pytest.approx(2.5, rel=1e-12)
 
 
-def test_white_noise_series_of_even_length_are_not_over_rejected() -> None:
+@pytest.mark.parametrize("weeks", WHITE_NOISE_WEEKS)
+def test_white_noise_series_of_even_length_are_not_over_rejected(weeks: int) -> None:
     # Keeping the Nyquist ordinate inflates the exact p value of the g test by
     # half again at the eight week minimum: 0.079 of white noise series are
     # called periodic at the 0.05 level instead of 0.05 of them.
+    #
+    # The three lengths are read because the exact p value is a finite
+    # alternating sum that is cut as soon as a term stops falling, and then
+    # clipped to [0, 1]. Neither the cut nor the clip bites at the eight week
+    # minimum, where there are three ordinates, and both of them bite at the
+    # hundreds of ordinates a real record carries: none of the p values at eight
+    # weeks come back as exactly 1, against 0.045 of them at 200 weeks and 0.11
+    # at 1000. The rejection rates measured here are 0.049, 0.055 and 0.053, so
+    # the bound is about four binomial standard errors above the level of the
+    # test at each length.
     generator = np.random.default_rng(SEED)
     rejected = 0
     trials = 3000
     for _ in range(trials):
-        read = fit._fisher_g(generator.normal(size=_MIN_WEEKS))
+        read = fit._fisher_g(generator.normal(size=weeks))
         assert read is not None
         rejected += int(read[1] <= 0.05)
     assert rejected / trials <= 0.065

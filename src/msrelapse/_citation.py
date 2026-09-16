@@ -6,9 +6,11 @@ a session can be traced back to its source. A raw simulation output, such as the
 paths of :mod:`msrelapse.simulate`, is not a result object and carries none. The
 strings are built here once and read from everywhere else.
 
-The DOI of the article is never written down here: it is read from
-``PAPER.paper_doi`` in :mod:`msrelapse._params`, which is the single place in
-the package where a number or an identifier of the article may be recorded.
+No string built by this module writes the DOI of the article down: every one of
+them reads it from ``PAPER.paper_doi`` in :mod:`msrelapse._params`, which is the
+single place in the package where a number or an identifier of the article may
+be recorded. The reference block below quotes the DOI as prose, as the
+docstring of every other module of the package does.
 
 References
 ----------

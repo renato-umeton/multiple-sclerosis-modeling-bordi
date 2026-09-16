@@ -15,17 +15,24 @@ article reports. The options change the record, not the measurement.
 |---|---|
 | `--data FILE` | Measure a weekly CSV of your own instead of the shipped twin |
 | `--engine {renewal,sde}` | Generate a fresh cohort with the named engine, not to be given with `--data` |
-| `--seed N` | Generate a fresh cohort under that seed, and draw every bootstrap of the run from it |
+| `--seed N` | Generate a fresh cohort under that seed, and draw from it every bootstrap of the run but the two of the closing table |
 | `--out DIR` | Where to write, created if absent, `reproduction` by default |
 | `--no-figures` | Skip the figures, which need the `plot` extra |
 
 The run repeats itself exactly. Every random draw it makes, the cohort
 included, comes from the one seed it reports, so two runs with the same
-arguments write the same files. The exit status is 0 when every judged row of
-the closing table falls inside its tolerance and 1 when one of them does not,
-which makes the command usable as a check in a pipeline. A single failing row
-is usually the sampling noise of seventy records rather than a fault: see the
-tolerances below.
+arguments write the same files. The two goodness of fit rows of the closing
+table are the one exception: `msrelapse.datasets.reproduction_table` draws
+their parametric bootstrap from a seed fixed inside that module, so that one
+record always gives one table however the run around it was seeded. With
+`--seed` given, those two p values therefore sit a little apart from the ones
+the `memorylessness` block of `numbers.json` reports on the same durations.
+They are two draws of five hundred replicates each from one bootstrap of an
+identical statistic, and not two measurements. The exit status is 0 when every
+judged row of the closing table falls inside its tolerance and 1 when one of
+them does not, which makes the command usable as a check in a pipeline. A
+single failing row is usually the sampling noise of seventy records rather than
+a fault: see the tolerances below.
 
 !!! warning "The shipped record is synthetic"
 
@@ -147,15 +154,24 @@ of Figure 8, and close with the table above. It is the notebook whose closing
 table has to stay inside tolerance in continuous integration.
 
 **`02_sde_to_exponential.ipynb`** asks why the exit times look exponential. It
-sweeps the noise amplitude, shows the coefficient of variation of the measured
-exit times approaching 1 as the wells deepen relative to the noise, and puts
-the Kramers time, the exact mean first passage time and the simulated mean side
-by side so that the gaps between the three are visible at each noise level.
+sweeps the noise amplitude and puts the Kramers time, the exact mean first
+passage time and the simulated mean side by side, so that the gaps between the
+three are visible at each noise level. It then reads the coefficient of
+variation of the measured exit times against the exponential value of 1: every
+well sits near that line, which rules out an exit time far from exponential,
+but with three hundred paths behind each point the panel cannot separate the
+deep health well from the shallow relapse one, and it says so. The separation
+comes from the regime table and the survival curves beside it, which show that
+the shallow relapse well of the calibrated potential is not in the memoryless
+regime at all. It closes with the Brownian bridge correction of grid read
+crossings.
 
 **`03_poisson_to_negative_binomial.ipynb`** is the trial statistics story: from
 an alternating renewal record to relapse counts, from counts at one shared rate
 to Poisson, and from per patient rates to the negative binomial, with the
-relapse free curve and the annualised relapse rate with its interval.
+relapse free curve of two cohorts beside it and a closing comparison of the
+predicted negative binomial mapping against the fitted one. The annualised
+relapse rate with its intervals is in the fourth notebook rather than this one.
 
 **`04_virtual_cohort_for_trial_design.ipynb`** is aimed at in-silico trial
 work. It generates a two arm virtual trial with a given rate ratio, computes

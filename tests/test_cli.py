@@ -11,6 +11,7 @@ from importlib import metadata
 from pathlib import Path
 from typing import Any, NamedTuple
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -220,21 +221,22 @@ def reproduction(tmp_path_factory: pytest.TempPathFactory) -> Reproduction:
     return Reproduction(code, stream.getvalue(), payload, directory)
 
 
-def test_reproduce_regenerates_the_shipped_twin_and_meets_every_rule(tmp_path: Path) -> None:
+def test_reproduce_regenerates_the_shipped_twin_and_meets_every_rule(
+    reproduction: Reproduction,
+) -> None:
     # The seed of the shipped twin is the one seed whose cohort the closing table
     # is documented against, so this is the run that has to come back clean. The
     # plan names seed 1 instead; seventy records are small enough that the mean
     # relapse row fails on a good share of seeds, which msrelapse.datasets
     # measures over sixty of them, so seed 1 would be testing the sampling noise
     # of one cohort rather than the pipeline.
-    code, payload = reproduce(tmp_path, "--seed", str(SYNTHETIC_SEED))
-    assert code == 0
-    assert payload["all_within_tolerance"] is True
-    assert all(row["within_tolerance"] is True for row in judged(payload))
+    assert reproduction.code == 0
+    assert reproduction.payload["all_within_tolerance"] is True
+    assert all(row["within_tolerance"] is True for row in judged(reproduction.payload))
 
 
-def test_reproduce_writes_every_number_it_measured(tmp_path: Path) -> None:
-    _, payload = reproduce(tmp_path, "--seed", str(SYNTHETIC_SEED))
+def test_reproduce_writes_every_number_it_measured(reproduction: Reproduction) -> None:
+    payload = reproduction.payload
     assert set(payload) == NUMBERS_KEYS
     assert payload["seed"] == SYNTHETIC_SEED
     assert payload["engine"] == "renewal"
@@ -330,6 +332,34 @@ def test_reproduce_prints_both_the_named_seed_and_the_seed_it_drew_from(
     assert f"every random draw of this run uses seed {SYNTHETIC_SEED}" in out
 
 
+def test_reproduce_names_the_one_draw_it_did_not_seed(reproduction: Reproduction) -> None:
+    # The bootstrap behind the two goodness of fit rows of the closing table is
+    # drawn from a seed msrelapse.datasets fixes, so under a seed of the caller's
+    # own those two p values sit a little apart from the ones the memorylessness
+    # block reports on the same durations. The line that names the seed has to
+    # carry the exception, or a reader meets two numbers and no reason for it.
+    named = [
+        line
+        for line in reproduction.out.splitlines()
+        if line.startswith(f"every random draw of this run uses seed {SYNTHETIC_SEED}")
+    ]
+    assert len(named) == 1
+    assert "msrelapse.datasets" in named[0]
+
+
+def test_reproduce_gives_one_record_one_closing_table_under_any_seed(
+    reproduction: Reproduction, tmp_path: Path
+) -> None:
+    # That fixed seed buys one property, which nothing else pins: the table a
+    # record gives does not move when the run around it is seeded differently.
+    # The record of the module run is read back here under a seed of the caller's
+    # own, so every row of the table has to come back where it was.
+    _, payload = reproduce(
+        tmp_path, "--data", str(reproduction.directory / "weekly.csv"), "--seed", "1"
+    )
+    assert payload["closing_table"] == reproduction.payload["closing_table"]
+
+
 def test_reproduce_prints_every_fit_it_made(reproduction: Reproduction) -> None:
     for reading in FIT_READINGS:
         for state_name in STATE_NAMES:
@@ -391,13 +421,12 @@ def test_reproduce_names_the_seed_the_caller_gave_as_its_own(tmp_path: Path) -> 
 
 
 def test_reproduce_names_no_engine_for_a_record_it_was_handed(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    reproduction: Reproduction, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     # No engine ran, so the file must not claim one: numbers.json is read as a
-    # statement of where the analysed record came from.
-    reproduce(tmp_path)
-    capsys.readouterr()
-    _, payload = reproduce(tmp_path / "again", "--data", str(tmp_path / "weekly.csv"))
+    # statement of where the analysed record came from. The record is the one the
+    # module run wrote, so this costs one reproduction rather than two.
+    _, payload = reproduce(tmp_path, "--data", str(reproduction.directory / "weekly.csv"))
     assert payload["engine"] is None
     assert "engine:" not in capsys.readouterr().out
 
@@ -419,10 +448,12 @@ def test_reproduce_refuses_an_engine_together_with_a_record(tmp_path: Path) -> N
     assert raised.value.code == 2
 
 
-def test_reproduce_reads_its_derived_numbers_off_the_closing_table(tmp_path: Path) -> None:
+def test_reproduce_reads_its_derived_numbers_off_the_closing_table(
+    reproduction: Reproduction,
+) -> None:
     # The closing table already measures the three ranges and the barrier ratio,
     # so the numbers beside it in the same file have to be the same numbers.
-    _, payload = reproduce(tmp_path, "--seed", str(SYNTHETIC_SEED))
+    payload = reproduction.payload
     for key, quantity in DERIVED_QUANTITIES.items():
         assert payload[key] == row_named(payload, quantity)["reproduced"]
     ratio = payload["barrier_ratio"]
@@ -430,21 +461,30 @@ def test_reproduce_reads_its_derived_numbers_off_the_closing_table(tmp_path: Pat
     assert ratio["cohort"] == row_named(payload, "barrier ratio")["reproduced"]
 
 
-def test_reproduce_reproduces_the_two_printed_mean_durations(tmp_path: Path) -> None:
+def test_reproduce_reports_one_periodicity_p_value(reproduction: Reproduction) -> None:
+    # The closing table reads the pooled periodicity test and the report reads it
+    # again, because the table carries the p value alone and the report prints the
+    # per patient detail beside it. Fisher's g is exact, so the two readings are
+    # one number, and the file must not carry two.
+    payload = reproduction.payload
+    assert payload["periodicity"]["p_value"] == row_named(payload, "periodicity")["reproduced"]
+
+
+def test_reproduce_reproduces_the_two_printed_mean_durations(
+    reproduction: Reproduction,
+) -> None:
     # The twin is generated to reproduce its own targets, which are the two means
     # the article prints, so both rows have to be inside their tolerance.
-    _, payload = reproduce(tmp_path, "--seed", str(SYNTHETIC_SEED))
+    payload = reproduction.payload
     assert row_named(payload, "mean relapse duration")["within_tolerance"] is True
     assert row_named(payload, "mean remission duration")["within_tolerance"] is True
 
 
-def test_reproduce_says_the_generated_data_are_synthetic(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    _, payload = reproduce(tmp_path, "--seed", str(SYNTHETIC_SEED))
+def test_reproduce_says_the_generated_data_are_synthetic(reproduction: Reproduction) -> None:
+    payload = reproduction.payload
     assert payload["synthetic"] is True
     assert "synthetic" in str(payload["provenance"]).lower()
-    assert "synthetic" in capsys.readouterr().out.lower()
+    assert "synthetic" in reproduction.out.lower()
 
 
 def test_reproduce_on_the_shipped_twin_needs_no_seed(
@@ -457,10 +497,9 @@ def test_reproduce_on_the_shipped_twin_needs_no_seed(
     assert "synthetic" in capsys.readouterr().out.lower()
 
 
-def test_reproduce_writes_the_record_it_measured(tmp_path: Path) -> None:
-    reproduce(tmp_path)
-    weekly = read_weekly(tmp_path / "weekly.csv")
-    durations = read_durations(tmp_path / "durations.csv")
+def test_reproduce_writes_the_record_it_measured(reproduction: Reproduction) -> None:
+    weekly = read_weekly(reproduction.directory / "weekly.csv")
+    durations = read_durations(reproduction.directory / "durations.csv")
     assert weekly["patient_id"].nunique() == PAPER.n_patients.value
     assert set(durations["state"]) == {RELAPSE, HEALTH}
 
@@ -508,6 +547,23 @@ def test_a_number_that_is_not_there_prints_as_a_missing_value() -> None:
     # null, so the printed table has to spell it the way it spells any other
     # missing value rather than as the word nan.
     assert msrelapse.cli._format_value(float("nan")) == msrelapse.cli._format_value(None)
+
+
+def test_the_record_writer_turns_a_numpy_scalar_into_a_plain_number() -> None:
+    # Numbers measured on a frame arrive as numpy scalars, which the json module
+    # writes no more than it writes a set, so the writer unwraps them rather than
+    # failing on a value that is a float in everything but its type.
+    written = msrelapse.cli._jsonable(np.float64(4.25))
+    assert written == 4.25
+    assert not isinstance(written, np.generic)
+
+
+def test_the_record_writer_refuses_a_value_it_cannot_write() -> None:
+    # A measurement of a kind nothing has written before fails where it is
+    # written, and the message names the kind, rather than reaching the file in a
+    # shape nothing can read back.
+    with pytest.raises(TypeError, match="set"):
+        msrelapse.cli._jsonable({"states": {RELAPSE, HEALTH}})
 
 
 def test_a_pooled_test_that_counts_no_patients_still_prints(

@@ -237,6 +237,14 @@ def simulate_paths(  # noqa: PLR0917
     the state and the weekly record would read as an ordinary clinical one.
     Every recorded path is therefore checked before it is returned.
 
+    The potential and the noise amplitude are held fixed for the whole run:
+    `well` is one frozen :class:`~msrelapse.model.DoubleWell` and `sigma` is one
+    number, and neither is read as a function of time. A within patient drift of
+    the barrier or of the noise, a slowly varying beta(t) or sigma(t), is
+    therefore outside what this module produces. The over-dispersion the package
+    does carry is the between patient kind, the gamma mixture of relapse rates
+    of :func:`msrelapse.renewal.gamma_rates`.
+
     Examples
     --------
     >>> paths = simulate_paths(DoubleWell(1.0, 0.08), 0.36, 1.0, dt=0.1, rng=0)

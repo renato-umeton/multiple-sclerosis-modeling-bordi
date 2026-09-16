@@ -50,7 +50,8 @@ follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
   exponential, the Poisson to negative binomial story, and a two arm virtual
   trial.
 - Documentation site, including a theory page that derives every implemented
-  equation and records the three inconsistencies found in the article.
+  equation and a reproduction page that records the three inconsistencies found
+  in the article.
 
 ### Notes
 

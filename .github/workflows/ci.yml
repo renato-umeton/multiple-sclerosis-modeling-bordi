@@ -10,12 +10,21 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# These are the jobs that run project code, the third party test dependencies
+# and the notebooks, so they hold the least the platform can give them. Nothing
+# here writes to the repository. Stated rather than inherited, because the
+# repository default is a setting a reader of this file cannot see, and
+# release.yml and docs.yml both state theirs.
+permissions:
+  contents: read
+
 env:
   FORCE_COLOR: "1"
 
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.1.0
@@ -29,10 +38,16 @@ jobs:
         run: uv run ruff format --check --diff .
       - name: Type check
         run: uv run mypy
+      - name: Validate the citation metadata
+        # CITATION.cff tells the maintainer to check a change with this command.
+        # Running it here is what turns that note into a gate, and the file is
+        # what Zenodo and the reference managers read.
+        run: uvx cffconvert --validate -i CITATION.cff
 
   test:
     needs: lint
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -49,7 +64,8 @@ jobs:
       - name: Install the project
         run: uv sync --locked --all-extras --group dev
       - name: Run tests
-        run: uv run pytest --cov=msrelapse --cov-report=xml
+        # The step above is the install; this one uses it as it stands.
+        run: uv run --no-sync pytest --cov=msrelapse --cov-report=xml
         env:
           # Compiled kernels report as uncovered otherwise.
           NUMBA_DISABLE_JIT: "1"
@@ -67,6 +83,7 @@ jobs:
   docs:
     needs: lint
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.1.0
@@ -84,6 +101,9 @@ jobs:
   notebooks:
     needs: lint
     runs-on: ubuntu-latest
+    # Each notebook is given 900 seconds by tests/test_notebooks.py, so a run
+    # that passes this is stuck rather than slow.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.1.0
@@ -94,3 +114,40 @@ jobs:
       - name: Execute the notebooks
         # The step above is the install; this one uses it as it stands.
         run: uv run --no-sync pytest -m notebook
+
+  build:
+    # The distribution is built and checked on every push and pull request, and
+    # not for the first time on a tag. A mistake in the build configuration, in
+    # the sdist include list, in the classifiers or in the README rendering is
+    # then a failure here, where it is cheap, rather than in the middle of a
+    # release, where the tag has already been pushed.
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          python-version: "3.13"
+      - name: Install the project
+        run: uv sync --locked --all-extras --group dev
+      - name: Build the wheel and the sdist
+        run: uv build
+      - name: Check the metadata
+        # The same check release.yml runs on a tag.
+        run: uvx twine check --strict dist/*
+      - name: Run the shipped suite from the sdist
+        # The sdist carries tests/, so it has to carry everything those tests
+        # read. Unpacking the archive and running the suite from it is what
+        # keeps the include list in pyproject.toml honest, and it is what a
+        # downstream packager does. The notebooks job covers the slow tests.
+        run: |
+          mkdir unpacked
+          tar xzf dist/*.tar.gz -C unpacked
+          uv run --no-sync python -m pytest unpacked/msrelapse-*/tests -m "not slow"
+        env:
+          NUMBA_DISABLE_JIT: "1"
+      - name: Install the wheel on its own and run the command line
+        # Nothing of the checkout is on the path of that environment, so this
+        # fails if the wheel is missing a module or a packaged data file.
+        run: uv run --no-project --with dist/*.whl msrelapse cite
