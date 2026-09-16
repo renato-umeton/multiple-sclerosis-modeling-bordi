@@ -181,11 +181,33 @@ integration step and band fraction, is in the Notes of
 statement about that generator, and a reproduction of the article as a
 `renewal` run.
 
+## Regenerating the animation
+
+The animation on the [home page](index.md) comes from the same command line. It
+is one simulated record on the potential calibrated to the two mean durations
+of the article, written as a GIF:
+
+```bash
+msrelapse animate --seed 4 --contact-sheet docs/assets/double_well_frames.png
+```
+
+The seed is what makes it repeatable, and 4 is the one the committed file was
+written under: it gives 520 weeks holding five relapses spread over the whole
+record. The command writes `docs/assets/double_well.gif`, 260 frames of about
+1.4 MB in all, and the contact sheet beside it, which is four evenly spaced
+frames of the finished file as a static PNG for a reader who would rather not
+play it. `--weeks`, `--fps` and `--dpi` change how long the animation runs and
+how large the file is. The bottom panel of the animation is an illustrative
+disability proxy, the running count of weeks spent in relapse, and no clinical
+disability score is modelled anywhere in this package.
+
 ## The four notebooks
 
-They live in `notebooks/` and are executed end to end in continuous
-integration, by the tests carrying the `notebook` marker in
-`tests/test_notebooks.py`. Open them with
+They live in `notebooks/` and are committed executed, with their outputs in
+place, so that a reader who opens one on GitHub sees the figures and the tables
+without running anything. `python notebooks/build_notebooks.py` rebuilds them,
+and the tests carrying the `notebook` marker in `tests/test_notebooks.py`
+execute them end to end in continuous integration. Open them with
 `uv run --group notebooks --with jupyterlab jupyter lab`, which adds JupyterLab
 for that one command since the project does not depend on it, or execute them
 headlessly the way the tests do.

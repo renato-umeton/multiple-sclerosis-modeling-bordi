@@ -100,10 +100,18 @@ COMMENT_WORD = re.compile(r"[A-Za-z][\w.-]*")
 # unnoticed.
 SETUP_COMMENT_PROSE = frozenset({"and", "the", "api", "reference", "build", "kernel"})
 
-# The hooks a commit has to pass before it is written. The three local ones are
-# the gates continuous integration runs again, and nbstripout is what keeps an
-# executed notebook out of the history.
-PRE_COMMIT_HOOKS = ("ruff-check", "ruff-format", "mypy", "nbstripout")
+# The hooks a commit has to pass before it is written, which are the three
+# gates continuous integration runs again. The notebooks are committed with
+# their outputs in place, so no hook strips them.
+PRE_COMMIT_HOOKS = ("ruff-check", "ruff-format", "mypy")
+
+# The animation the README shows, the contact sheet beside it, and the ceiling
+# each of the two is kept under. Both are committed, so a clone carries them,
+# and the GIF is also shipped inside the sdist under docs/.
+ANIMATION_GIF = "docs/assets/double_well.gif"
+ANIMATION_CONTACT_SHEET = "docs/assets/double_well_frames.png"
+MAX_GIF_BYTES = 3 * 1024 * 1024
+MAX_CONTACT_SHEET_BYTES = 1024 * 1024
 
 # Every action the workflows are allowed to call, at the version the repository
 # standardised on. A new action, or a bumped version, is named here first.
@@ -458,6 +466,7 @@ def test_readme_documents_every_cli_subcommand() -> None:
     for subcommand in (
         "reproduce",
         "simulate",
+        "animate",
         "fit",
         "test-memoryless",
         "test-periodicity",
@@ -509,11 +518,30 @@ def test_readme_describes_each_entry_point_with_the_verb_it_deserves(
 
 
 def test_readme_links_nothing_by_a_relative_path() -> None:
-    """README.md ships as the package long description, where relative links break."""
-    targets = re.findall(r"\]\(([^)\s]+)", read("README.md"))
+    """README.md ships as the package long description, where relative links break.
+
+    An image is the one exception, and the animation is the one image of the
+    README that is a file of this repository rather than a badge: GitHub
+    resolves it against the commit the page belongs to, which an absolute link
+    into a branch would not.
+    """
+    readme = read("README.md")
+    images = set(re.findall(r"!\[[^\]]*\]\(([^)\s]+)", readme))
+    targets = [target for target in re.findall(r"\]\(([^)\s]+)", readme) if target not in images]
     assert targets
     for target in targets:
         assert target.startswith(("https://", "#")), target
+
+
+def test_readme_shows_the_animation() -> None:
+    assert f"]({ANIMATION_GIF})" in read("README.md")
+    assert (ROOT / ANIMATION_GIF).is_file()
+
+
+def test_the_animation_and_its_contact_sheet_stay_small_enough_to_commit() -> None:
+    """Both are binary files in the history, so both carry a ceiling."""
+    assert (ROOT / ANIMATION_GIF).stat().st_size <= MAX_GIF_BYTES
+    assert (ROOT / ANIMATION_CONTACT_SHEET).stat().st_size <= MAX_CONTACT_SHEET_BYTES
 
 
 def quick_start_block() -> str:

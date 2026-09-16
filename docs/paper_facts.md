@@ -1,6 +1,6 @@
 # Bordi et al. 2013: verified paper facts for implementation
 
-Source: Bordi I, Umeton R, Ricigliano VAG, Annibali V, Mechelli R, Ristori G, Grassi F, Salvetti M, Sutera A. "A Mechanistic, Stochastic Model Helps Understand Multiple Sclerosis Course and Pathogenesis". International Journal of Genomics, Volume 2013, Article ID 910321, 10 pages. DOI 10.1155/2013/910321. Hindawi Publishing Corporation. Received 24 October 2012; Revised 2 January 2013; Accepted 27 January 2013. Academic Editor Brian Wigdahl. Licence CC BY.
+Source: Bordi I, Umeton R, Ricigliano VAG, Annibali V, Mechelli R, Ristori G, Grassi F, Salvetti M, Sutera A. "A Mechanistic, Stochastic Model Helps Understand Multiple Sclerosis Course and Pathogenesis". International Journal of Genomics, Volume 2013, Article ID 910321, 10 pages. DOI 10.1155/2013/910321. Publisher Wiley. Received 24 October 2012; Revised 2 January 2013; Accepted 27 January 2013. Academic Editor Brian Wigdahl. Licence CC BY.
 
 Every equation, number and figure value below was checked against the PDF: the text layer was extracted and read directly, and every disputed figure was rendered at 300 to 400 dpi and measured with axis calibration. Where a value is measured rather than printed, this document says so.
 

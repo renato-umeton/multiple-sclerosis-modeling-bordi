@@ -91,7 +91,7 @@ the archive comes from the same file rather than being typed again.
   pages     = {910321},
   year      = {2013},
   doi       = {10.1155/2013/910321},
-  publisher = {Hindawi}
+  publisher = {Wiley}
 }
 ```
 

@@ -1,11 +1,12 @@
 """The command line interface of the package.
 
-Seven subcommands, one per thing a reader of the article is likely to want from
+Eight subcommands, one per thing a reader of the article is likely to want from
 a terminal: ``reproduce`` runs the whole analysis headlessly and writes it out,
-``simulate`` generates a virtual cohort, ``fit``, ``test-memoryless`` and
-``test-periodicity`` run one estimator or one test on a file, ``cite`` prints
-the article and this package in a form a reference manager reads, and ``params``
-prints every number the article reports.
+``simulate`` generates a virtual cohort, ``animate`` writes the animated GIF of
+the model at work, ``fit``, ``test-memoryless`` and ``test-periodicity`` run one
+estimator or one test on a file, ``cite`` prints the article and this package in
+a form a reference manager reads, and ``params`` prints every number the article
+reports.
 
 This module composes the rest of the package and computes nothing of its own.
 Every number it prints comes from [`msrelapse.fit`][msrelapse.fit],
@@ -116,6 +117,16 @@ _DEFAULT_CI: Final = 0.95
 
 # Where reproduce writes when the caller names no directory.
 _DEFAULT_OUT: Final = Path("reproduction")
+
+# Where animate writes when the caller names no file, which is the path the
+# README and the home page of the site show the animation from, and the three
+# numbers its options restate from msrelapse.plots. A test in tests/test_cli.py
+# reads those three off the signatures of animate_double_well and
+# save_double_well_gif and holds them against these, so neither set can drift.
+_DEFAULT_GIF: Final = Path("docs/assets/double_well.gif")
+_DEFAULT_ANIMATION_WEEKS: Final = 520
+_DEFAULT_FPS: Final = 8
+_DEFAULT_ANIMATION_DPI: Final = 80
 
 # How many of the most relapsing patients reproduce reports a barrier ratio of
 # their own for. Equation (7) needs a mean duration above one week in both
@@ -263,6 +274,7 @@ def _build_parser() -> argparse.ArgumentParser:
     subcommands = parser.add_subparsers(dest="subcommand", required=True, metavar="SUBCOMMAND")
     _add_reproduce(subcommands)
     _add_simulate(subcommands)
+    _add_animate(subcommands)
     _add_fit(subcommands)
     _add_test_memoryless(subcommands)
     _add_test_periodicity(subcommands)
@@ -373,6 +385,58 @@ def _add_simulate(subcommands: argparse._SubParsersAction[argparse.ArgumentParse
         help="file to write, whose directory is created if it does not exist",
     )
     parser.set_defaults(handler=_run_simulate)
+
+
+def _add_animate(subcommands: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """Register the subcommand that writes the animation of the model at work."""
+    parser = subcommands.add_parser(
+        "animate",
+        help="write the animated GIF of one simulated record on the calibrated potential",
+        description=(
+            "Simulate one record on the potential calibrated to the two mean durations "
+            "the article reports and write it as an animated GIF of three panels: the "
+            "particle in the double well, the weekly relapse and remission series, and "
+            "the cumulative weeks in relapse, which is an illustrative disability proxy "
+            "and not a clinical score. Needs matplotlib, the plot extra."
+        ),
+    )
+    parser.add_argument(
+        "-o",
+        "--out",
+        type=Path,
+        default=_DEFAULT_GIF,
+        metavar="OUT.gif",
+        help=f"file to write, whose directory is created if it does not exist "
+        f"(default: {_DEFAULT_GIF.as_posix()})",
+    )
+    parser.add_argument("--seed", type=int, default=None, help="seed, for a reproducible animation")
+    parser.add_argument(
+        "--weeks",
+        type=int,
+        default=_DEFAULT_ANIMATION_WEEKS,
+        help=f"length of the record, in whole weeks (default: {_DEFAULT_ANIMATION_WEEKS})",
+    )
+    parser.add_argument(
+        "--fps",
+        type=int,
+        default=_DEFAULT_FPS,
+        help=f"frames per second of the written file (default: {_DEFAULT_FPS})",
+    )
+    parser.add_argument(
+        "--dpi",
+        type=int,
+        default=_DEFAULT_ANIMATION_DPI,
+        help=f"dots per inch of each frame, which is what the file size turns on "
+        f"(default: {_DEFAULT_ANIMATION_DPI})",
+    )
+    parser.add_argument(
+        "--contact-sheet",
+        type=Path,
+        default=None,
+        metavar="SHEET.png",
+        help="also write four frames of the finished animation side by side as a PNG",
+    )
+    parser.set_defaults(handler=_run_animate)
 
 
 def _add_fit(subcommands: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -677,6 +741,42 @@ def _run_simulate(args: argparse.Namespace) -> int:
     write_csv(frame, out)
     print(cohort.provenance)
     print(f"wrote {out} ({len(frame)} rows, {schema} schema)")
+    return 0
+
+
+def _run_animate(args: argparse.Namespace) -> int:
+    """Write the animation of the double well and report what went where.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        The parsed arguments of the ``animate`` subcommand.
+
+    Returns
+    -------
+    int
+        0, the animation having been written.
+
+    Raises
+    ------
+    ImportError
+        If matplotlib is not installed.
+    """
+    contact_sheet: Path | None = args.contact_sheet
+    written = [
+        plots.save_double_well_gif(
+            args.out,
+            fps=args.fps,
+            dpi=args.dpi,
+            contact_sheet=contact_sheet,
+            n_weeks=args.weeks,
+            rng=args.seed,
+        )
+    ]
+    if contact_sheet is not None:
+        written.append(contact_sheet)
+    for path in written:
+        print(f"wrote {path} ({path.stat().st_size} bytes)")
     return 0
 
 

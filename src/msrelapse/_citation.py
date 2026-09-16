@@ -94,7 +94,7 @@ PAPER_BIBTEX: Final = f"""@article{{bordi2013mechanistic,
   pages     = {{910321}},
   year      = {{2013}},
   doi       = {{{PAPER.paper_doi.value}}},
-  publisher = {{Hindawi}}
+  publisher = {{Wiley}}
 }}"""
 """str: The article as a BibTeX entry, keyed bordi2013mechanistic."""
 

@@ -1,11 +1,14 @@
 """Build the four notebooks of this repository from their sources in this file.
 
-The notebooks are generated rather than edited by hand, so that they stay small
-in a diff, carry no execution state and can be rebuilt after the package moves
-under them. Running this script writes the four ``.ipynb`` files next to it with
-empty outputs, which is what the repository commits; ``--execute`` runs each of
-them through nbclient first, so that a rebuild can be checked before it is
-written.
+The notebooks are generated rather than edited by hand, so that every cell has
+one source, which is this file, and so that they can be rebuilt after the
+package moves under them. Running this script runs each notebook through
+nbclient and writes the four ``.ipynb`` files next to it with the outputs of
+that run in them, which is what the repository commits: the tables and the
+figures are then what GitHub renders on the file. Two runs on one machine write
+the same bytes, so a rebuild that changes nothing leaves no diff.
+``--no-execute`` skips the run and writes output free notebooks, which is for
+editing a cell and reading the diff rather than for committing.
 
 Every notebook takes its numbers of the article from ``msrelapse.PAPER`` rather
 than writing them down, fixes one seed for every random step, and says in its
@@ -16,15 +19,18 @@ this script builds, so a change here, and a change to what
 ``msrelapse.citation()`` prints or to the version of the package, which the
 closing cell of every notebook carries, both ask for a rebuild.
 
+Running them needs nbclient and a ``python3`` Jupyter kernel, which the optional
+``notebooks`` dependency group installs; writing them unrun needs neither.
+
 Examples
 --------
-Rebuild the four notebooks in place::
+Rebuild the four notebooks in place, running each one before it is written::
 
-    uv run --no-sync python notebooks/build_notebooks.py
+    uv run --group notebooks python notebooks/build_notebooks.py
 
-Rebuild them and run each one before writing it::
+Rebuild them without running them, which writes no output into the files::
 
-    uv run --no-sync python notebooks/build_notebooks.py --execute
+    uv run --group notebooks python notebooks/build_notebooks.py --no-execute
 """
 
 from __future__ import annotations
@@ -61,6 +67,13 @@ _NOTEBOOK_METADATA: Final = {
     "language_info": {"name": "python"},
 }
 """The only metadata the notebooks carry, kept minimal so that a run adds nothing."""
+
+_RUN_REMEDY: Final = (
+    "install the optional notebooks dependency group and run "
+    "'uv run --group notebooks python notebooks/build_notebooks.py', or pass "
+    "--no-execute to write the notebooks without running them"
+)
+"""What to do about a missing runner, said by both failures that report one."""
 
 
 def _markdown(source: str) -> NotebookNode:
@@ -1267,7 +1280,7 @@ NOTEBOOK_NAMES: Final = tuple(_BUILDERS)
 
 
 def build(name: str) -> NotebookNode:
-    """Return one notebook, with empty outputs.
+    """Return one notebook, built from its cells and not yet run.
 
     Parameters
     ----------
@@ -1277,13 +1290,11 @@ def build(name: str) -> NotebookNode:
     Returns
     -------
     nbformat.NotebookNode
-        The notebook, validated against the nbformat schema. Every cell carries
-        its position as its identifier, so that two builds of the same cells
-        give the same file, byte for byte. The identifiers nbformat draws by
-        default are random, which would put every cell of every notebook in the
-        diff of any rebuild. The position is also exactly what the nbstripout
-        hook of the repository writes over a cell identifier, so the hook leaves
-        a freshly built notebook alone.
+        The notebook before it is run, validated against the nbformat schema.
+        Every cell carries its position as its identifier, so that two builds of
+        the same cells give the same file, byte for byte. The identifiers
+        nbformat draws by default are random, which would put every cell of
+        every notebook in the diff of any rebuild.
 
     Raises
     ------
@@ -1300,29 +1311,6 @@ def build(name: str) -> NotebookNode:
     return notebook
 
 
-def _without_outputs(notebook: NotebookNode) -> NotebookNode:
-    """Return a copy of a notebook whose code cells carry no output.
-
-    Parameters
-    ----------
-    notebook : nbformat.NotebookNode
-        The notebook to copy.
-
-    Returns
-    -------
-    nbformat.NotebookNode
-        The copy, with an empty output list and no execution count on every
-        code cell. This is what the repository commits, and it is what the
-        nbstripout hook of the repository would leave behind in any case.
-    """
-    cleared = copy.deepcopy(notebook)
-    for cell in cleared.cells:
-        if cell.cell_type == "code":
-            cell.outputs = []
-            cell.execution_count = None
-    return cleared
-
-
 def build_all() -> dict[str, NotebookNode]:
     """Return every notebook this script builds, keyed by file name.
 
@@ -1335,16 +1323,16 @@ def build_all() -> dict[str, NotebookNode]:
 
 
 def write(name: str, notebook: NotebookNode, out_dir: Path | None = None) -> Path:
-    """Write one notebook to disk, with every output cleared.
+    """Write one notebook to disk as it stands, outputs included.
 
     Parameters
     ----------
     name : str
         File name to write under.
     notebook : nbformat.NotebookNode
-        The notebook to write. It is not changed; the outputs are cleared on a
-        copy, so that a notebook that was run stays runnable in memory and the
-        file on disk carries no output and no run count.
+        The notebook to write, which is not changed. An executed notebook is
+        written with its outputs and its run counts, which is what the
+        repository commits.
     out_dir : pathlib.Path, optional
         Directory to write into, created if it does not exist. The default is
         ``NOTEBOOK_DIR``.
@@ -1357,42 +1345,77 @@ def write(name: str, notebook: NotebookNode, out_dir: Path | None = None) -> Pat
     directory = NOTEBOOK_DIR if out_dir is None else out_dir
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / name
-    notebook = _without_outputs(notebook)
     _write_notebook(notebook, path)
     return path
 
 
-def _execute(notebook: NotebookNode, work_dir: Path) -> None:
-    """Run every cell of a notebook and raise if one of them fails.
+def _execute(notebook: NotebookNode, work_dir: Path) -> NotebookNode:
+    """Run every cell of a notebook, on a copy, and raise if one of them fails.
 
     Parameters
     ----------
     notebook : nbformat.NotebookNode
-        The notebook to run. A copy is executed, so the outputs never reach the
-        notebook that is written.
+        The notebook to run, which is not changed.
     work_dir : pathlib.Path
         Directory the kernel runs in.
 
+    Returns
+    -------
+    nbformat.NotebookNode
+        The copy that was run, carrying the outputs and the run counts of that
+        run. Two things a run would otherwise leave behind are taken back out,
+        because both would change from one machine to the next and put the whole
+        file in the diff of a rebuild: the timings nbclient records on every
+        cell, which are switched off, and the language version the kernel
+        reports, which is written over with the metadata of the build.
+
     Raises
     ------
+    RuntimeError
+        If nbclient is not installed, or if the kernel the notebooks are run
+        under is not. Both name the dependency group that supplies them.
     nbclient.exceptions.CellExecutionError
         If any cell raises.
     """
     # Imported here rather than at the top of the file, because building the
-    # notebooks needs nbformat alone and nbclient is only used by --execute.
-    from nbclient import NotebookClient  # noqa: PLC0415
+    # notebooks needs nbformat alone and these two are only used to run them.
+    # They come from the optional notebooks dependency group, so a machine
+    # without it is told what to install rather than left with a bare import
+    # error naming a module it has never heard of.
+    try:
+        from jupyter_client.kernelspec import NoSuchKernel  # noqa: PLC0415
+        from nbclient import NotebookClient  # noqa: PLC0415
+    except ImportError as error:
+        raise RuntimeError(
+            f"running the notebooks needs nbclient and jupyter_client: {_RUN_REMEDY}"
+        ) from error
 
     client = NotebookClient(
         copy.deepcopy(notebook),
         timeout=EXECUTION_TIMEOUT,
         kernel_name=KERNEL_NAME,
         resources={"metadata": {"path": str(work_dir)}},
+        record_timing=False,
     )
-    client.execute()
+    try:
+        executed: NotebookNode = client.execute()
+    except NoSuchKernel as error:
+        raise RuntimeError(
+            f"running the notebooks needs the {KERNEL_NAME} Jupyter kernel, which "
+            f"ipykernel supplies: {_RUN_REMEDY}"
+        ) from error
+    executed.metadata.clear()
+    executed.metadata.update(_NOTEBOOK_METADATA)
+    nbformat.validate(executed)
+    return executed
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Build the notebooks, optionally run them, and write them without outputs.
+    """Build the notebooks, run them unless ``--no-execute`` is passed, and write them.
+
+    Every notebook is run before any of them is written, so a run that stops on
+    a raising cell leaves the notebooks on disk as they were rather than half
+    rebuilt.
 
     Parameters
     ----------
@@ -1403,12 +1426,24 @@ def main(argv: list[str] | None = None) -> int:
     -------
     int
         0 when every notebook was written.
+
+    Raises
+    ------
+    RuntimeError
+        If the notebooks are run without nbclient or without the ``python3``
+        Jupyter kernel. Passing ``--no-execute`` needs neither.
+    nbclient.exceptions.CellExecutionError
+        If a cell of any notebook raises, which is the failure a rebuild after
+        a change to the package meets. Nothing is written in that case.
     """
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
-        "--execute",
+        "--no-execute",
         action="store_true",
-        help="run each notebook before writing it, to check that it still works",
+        help=(
+            "skip the run and write output free notebooks, for editing a cell "
+            "and reading the diff rather than for committing"
+        ),
     )
     parser.add_argument(
         "--out-dir",
@@ -1418,15 +1453,22 @@ def main(argv: list[str] | None = None) -> int:
     )
     arguments = parser.parse_args(argv)
     arguments.out_dir.mkdir(parents=True, exist_ok=True)
+    finished: dict[str, NotebookNode] = {}
     for name, notebook in build_all().items():
-        if arguments.execute:
+        if arguments.no_execute:
+            finished[name] = notebook
+        else:
             print(f"running {name}")
             # Run where the test suite runs them, which is the directory the
             # notebooks live in, rather than in the directory they are written
             # to, so that a rebuild into a scratch directory is checked under
             # the conditions the committed files are checked under.
-            _execute(notebook, NOTEBOOK_DIR)
-        print(f"writing {write(name, notebook, arguments.out_dir)}")
+            finished[name] = _execute(notebook, NOTEBOOK_DIR)
+    # Written only once every notebook has run, so that a cell raising in the
+    # third one does not leave two files rebuilt and two stale. The four
+    # together are about a megabyte in memory, so the wait costs nothing.
+    for name, ran in finished.items():
+        print(f"writing {write(name, ran, arguments.out_dir)}")
     return 0
 
 

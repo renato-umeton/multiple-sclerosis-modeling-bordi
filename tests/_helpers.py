@@ -240,10 +240,32 @@ def text_files(root: Path = ROOT) -> dict[Path, str]:
             if path.suffix in SKIPPED_SUFFIXES or path.relative_to(root).as_posix() in ignored:
                 continue
             try:
-                files[path] = path.read_text(encoding="utf-8")
+                text = path.read_text(encoding="utf-8")
             except (OSError, UnicodeDecodeError):
                 continue
+            files[path] = notebook_prose(text) if path.suffix == ".ipynb" else text
     return files
+
+
+def notebook_prose(text: str) -> str:
+    """Return the cell sources of a notebook, leaving its outputs out.
+
+    A committed notebook carries its executed outputs, and a figure output is a
+    long run of base64 text that was never written by hand. The house style
+    sweep reads what a person wrote, so only the source of each cell counts.
+
+    Parameters
+    ----------
+    text : str
+        The notebook file, as JSON text.
+
+    Returns
+    -------
+    str
+        The sources of every cell, in order, separated by blank lines.
+    """
+    notebook = json.loads(text)
+    return "\n\n".join("".join(cell.get("source", [])) for cell in notebook.get("cells", []))
 
 
 def em_dash_lines(text: str) -> list[int]:

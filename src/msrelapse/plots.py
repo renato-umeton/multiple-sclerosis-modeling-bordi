@@ -16,6 +16,13 @@ checked before it creates anything, so a call that is refused leaves no figure
 behind in the global registry of pyplot, which the caller has no handle on and
 would have to close by number.
 
+[`animate_double_well`][msrelapse.plots.animate_double_well] is the one drawing
+of the module that moves, so it takes a whole figure rather than a panel: it
+lays out three panels of its own and hands back the animation over them, which
+the caller plays or saves.
+[`save_double_well_gif`][msrelapse.plots.save_double_well_gif] is that call
+written out to a file, and it is what writes the animation the README shows.
+
 Numbers taken from the article, the bin edges of Figure 3 and the digitised bar
 heights of Figures 3 and 4 among them, are read from ``PAPER`` in
 [`msrelapse._params`][msrelapse._params] and are never written here. What the
@@ -44,9 +51,10 @@ from __future__ import annotations
 import math
 import os
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
-from typing import TYPE_CHECKING, Final, cast
+from typing import TYPE_CHECKING, Any, Final, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -56,14 +64,17 @@ from scipy import stats
 from msrelapse._params import PAPER
 from msrelapse.fit import MIN_AT_RISK, discrete_hazard, fit_durations, fit_nb_counts
 from msrelapse.io import validate
-from msrelapse.model import CriticalPoints, DoubleWell
-from msrelapse.simulate import Seed, simulate_paths
+from msrelapse.model import DEFAULT_BAND_FRACTION, CriticalPoints, DoubleWell, calibrate
+from msrelapse.simulate import BRIDGE_CONSTANT, Seed, simulate_paths, to_states, to_weekly
 
 if TYPE_CHECKING:
+    from matplotlib.animation import FuncAnimation
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
+    from matplotlib.lines import Line2D
 
 __all__ = [
+    "animate_double_well",
     "fig2_sample_patients",
     "fig3_rr_phase_histogram",
     "fig4_duration_histograms",
@@ -75,12 +86,15 @@ __all__ = [
     "fig_survival_vs_exponential",
     "require_matplotlib",
     "save_all_paper_figures",
+    "save_double_well_gif",
 ]
 
 _Vector = npt.NDArray[np.float64]
+_States = npt.NDArray[np.int64]
 
 _NO_HEALTH: Final = PAPER.state_no_health.value
 _HEALTH: Final = PAPER.state_health.value
+_WEEK: Final = PAPER.time_resolution_weeks.value
 
 _X_LIMITS: Final = PAPER.potential_plot_x_limits.value
 _V_LIMITS: Final = PAPER.potential_plot_v_limits.value
@@ -133,6 +147,30 @@ _STACKED_PANEL_SIZE: Final = (7.0, 2.2)
 _SIDE_PANEL_SIZE: Final = (4.2, 3.6)
 _SINGLE_SIZE: Final = (6.0, 4.0)
 _DPI: Final = 150
+
+# The animation and its three panels, none of it from the paper. The figure is
+# sized so that the default run stays a file a README can carry, the time step
+# is the one Figure 7 is integrated at, and the rest is placement.
+_ANIMATION_SIZE: Final = (9.0, 6.0)
+_ANIMATION_HEIGHT_RATIOS: Final = (1.0, 0.8)
+_ANIMATION_DT: Final = _FIG7_DT
+_PARTICLE_SIZE: Final = 10
+_CURRENT_WEEK_SIZE: Final = 6
+_SADDLE_SIZE: Final = 5
+# Room left above the highest point of the cumulative curve, so that its last
+# step does not sit on the top of the panel.
+_BURDEN_HEADROOM: Final = 1.1
+# How many frames of a finished animation the contact sheet lays side by side.
+_CONTACT_SHEET_PANELS: Final = 4
+
+# The three moving pieces carry a label, which is how a caller reading a panel
+# back tells them from the static lines beside them.
+_PARTICLE_LABEL: Final = "x(t)"
+_CURRENT_WEEK_LABEL: Final = "current week"
+_SADDLE_LABEL: Final = "saddle"
+# Written over two lines because the panel is shorter than the sentence: set on
+# one line the label runs off both ends of its own axis.
+_BURDEN_AXIS_LABEL: Final = "Cumulative weeks in relapse\n(disability proxy)"
 
 
 def fig2_sample_patients(
@@ -858,6 +896,187 @@ def save_all_paper_figures(
         for number in sorted(set(plt.get_fignums()) - opened_before):
             plt.close(number)
     return written
+
+
+def animate_double_well(  # noqa: PLR0917
+    well: DoubleWell | None = None,
+    sigma: float | None = None,
+    n_weeks: int = 520,
+    dt: float = _ANIMATION_DT,
+    band_fraction: float = DEFAULT_BAND_FRACTION,
+    weeks_per_frame: float = 2.0,
+    rng: Seed = None,
+    fig: Figure | None = None,
+) -> FuncAnimation:
+    """Animate one simulated record as the particle, the weekly series and the burden.
+
+    The figure holds three panels. The potential at the top left carries the
+    particle at the current x(t), with the two wells named as the paper names
+    the two states and the barrier top between them marked. The weekly record
+    at the top right is the step plot of Figure 2, the plus one and minus one
+    series against the week, drawn up to the current week and marked there. The
+    panel across the bottom is the cumulative number of weeks spent in the no
+    health state, which grows by the duration of every relapse and never falls.
+
+    The article prints no such figure. What the animation shows is the model of
+    the article at work, and every number behind it is one the package computes
+    from the two mean durations the article reports.
+
+    The bottom panel is an illustrative proxy for disability and nothing more.
+    The model carries no disability scale, and no clinical score is computed
+    anywhere in this package: what the curve shows is the stepwise accumulation
+    picture of relapsing-remitting disease, in which each relapse adds its own
+    duration to a running total.
+
+    Parameters
+    ----------
+    well : DoubleWell, optional
+        The potential the path is drawn on. The default is the potential
+        [`msrelapse.model.calibrate`][msrelapse.model.calibrate] returns for the
+        two mean durations the paper reports, at the reference control
+        parameter.
+    sigma : float, optional
+        Noise amplitude. The default is the noise of that same calibration,
+        which is not the noise the paper prints for its Figure 7.
+    n_weeks : int, optional
+        Length of the record, in whole weeks. Must be at least one.
+    dt : float, optional
+        Time step of the integration, in weeks. Not from the paper.
+    band_fraction : float, optional
+        Position of the two hysteresis thresholds that map the path to the two
+        clinical states, as
+        [`msrelapse.simulate.to_states`][msrelapse.simulate.to_states] takes it.
+    weeks_per_frame : float, optional
+        How many weeks one frame advances by. Must be positive and finite. The
+        default of two weeks over the default record is 260 frames.
+    rng : numpy.random.Generator or int or None, optional
+        Generator to draw the noise from, or a seed for
+        ``numpy.random.default_rng``. A seed is what makes a written file
+        repeatable.
+    fig : matplotlib.figure.Figure, optional
+        The figure to lay the three panels out on, which is added to rather
+        than cleared. The default creates one.
+
+    Returns
+    -------
+    matplotlib.animation.FuncAnimation
+        The animation, which has to be kept alive by the caller for as long as
+        it is played or saved.
+
+    Raises
+    ------
+    ImportError
+        If matplotlib is not installed.
+    ValueError
+        If `n_weeks` is below one, if `weeks_per_frame` is not a positive
+        finite number of weeks, or if any argument of
+        [`msrelapse.simulate.simulate_paths`][msrelapse.simulate.simulate_paths]
+        or of [`msrelapse.simulate.to_states`][msrelapse.simulate.to_states] is
+        out of range.
+
+    See Also
+    --------
+    save_double_well_gif : The same animation, written to a file.
+
+    Notes
+    -----
+    The path starts at the bottom of the health well, so every record opens in
+    remission, and it is cut into the two states through the hysteresis band
+    with the Brownian bridge shift
+    [`msrelapse.simulate.simulate_weekly`][msrelapse.simulate.simulate_weekly]
+    applies, so the episodes of the animation are the episodes a weekly record
+    of this package holds. Those weekly episodes run longer than the two mean
+    durations the default is calibrated to: the calibration times the passage
+    from the bottom of a well to the saddle, while the weekly reading counts
+    every week the path touches a state as a whole week of it, the rounding rule
+    the study applies to its own records.
+
+    Every axis is given its limits before the first frame, the two of the
+    potential from the figures of the paper and the time axes from the whole
+    record, so that nothing moves during playback except the three pieces that
+    are meant to.
+    """
+    record = _animation_record(well, sigma, n_weeks, dt, band_fraction, rng)
+    weeks = _animation_weeks(int(record.weekly.size), weeks_per_frame)
+    # Everything that can be refused has been refused by now, so a figure
+    # created here is a figure the call will hand back.
+    plt = require_matplotlib()
+    from matplotlib.animation import FuncAnimation  # noqa: PLC0415
+
+    figure = plt.figure(figsize=_ANIMATION_SIZE, layout="constrained") if fig is None else fig
+    return FuncAnimation(figure, _draw_animation(figure, record, weeks), len(weeks), blit=False)
+
+
+def save_double_well_gif(
+    path: str | Path,
+    fps: int = 8,
+    dpi: int = 80,
+    contact_sheet: Path | None = None,
+    **kwargs: Any,
+) -> Path:
+    """Write the animation of the double well as a GIF, and return the file.
+
+    Parameters
+    ----------
+    path : str or pathlib.Path
+        File to write. Its directory is created if it does not exist.
+    fps : int, optional
+        Frames per second of the written file, which fixes how long a frame is
+        shown for.
+    dpi : int, optional
+        Dots per inch of each frame. With the figure of about nine by six
+        inches this module animates, the default gives a frame of 720 by 480
+        pixels and a default run of a couple of megabytes.
+    contact_sheet : pathlib.Path, optional
+        Where to write a PNG of four evenly spaced frames side by side, so that
+        the result can be read without playing it. The default writes none.
+    **kwargs
+        Passed to
+        [`animate_double_well`][msrelapse.plots.animate_double_well], which is
+        where the record, the potential and the seed are chosen.
+
+    Returns
+    -------
+    pathlib.Path
+        The file that was written.
+
+    Raises
+    ------
+    ImportError
+        If matplotlib is not installed.
+    ValueError
+        If an argument of
+        [`animate_double_well`][msrelapse.plots.animate_double_well] is out of
+        range.
+
+    Notes
+    -----
+    The writer is the Pillow one, so no external program is needed: Pillow is a
+    dependency of matplotlib itself. The contact sheet is read back out of the
+    finished file rather than drawn a second time, so it shows the frames the
+    file holds.
+
+    The figure is created here rather than inside the animation, so that it is
+    closed however the run ends and no figure is left behind in the registry of
+    pyplot, which the caller has no handle on.
+    """
+    plt = require_matplotlib()
+    from matplotlib.animation import PillowWriter  # noqa: PLC0415
+
+    target = Path(path)
+    # The directory is made before the animation is built, so that a mistyped or
+    # an unwritable path costs a moment rather than a whole default run, which
+    # integrates ten years of weeks and renders a couple of hundred frames.
+    target.parent.mkdir(parents=True, exist_ok=True)
+    figure = plt.figure(figsize=_ANIMATION_SIZE, layout="constrained")
+    try:
+        animation = animate_double_well(fig=figure, **kwargs)
+        animation.save(target, writer=PillowWriter(fps=fps), dpi=dpi)
+    finally:
+        plt.close(figure)
+    if contact_sheet is not None:
+        _save_contact_sheet(target, Path(contact_sheet))
+    return target
 
 
 def require_matplotlib() -> ModuleType:
@@ -1748,3 +1967,397 @@ def _relapse_counts(durations: pd.DataFrame) -> pd.Series[int]:
     relapses = durations["state"] == _NO_HEALTH
     counts = relapses.groupby(durations["patient_id"], sort=True).sum()
     return counts.astype(np.int64).rename("relapses").rename_axis("patient_id")
+
+
+@dataclass(frozen=True)
+class _AnimationRecord:
+    """One simulated path and the two weekly series the animation draws from it.
+
+    Attributes
+    ----------
+    well : DoubleWell
+        The potential the path was drawn on.
+    dt : float
+        Spacing of the samples of `x`, in weeks.
+    x : numpy.ndarray
+        The path itself, one row of
+        [`msrelapse.simulate.simulate_paths`][msrelapse.simulate.simulate_paths].
+    weekly : numpy.ndarray
+        The weekly states, one entry per whole week of the record.
+    burden : numpy.ndarray
+        The cumulative number of weeks spent in the no health state, of the
+        same length as `weekly`.
+    """
+
+    well: DoubleWell
+    dt: float
+    x: _Vector
+    weekly: _States
+    burden: _States
+
+
+def _animation_record(  # noqa: PLR0917
+    well: DoubleWell | None,
+    sigma: float | None,
+    n_weeks: int,
+    dt: float,
+    band_fraction: float,
+    rng: Seed,
+) -> _AnimationRecord:
+    """Simulate the one record the animation plays back.
+
+    Parameters
+    ----------
+    well : DoubleWell or None
+        The potential, or None for the calibrated one.
+    sigma : float or None
+        Noise amplitude, or None for the calibrated one.
+    n_weeks : int
+        Length of the record, in whole weeks.
+    dt : float
+        Time step of the integration, in weeks.
+    band_fraction : float
+        Position of the two hysteresis thresholds.
+    rng : numpy.random.Generator or int or None
+        Generator to draw the noise from, or a seed.
+
+    Returns
+    -------
+    _AnimationRecord
+        The path, the weekly states and the cumulative relapse weeks.
+
+    Raises
+    ------
+    ValueError
+        If `n_weeks` is below one, or if any argument of the integration or of
+        the mapping to states is out of range.
+    """
+    if n_weeks < 1:
+        raise ValueError(f"n_weeks must be at least 1, got {n_weeks!r}")
+    potential, amplitude = _animation_parameters(well, sigma)
+    paths = simulate_paths(potential, amplitude, float(n_weeks) * _WEEK, dt=dt, rng=rng)
+    # The same reading of an episode simulate_weekly applies: the hysteresis
+    # band, with the Brownian bridge shift that removes the bias of a crossing
+    # tested only at the grid points.
+    states = to_states(
+        paths.x[0],
+        potential,
+        band_fraction,
+        level_shift=BRIDGE_CONSTANT * amplitude * math.sqrt(dt),
+    )
+    weekly = to_weekly(states, dt)
+    return _AnimationRecord(
+        well=potential,
+        dt=dt,
+        x=paths.x[0],
+        weekly=weekly,
+        burden=_relapse_burden(weekly),
+    )
+
+
+def _animation_parameters(well: DoubleWell | None, sigma: float | None) -> tuple[DoubleWell, float]:
+    """Return the potential and the noise the animation runs at.
+
+    Parameters
+    ----------
+    well : DoubleWell or None
+        The potential the caller asked for, or None.
+    sigma : float or None
+        The noise amplitude the caller asked for, or None.
+
+    Returns
+    -------
+    tuple of DoubleWell and float
+        The potential and the noise. Whichever of the two the caller left out
+        comes from the calibration of the two mean durations of the paper, at
+        the reference control parameter.
+    """
+    if well is not None and sigma is not None:
+        return well, float(sigma)
+    beta, calibrated = calibrate(
+        PAPER.tau_health_cohort_weeks.value, PAPER.tau_no_health_cohort_weeks.value
+    )
+    return (
+        DoubleWell(PAPER.alpha_reference.value, beta) if well is None else well,
+        calibrated if sigma is None else float(sigma),
+    )
+
+
+def _animation_weeks(n_weeks: int, weeks_per_frame: float) -> list[int]:
+    """Return how many weeks of the record each frame of the animation shows.
+
+    Parameters
+    ----------
+    n_weeks : int
+        Length of the record, in whole weeks.
+    weeks_per_frame : float
+        How many weeks one frame advances by.
+
+    Returns
+    -------
+    list of int
+        One count of weeks per frame, rising and ending at the whole record, so
+        that the last frame holds everything.
+
+    Raises
+    ------
+    ValueError
+        If `weeks_per_frame` is not a positive finite number of weeks.
+    """
+    if not math.isfinite(weeks_per_frame) or weeks_per_frame <= 0.0:
+        raise ValueError(
+            f"weeks_per_frame must be a positive finite number of weeks, got {weeks_per_frame!r}"
+        )
+    n_frames = math.ceil(n_weeks / weeks_per_frame)
+    return [min(n_weeks, math.ceil((frame + 1) * weeks_per_frame)) for frame in range(n_frames)]
+
+
+def _relapse_burden(weekly: _States) -> _States:
+    """Return the running count of the weeks spent in the no health state.
+
+    This is the illustrative disability proxy of the animation. It is not a
+    clinical score: the model carries no disability scale, and the curve only
+    adds the duration of each relapse to a total that never falls.
+
+    Parameters
+    ----------
+    weekly : numpy.ndarray
+        The weekly states of one record.
+
+    Returns
+    -------
+    numpy.ndarray
+        The cumulative count, of the same length as `weekly`.
+    """
+    return np.cumsum(weekly == _NO_HEALTH, dtype=np.int64)
+
+
+def _draw_animation(
+    figure: Figure,
+    record: _AnimationRecord,
+    weeks: Sequence[int],
+) -> Callable[[int], None]:
+    """Lay the three panels out and return the function that advances them.
+
+    Parameters
+    ----------
+    figure : matplotlib.figure.Figure
+        The figure to draw the three panels on.
+    record : _AnimationRecord
+        The record to play back.
+    weeks : sequence of int
+        How many weeks each frame shows, from ``_animation_weeks``.
+
+    Returns
+    -------
+    callable
+        The function one frame index is passed to. It is called once here, so
+        that the figure holds the opening frame before anything plays it.
+    """
+    grid = figure.add_gridspec(2, 2, height_ratios=_ANIMATION_HEIGHT_RATIOS)
+    potential_panel = figure.add_subplot(grid[0, 0])
+    series_panel = figure.add_subplot(grid[0, 1])
+    burden_panel = figure.add_subplot(grid[1, :])
+    n_weeks = int(record.weekly.size)
+    particle = _draw_animated_potential(potential_panel, record.well)
+    step, current = _draw_animated_series(series_panel, n_weeks)
+    curve = _draw_animated_burden(burden_panel, record.burden, n_weeks)
+
+    def update(frame: int) -> None:
+        drawn = weeks[frame]
+        position = float(record.x[_sample_at(record, drawn)])
+        particle.set_data([position], [float(record.well.V(position))])
+        numbers = np.arange(drawn, dtype=np.float64)
+        states = record.weekly[:drawn]
+        # Week k covers the interval from k to k + 1, so the step is closed one
+        # week past the current one, as Figure 2 closes a whole record. Without
+        # that point the week the marker sits on would have no width at all.
+        step.set_data(np.append(numbers, float(drawn)), np.append(states, states[-1]))
+        current.set_data([numbers[-1]], [states[-1]])
+        curve.set_data(numbers, record.burden[:drawn])
+        series_panel.set_title(f"Weekly record, week {drawn} of {n_weeks}")
+
+    update(0)
+    return update
+
+
+def _draw_animated_potential(ax: Axes, well: DoubleWell) -> Line2D:
+    """Draw the potential of the animation and return the particle on it.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The panel to draw on.
+    well : DoubleWell
+        The potential the particle moves in.
+
+    Returns
+    -------
+    matplotlib.lines.Line2D
+        The particle, an empty line the caller moves one frame at a time.
+    """
+    _draw_potential(ax, well)
+    points = well.critical_points()
+    top = float(well.V(points.saddle))
+    ax.plot(
+        [points.saddle],
+        [top],
+        marker="o",
+        markersize=_SADDLE_SIZE,
+        linestyle="none",
+        color="tab:blue",
+        label=_SADDLE_LABEL,
+    )
+    ax.text(points.saddle, top + _LABEL_OFFSET, _SADDLE_LABEL, ha="center", va="bottom")
+    for position, name in ((points.health, "Health"), (points.relapse, "No health")):
+        ax.text(position, float(well.V(position)) - _LABEL_OFFSET, name, ha="center", va="top")
+    ax.set_title("The particle in the double well")
+    (particle,) = ax.plot(
+        [],
+        [],
+        marker="o",
+        markersize=_PARTICLE_SIZE,
+        linestyle="none",
+        color="tab:red",
+        label=_PARTICLE_LABEL,
+    )
+    return particle
+
+
+def _draw_animated_series(ax: Axes, n_weeks: int) -> tuple[Line2D, Line2D]:
+    """Set the weekly panel up and return its step and its current week mark.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The panel to draw on.
+    n_weeks : int
+        Length of the whole record, in weeks, which fixes the time axis.
+
+    Returns
+    -------
+    tuple of matplotlib.lines.Line2D
+        The step of the record so far and the mark on the current week, both
+        empty until the first frame.
+    """
+    (step,) = ax.plot([], [], drawstyle="steps-post", linewidth=1.0, color=_CURVE_COLOUR)
+    (current,) = ax.plot(
+        [],
+        [],
+        marker="o",
+        markersize=_CURRENT_WEEK_SIZE,
+        linestyle="none",
+        color="tab:red",
+        label=_CURRENT_WEEK_LABEL,
+    )
+    ax.set_xlim(0.0, float(n_weeks))
+    ax.set_yticks([_HEALTH, _NO_HEALTH])
+    ax.set_yticklabels(["Health", "No health"])
+    ax.set_ylim(_HEALTH - _STATE_MARGIN, _NO_HEALTH + _STATE_MARGIN)
+    ax.set_xlabel("Time (week)")
+    return step, current
+
+
+def _draw_animated_burden(ax: Axes, burden: _States, n_weeks: int) -> Line2D:
+    """Set the cumulative panel up and return the curve that grows across it.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The panel to draw on.
+    burden : numpy.ndarray
+        The cumulative relapse weeks of the whole record, which fixes the
+        height of the panel.
+    n_weeks : int
+        Length of the whole record, in weeks, which fixes the time axis.
+
+    Returns
+    -------
+    matplotlib.lines.Line2D
+        The curve, empty until the first frame.
+    """
+    (curve,) = ax.plot([], [], linewidth=1.2, color=_CURVE_COLOUR)
+    ax.set_xlim(0.0, float(n_weeks))
+    # A record holding no relapse at all still needs a panel with a height.
+    ax.set_ylim(0.0, _BURDEN_HEADROOM * max(1.0, float(burden[-1])))
+    ax.set_xlabel("Time (week)")
+    ax.set_ylabel(_BURDEN_AXIS_LABEL)
+    return curve
+
+
+def _sample_at(record: _AnimationRecord, weeks: int) -> int:
+    """Return the index of the sample of a path at the end of a whole week.
+
+    Parameters
+    ----------
+    record : _AnimationRecord
+        The record being played back.
+    weeks : int
+        How many whole weeks have been drawn.
+
+    Returns
+    -------
+    int
+        The index into the path, never past its last sample.
+    """
+    return min(record.x.size - 1, round(weeks * _WEEK / record.dt))
+
+
+def _save_contact_sheet(gif: Path, path: Path) -> Path:
+    """Write four evenly spaced frames of a finished animation side by side.
+
+    The frames are read back out of the written file, so the sheet shows what
+    the file holds rather than a second drawing of the same record.
+
+    Parameters
+    ----------
+    gif : pathlib.Path
+        The animation to read.
+    path : pathlib.Path
+        The PNG file to write. Its directory is created if it does not exist.
+
+    Returns
+    -------
+    pathlib.Path
+        The file that was written.
+
+    Raises
+    ------
+    ImportError
+        If matplotlib is not installed.
+    """
+    from PIL import Image, ImageSequence  # noqa: PLC0415
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with Image.open(gif) as playback:
+        # Each frame is converted while it is the current one, because the
+        # iterator seeks through the file rather than holding the frames.
+        frames = [frame.convert("RGB") for frame in ImageSequence.Iterator(playback)]
+        chosen = _evenly_spaced(len(frames), _CONTACT_SHEET_PANELS)
+        images = [np.asarray(frames[index]) for index in chosen]
+    panels = _panel_axes(None, len(images), stacked=False)
+    for panel, index, image in zip(panels, chosen, images, strict=True):
+        panel.imshow(image)
+        panel.set_axis_off()
+        panel.set_title(f"frame {index + 1} of {len(frames)}", fontsize="small")
+    return _save_figure(panels[0], path)
+
+
+def _evenly_spaced(n_frames: int, n_panels: int) -> list[int]:
+    """Return the indices of a few frames spread over the whole animation.
+
+    Parameters
+    ----------
+    n_frames : int
+        How many frames the animation holds.
+    n_panels : int
+        How many of them to pick, at least two.
+
+    Returns
+    -------
+    list of int
+        The indices, the first and the last frame among them. An animation of
+        fewer frames than panels repeats one of them.
+    """
+    positions = np.rint(np.linspace(0.0, float(n_frames - 1), n_panels))
+    return [int(position) for position in positions]

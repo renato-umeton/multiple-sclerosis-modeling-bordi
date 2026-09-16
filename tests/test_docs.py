@@ -73,6 +73,12 @@ API_PAGES = {
 # Pages that live under docs/ but are not part of the published site.
 EXCLUDED = ("plan1.md", "paper/", "pull_request_template.md")
 
+# The animation of the home page, as that page refers to it and as the
+# repository holds it, with the contact sheet beside it. Both are pictures, so
+# the house style sweep has to walk past them rather than read them as prose.
+ANIMATION_IMAGE = "assets/double_well.gif"
+ANIMATION_ASSETS = ("docs/assets/double_well.gif", "docs/assets/double_well_frames.png")
+
 # The Sphinx cross reference roles. mkdocstrings reads numpy docstrings and
 # interprets none of them, so one left in a docstring reaches the built page as
 # the literal text a reader sees. The markers are built from their names rather
@@ -780,6 +786,19 @@ def test_the_theory_page_cites_the_work_it_rests_on() -> None:
 def test_the_home_page_quotes_the_summary_sentence_word_for_word() -> None:
     page = flatten(read(DOCS / "index.md"))
     assert summary_sentence() in page, "docs/index.md and README.md summarise the work differently"
+
+
+def test_the_home_page_shows_the_animation() -> None:
+    assert f"]({ANIMATION_IMAGE})" in read(DOCS / "index.md")
+    assert (DOCS / ANIMATION_IMAGE).is_file()
+
+
+def test_the_animation_assets_are_never_read_as_prose() -> None:
+    """The sweep reads text files, and these two are pictures."""
+    reached = swept()
+    for relative in ANIMATION_ASSETS:
+        assert (ROOT / relative).is_file(), f"{relative} is not in the working tree"
+        assert relative not in reached
 
 
 def test_the_citing_page_carries_the_bibtex_the_package_prints() -> None:

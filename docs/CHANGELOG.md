@@ -44,14 +44,22 @@ follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
   reported aggregate on any weekly record.
 - `msrelapse._params`: every number the article reports, each with its unit and
   the sentence it comes from. No other module computes with one.
-- A command line with seven subcommands: `reproduce`, `simulate`, `fit`,
-  `test-memoryless`, `test-periodicity`, `cite` and `params`, and a `--version`
-  flag that prints the installed version. `reproduce` stamps that same version
-  into `numbers.json` under `msrelapse_version`, so a reproduction directory
-  says which release wrote it.
+- A command line with eight subcommands: `reproduce`, `simulate`, `animate`,
+  `fit`, `test-memoryless`, `test-periodicity`, `cite` and `params`, and a
+  `--version` flag that prints the installed version. `reproduce` stamps that
+  same version into `numbers.json` under `msrelapse_version`, so a reproduction
+  directory says which release wrote it.
+- An animation of the model at work, `msrelapse.plots.animate_double_well` and
+  the `animate` subcommand behind it: the particle in the calibrated double
+  well, the weekly relapse and remission series it produces, and the cumulative
+  weeks in relapse, which is an illustrative disability proxy and not a
+  clinical score. The README and the home page of the site show the file it
+  writes.
 - Four notebooks: the reproduction, the approach of the exit times to an
   exponential, the Poisson to negative binomial story, and a two arm virtual
   trial.
+- The four notebooks are committed executed, with their outputs in place, and
+  `python notebooks/build_notebooks.py` rebuilds them.
 - Documentation site, including a theory page that derives every implemented
   equation and a reproduction page that records the three inconsistencies found
   in the article.

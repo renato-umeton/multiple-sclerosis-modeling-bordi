@@ -25,6 +25,21 @@ duration fits, the trial statistics and a cohort generator, and it keeps every
 number the article reports in one module together with the sentence each one
 comes from, so that no reported value is written down twice.
 
+![One simulated patient over ten years: the particle in the double well, the weekly relapse and remission series, and the cumulative weeks in relapse](docs/assets/double_well.gif)
+
+The three panels are one simulated record of 520 weeks: the particle in the
+asymmetric double well, the weekly series of relapses and remissions that path
+produces, and the running total of weeks spent in relapse, all at the asymmetry
+and the noise calibrated to the two mean durations the article reports, about
+100 weeks in remission and about 4.3 weeks in relapse, although the episodes
+drawn run longer than those two means, since the calibration times the passage
+from the bottom of a well to the saddle and every week the path touches the
+relapse state counts as a whole relapse week. That running total is an
+illustrative disability proxy and nothing more: each relapse adds its own
+duration to it, which is the stepwise accumulation picture of
+relapsing-remitting disease, and no clinical disability score is modelled
+anywhere in this package.
+
 ## What it gives you
 
 **Modellers** get the potential and the dynamics as objects.
@@ -141,13 +156,14 @@ msrelapse.cite()
 
 ## Command line
 
-The package installs one command with seven subcommands. Every one of them
+The package installs one command with eight subcommands. Every one of them
 takes `--help`.
 
 ```bash
 msrelapse reproduce --out reproduction   # the whole analysis, written out
 msrelapse simulate --n 200 --tau-health 80 --tau-relapse 3 \
     --weeks 400 --seed 0 -o cohort.csv   # a virtual cohort as a CSV file
+msrelapse animate --seed 4               # the animation above, as a GIF file
 msrelapse fit durations.csv              # the duration law of each state
 msrelapse test-memoryless durations.csv  # do the durations carry memory
 msrelapse test-periodicity weekly.csv    # is there a period in the onsets
@@ -196,6 +212,25 @@ they are read as the record declining to contradict it.
 
 `msrelapse.reproduction_table(weekly)` builds the same table in a session, on
 the shipped twin or on any record in the weekly schema.
+
+## Notebooks
+
+Four executed notebooks under `notebooks/` show the package at work, and GitHub
+renders their outputs in place:
+
+- [Reproducing Bordi et al. 2013](https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi/blob/main/notebooks/01_reproduce_bordi2013.ipynb): the
+  paper's figures, the three duration fits, the memorylessness and periodicity
+  tests, the barrier ratio and the closing table, all from the synthetic twin.
+- [From the stochastic equation to exponential durations](https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi/blob/main/notebooks/02_sde_to_exponential.ipynb):
+  Kramers times, exact first passage times and simulated exits across noise levels.
+- [From Poisson counts to a negative binomial](https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi/blob/main/notebooks/03_poisson_to_negative_binomial.ipynb):
+  how between patient heterogeneity turns Poisson relapse counts into over
+  dispersed ones.
+- [A virtual cohort for trial design](https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi/blob/main/notebooks/04_virtual_cohort_for_trial_design.ipynb):
+  a two arm virtual trial with annualised relapse rates, a rate ratio and a power curve.
+
+Rebuild them with `python notebooks/build_notebooks.py`; see
+[docs/CONTRIBUTING.md](https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi/blob/main/docs/CONTRIBUTING.md).
 
 ## Documentation
 

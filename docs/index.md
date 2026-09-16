@@ -16,6 +16,22 @@ the published numbers end to end.
 > two barrier heights (about 3). Bordi, Umeton et al., Int J Genomics 2013,
 > doi:10.1155/2013/910321.
 
+![One simulated patient over ten years: the particle in the double well, the weekly relapse and remission series, and the cumulative weeks in relapse](assets/double_well.gif)
+
+The three panels are one simulated record of 520 weeks: the particle in the
+asymmetric double well, the weekly series of relapses and remissions that path
+produces, and the running total of weeks spent in relapse, all at the asymmetry
+and the noise calibrated to the two mean durations the article reports, about
+100 weeks in remission and about 4.3 weeks in relapse, although the episodes
+drawn run longer than those two means, since the calibration times the passage
+from the bottom of a well to the saddle and every week the path touches the
+relapse state counts as a whole relapse week. That running total is an
+illustrative disability proxy and nothing more: each relapse adds its own
+duration to it, which is the stepwise accumulation picture of
+relapsing-remitting disease, and no clinical disability score is modelled
+anywhere in this package. [Reproducing the paper](reproducing.md) has the
+command that writes it.
+
 !!! warning "The records shipped here are synthetic"
 
     The clinical series behind the article was never released. What this
@@ -91,13 +107,14 @@ reported. [Reproducing the paper](reproducing.md) walks through the difference.
 
 ## Command line
 
-Installing the package installs one command, `msrelapse`, with seven
+Installing the package installs one command, `msrelapse`, with eight
 subcommands. Each of them prints its own help.
 
 | Subcommand | What it does |
 |---|---|
 | `msrelapse reproduce` | Measures every quantity the article reports on one weekly record, writes `numbers.json`, the record and the figures, and prints the closing table |
 | `msrelapse simulate` | Generates a virtual cohort and writes it as a CSV file in any of the three schemas |
+| `msrelapse animate` | Writes the animation above, one simulated record on the calibrated potential, as a GIF file |
 | `msrelapse fit` | Fits the duration law of one or both states of a durations CSV |
 | `msrelapse test-memoryless` | Tests whether the durations of a state carry no memory |
 | `msrelapse test-periodicity` | Looks for a period in the relapse onsets of a weekly record and pools the evidence |

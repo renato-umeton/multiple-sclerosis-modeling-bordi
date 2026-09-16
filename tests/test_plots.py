@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -13,16 +13,19 @@ from scipy import stats
 from msrelapse import fit, plots
 from msrelapse._params import PAPER, symmetric_barrier
 from msrelapse.io import events_to_weekly, weekly_to_durations
-from msrelapse.model import DoubleWell
+from msrelapse.model import DoubleWell, calibrate
 from msrelapse.renewal import alternating_renewal
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
     from matplotlib.lines import Line2D
 
 matplotlib = pytest.importorskip("matplotlib")
 matplotlib.use("Agg")
 plt = pytest.importorskip("matplotlib.pyplot")
+animation_module = pytest.importorskip("matplotlib.animation")
+image_module = pytest.importorskip("PIL.Image")
 
 NO_HEALTH = PAPER.state_no_health.value
 HEALTH = PAPER.state_health.value
@@ -63,6 +66,37 @@ EXPECTED_FILE_NAMES = [
     "fig_survival_vs_exponential.png",
     "fig_poisson_to_nb.png",
 ]
+
+# The animation, kept to a few frames so that every test that plays it is a
+# moment's work: twenty weeks at five weeks to a frame, which is four frames.
+# The seed is fixed so that the path, and with it every number read off the
+# panels, is the same on every run. It is also chosen so that the record holds
+# one whole relapse, weeks 3 to 9, and ends back in remission: a record of one
+# long remission would make the burden panel a flat line at zero and every
+# assertion about it vacuous.
+ANIMATION_WEEKS = 20
+ANIMATION_WEEKS_PER_FRAME = 5.0
+ANIMATION_FRAMES = 4
+ANIMATION_SEED = 118
+ANIMATION_FPS = 4
+ANIMATION_DPI = 40
+ANIMATION_FIGURE_SIZE = (6.0, 4.0)
+
+# The opening bytes of the two formats the animation is written in.
+GIF_MAGIC = b"GIF89a"
+PNG_MAGIC = b"\x89PNG"
+
+# How the three moving pieces of the animation are labelled, which is how a
+# test picks one of them out of a panel that also holds static lines.
+PARTICLE_LABEL = "x(t)"
+CURRENT_WEEK_LABEL = "current week"
+BURDEN_LABEL = "Cumulative weeks in relapse (disability proxy)"
+
+# Several tests below build an animation, read the opening frame off its panels
+# and never play it, which is what they are about. matplotlib warns whenever
+# such an animation is collected, because an interactive user who does that
+# meant to play it.
+pytestmark = pytest.mark.filterwarnings("ignore:Animation was deleted:UserWarning")
 
 
 @pytest.fixture(autouse=True)
@@ -777,6 +811,309 @@ def test_save_all_paper_figures_closes_a_figure_a_failed_draw_left_behind(
         plots.save_all_paper_figures(tmp_path, weekly, runs, rng=5)
 
     assert plt.get_fignums() == []
+
+
+class Playback(NamedTuple):
+    """One built animation, the figure it drew on and its three panels."""
+
+    animation: Any
+    figure: Figure
+    potential: Axes
+    series: Axes
+    burden: Axes
+
+
+def calibrated_potential() -> tuple[DoubleWell, float]:
+    """Return the potential and the noise the animation draws by default."""
+    beta, sigma = calibrate(
+        PAPER.tau_health_cohort_weeks.value, PAPER.tau_no_health_cohort_weeks.value
+    )
+    return DoubleWell(ALPHA, beta), sigma
+
+
+def build_animation(figure: Figure, **kwargs: Any) -> Any:
+    """Return the short animation every test here plays, drawn on one figure."""
+    return plots.animate_double_well(
+        n_weeks=ANIMATION_WEEKS,
+        weeks_per_frame=ANIMATION_WEEKS_PER_FRAME,
+        rng=ANIMATION_SEED,
+        fig=figure,
+        **kwargs,
+    )
+
+
+@pytest.fixture
+def playback() -> Playback:
+    figure = plt.figure(figsize=ANIMATION_FIGURE_SIZE, layout="constrained")
+    animation = build_animation(figure)
+    potential, series, burden = figure.axes
+    return Playback(animation, figure, potential, series, burden)
+
+
+def play(animation: Any, path: Path) -> Path:
+    """Run every frame of an animation by writing it, and return the file."""
+    animation.save(path, writer=animation_module.PillowWriter(fps=ANIMATION_FPS), dpi=ANIMATION_DPI)
+    return path
+
+
+def line_labelled(ax: Axes, label: str) -> Line2D:
+    """Return the one line of a panel that carries a given label."""
+    return next(line for line in ax.lines if line.get_label() == label)
+
+
+def limits_of(figure: Figure) -> list[tuple[float, ...]]:
+    """Return the x and y limits of every panel of a figure."""
+    return [(*ax.get_xlim(), *ax.get_ylim()) for ax in figure.axes]
+
+
+def test_the_animation_runs_one_frame_per_step_of_weeks(playback: Playback) -> None:
+    assert isinstance(playback.animation, animation_module.FuncAnimation)
+    assert len(list(playback.animation.new_frame_seq())) == ANIMATION_FRAMES
+
+
+def test_the_animation_draws_a_potential_a_series_and_a_burden_panel(playback: Playback) -> None:
+    assert (playback.potential.get_xlabel(), playback.potential.get_ylabel()) == ("x", "V(x)")
+    assert [label.get_text() for label in playback.series.get_yticklabels()] == [
+        "Health",
+        "No health",
+    ]
+    # The words of the label, whatever line the panel has to break them over.
+    assert playback.burden.get_ylabel().split() == BURDEN_LABEL.split()
+
+
+def test_the_potential_panel_names_the_two_wells_and_the_saddle(playback: Playback) -> None:
+    assert {"Health", "No health", "saddle"} <= set(texts_of(playback.potential))
+
+
+def test_the_saddle_is_marked_where_the_potential_has_its_barrier_top(
+    playback: Playback,
+) -> None:
+    well, _sigma = calibrated_potential()
+
+    mark = line_labelled(playback.potential, "saddle")
+
+    assert xdata(mark) == pytest.approx([well.critical_points().saddle])
+
+
+def test_the_particle_sits_on_the_potential_curve(playback: Playback) -> None:
+    well, _sigma = calibrated_potential()
+
+    particle = line_labelled(playback.potential, PARTICLE_LABEL)
+
+    assert ydata(particle) == pytest.approx(well.V(xdata(particle)))
+
+
+def test_the_particle_follows_the_path_as_the_animation_runs(
+    playback: Playback, tmp_path: Path
+) -> None:
+    first = float(xdata(line_labelled(playback.potential, PARTICLE_LABEL))[0])
+
+    play(playback.animation, tmp_path / "played.gif")
+
+    last = float(xdata(line_labelled(playback.potential, PARTICLE_LABEL))[0])
+    assert last != first
+
+
+def test_the_series_panel_marks_the_week_the_particle_is_in(playback: Playback) -> None:
+    step = step_line(playback.series)
+
+    current = line_labelled(playback.series, CURRENT_WEEK_LABEL)
+
+    # The last point of the step is the closing one, one week past the current
+    # week, so the current week is the point before it.
+    assert xdata(current) == pytest.approx([xdata(step)[-2]])
+    assert ydata(current) == pytest.approx([ydata(step)[-2]])
+
+
+def test_the_series_gives_the_current_week_its_full_width(playback: Playback) -> None:
+    step = step_line(playback.series)
+
+    current = line_labelled(playback.series, CURRENT_WEEK_LABEL)
+
+    # Week k covers the interval from k to k + 1, so the step is closed one week
+    # past the marked one, as Figure 2 closes a whole record. Without that point
+    # the current week would be drawn with no width at all.
+    assert xdata(step)[-1] == pytest.approx(xdata(current)[0] + 1.0)
+    assert ydata(step)[-1] == pytest.approx(ydata(current)[0])
+
+
+def test_the_series_grows_one_step_of_weeks_at_a_time(playback: Playback, tmp_path: Path) -> None:
+    opening = xdata(step_line(playback.series)).size
+
+    play(playback.animation, tmp_path / "played.gif")
+
+    # One point per week drawn so far, and the closing point past the last one.
+    assert opening == ANIMATION_WEEKS_PER_FRAME + 1
+    assert xdata(step_line(playback.series)).size == ANIMATION_WEEKS + 1
+
+
+def weekly_states(playback: Playback) -> Any:
+    """Return the weekly states the series panel holds, without its closing point."""
+    return ydata(step_line(playback.series))[:-1]
+
+
+def test_the_burden_curve_is_the_running_count_of_relapse_weeks(
+    playback: Playback, tmp_path: Path
+) -> None:
+    play(playback.animation, tmp_path / "played.gif")
+
+    states = weekly_states(playback)
+    burden = ydata(playback.burden.lines[0])
+    assert NO_HEALTH in states
+    assert burden == pytest.approx(np.cumsum(states == NO_HEALTH))
+
+
+def test_the_burden_curve_never_falls(playback: Playback, tmp_path: Path) -> None:
+    play(playback.animation, tmp_path / "played.gif")
+
+    burden = ydata(playback.burden.lines[0])
+    assert NO_HEALTH in weekly_states(playback)
+    assert np.all(np.diff(burden) >= 0.0)
+
+
+def test_the_burden_curve_steps_up_over_a_relapse_and_then_holds(
+    playback: Playback, tmp_path: Path
+) -> None:
+    play(playback.animation, tmp_path / "played.gif")
+
+    burden = ydata(playback.burden.lines[0])
+
+    # A relapse week adds one to the total and a week of remission adds nothing,
+    # so a record with a relapse in it shows both steps and no other.
+    assert set(np.unique(np.diff(burden)).tolist()) == {0.0, 1.0}
+
+
+def test_the_potential_panel_keeps_the_limits_of_the_paper(playback: Playback) -> None:
+    assert playback.potential.get_xlim() == PAPER.potential_plot_x_limits.value
+    assert playback.potential.get_ylim() == PAPER.potential_plot_v_limits.value
+
+
+def test_the_time_panels_span_the_whole_record(playback: Playback) -> None:
+    assert playback.series.get_xlim() == (0.0, float(ANIMATION_WEEKS))
+    assert playback.burden.get_xlim() == (0.0, float(ANIMATION_WEEKS))
+
+
+def test_no_panel_rescales_while_the_animation_runs(playback: Playback, tmp_path: Path) -> None:
+    before = limits_of(playback.figure)
+
+    play(playback.animation, tmp_path / "played.gif")
+
+    assert limits_of(playback.figure) == before
+
+
+def test_the_animation_takes_a_potential_and_a_noise_of_its_own() -> None:
+    figure = plt.figure(figsize=ANIMATION_FIGURE_SIZE, layout="constrained")
+    well = DoubleWell(ALPHA, PAPER.beta_illustrative.value)
+
+    build_animation(figure, well=well, sigma=PAPER.noise_amplitude.value)
+
+    curve = solid_lines(figure.axes[0])[0]
+    assert ydata(curve) == pytest.approx(well.V(xdata(curve)))
+
+
+def test_the_animation_keeps_the_calibrated_potential_when_only_the_noise_is_given() -> None:
+    figure = plt.figure(figsize=ANIMATION_FIGURE_SIZE, layout="constrained")
+    well, _sigma = calibrated_potential()
+
+    build_animation(figure, sigma=PAPER.noise_amplitude.value)
+
+    curve = solid_lines(figure.axes[0])[0]
+    assert ydata(curve) == pytest.approx(well.V(xdata(curve)))
+
+
+def test_the_same_seed_gives_the_same_record() -> None:
+    first = plt.figure(figsize=ANIMATION_FIGURE_SIZE, layout="constrained")
+    second = plt.figure(figsize=ANIMATION_FIGURE_SIZE, layout="constrained")
+
+    build_animation(first)
+    build_animation(second)
+
+    assert ydata(step_line(first.axes[1])) == pytest.approx(ydata(step_line(second.axes[1])))
+
+
+def test_the_animation_makes_a_figure_of_its_own_when_it_is_given_none() -> None:
+    plots.animate_double_well(
+        n_weeks=ANIMATION_WEEKS, weeks_per_frame=ANIMATION_WEEKS_PER_FRAME, rng=ANIMATION_SEED
+    )
+
+    assert len(plt.get_fignums()) == 1
+
+
+def test_the_animation_refuses_a_record_shorter_than_one_week() -> None:
+    with pytest.raises(ValueError, match="n_weeks"):
+        plots.animate_double_well(n_weeks=0)
+
+    assert plt.get_fignums() == []
+
+
+def test_the_animation_refuses_a_frame_that_covers_no_time() -> None:
+    with pytest.raises(ValueError, match="weeks_per_frame"):
+        plots.animate_double_well(n_weeks=ANIMATION_WEEKS, weeks_per_frame=0.0)
+
+    assert plt.get_fignums() == []
+
+
+def test_saving_writes_a_gif_of_one_frame_per_step_of_weeks(tmp_path: Path) -> None:
+    path = plots.save_double_well_gif(
+        tmp_path / "double_well.gif",
+        fps=ANIMATION_FPS,
+        dpi=ANIMATION_DPI,
+        n_weeks=ANIMATION_WEEKS,
+        weeks_per_frame=ANIMATION_WEEKS_PER_FRAME,
+        rng=ANIMATION_SEED,
+    )
+
+    assert path.read_bytes()[: len(GIF_MAGIC)] == GIF_MAGIC
+    with image_module.open(path) as gif:
+        assert gif.n_frames == ANIMATION_FRAMES
+
+
+def test_saving_creates_the_directory_and_leaves_no_figure_open(tmp_path: Path) -> None:
+    path = plots.save_double_well_gif(
+        tmp_path / "assets" / "double_well.gif",
+        fps=ANIMATION_FPS,
+        dpi=ANIMATION_DPI,
+        n_weeks=ANIMATION_WEEKS,
+        weeks_per_frame=ANIMATION_WEEKS_PER_FRAME,
+        rng=ANIMATION_SEED,
+    )
+
+    assert path.is_file()
+    assert plt.get_fignums() == []
+
+
+def test_saving_writes_the_contact_sheet_when_it_is_asked_for(tmp_path: Path) -> None:
+    sheet = tmp_path / "double_well_frames.png"
+
+    plots.save_double_well_gif(
+        tmp_path / "double_well.gif",
+        fps=ANIMATION_FPS,
+        dpi=ANIMATION_DPI,
+        contact_sheet=sheet,
+        n_weeks=ANIMATION_WEEKS,
+        weeks_per_frame=ANIMATION_WEEKS_PER_FRAME,
+        rng=ANIMATION_SEED,
+    )
+
+    assert sheet.read_bytes()[: len(PNG_MAGIC)] == PNG_MAGIC
+    assert plt.get_fignums() == []
+
+
+def test_saving_writes_no_contact_sheet_unless_it_is_asked_for(tmp_path: Path) -> None:
+    plots.save_double_well_gif(
+        tmp_path / "double_well.gif",
+        fps=ANIMATION_FPS,
+        dpi=ANIMATION_DPI,
+        n_weeks=ANIMATION_WEEKS,
+        weeks_per_frame=ANIMATION_WEEKS_PER_FRAME,
+        rng=ANIMATION_SEED,
+    )
+
+    assert sorted(path.name for path in tmp_path.iterdir()) == ["double_well.gif"]
+
+
+def test_the_animation_is_part_of_the_public_surface() -> None:
+    assert {"animate_double_well", "save_double_well_gif"} <= set(plots.__all__)
 
 
 def test_drawing_without_matplotlib_names_the_extra(monkeypatch: pytest.MonkeyPatch) -> None:

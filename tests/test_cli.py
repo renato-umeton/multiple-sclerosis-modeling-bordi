@@ -15,6 +15,7 @@ import pandas as pd
 import pytest
 
 import msrelapse.cli
+from msrelapse import plots
 from msrelapse._params import PAPER
 from msrelapse.cli import main
 from msrelapse.cohort import CohortSpec, generate
@@ -107,6 +108,23 @@ DERIVED_QUANTITIES = {
 
 # How many entries a BibTeX block holds: the article and this package.
 BIBTEX_ENTRIES = 2
+
+# The animation the tests below write: twenty weeks at a coarse resolution and a
+# fixed seed, which is a few frames and a fraction of a second.
+ANIMATION_WEEKS = 20
+ANIMATION_SEED = 4
+ANIMATION_FPS = 4
+ANIMATION_DPI = 40
+
+# The opening bytes of the two files the animate subcommand writes.
+GIF_MAGIC = b"GIF89a"
+PNG_MAGIC = b"\x89PNG"
+
+
+def headless_matplotlib() -> None:
+    """Skip the test without matplotlib, and draw without a window with it."""
+    matplotlib = pytest.importorskip("matplotlib")
+    matplotlib.use("Agg")
 
 
 def simulate(tmp_path: Path, schema: str = "durations", seed: int = COHORT_SEED) -> Path:
@@ -818,6 +836,75 @@ def test_simulate_moves_under_a_different_seed(tmp_path: Path) -> None:
     first = simulate(tmp_path / "first", seed=17)
     other = simulate(tmp_path / "other", seed=18)
     assert first.read_bytes() != other.read_bytes()
+
+
+def animate(tmp_path: Path, *extra: str) -> Path:
+    """Write the short animation into a directory and return the file."""
+    headless_matplotlib()
+    path = tmp_path / "double_well.gif"
+    code = main(
+        [
+            "animate",
+            "-o",
+            str(path),
+            "--weeks",
+            str(ANIMATION_WEEKS),
+            "--seed",
+            str(ANIMATION_SEED),
+            "--fps",
+            str(ANIMATION_FPS),
+            "--dpi",
+            str(ANIMATION_DPI),
+            *extra,
+        ]
+    )
+    assert code == 0
+    return path
+
+
+def test_animate_writes_a_gif(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    path = animate(tmp_path)
+    capsys.readouterr()
+    assert path.read_bytes()[: len(GIF_MAGIC)] == GIF_MAGIC
+
+
+def test_animate_reports_the_file_and_its_size(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = animate(tmp_path)
+
+    printed = capsys.readouterr().out
+    assert str(path) in printed
+    assert f"{path.stat().st_size} bytes" in printed
+
+
+def test_animate_writes_the_contact_sheet_when_it_is_asked_for(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    sheet = tmp_path / "double_well_frames.png"
+
+    animate(tmp_path, "--contact-sheet", str(sheet))
+
+    assert sheet.read_bytes()[: len(PNG_MAGIC)] == PNG_MAGIC
+    assert str(sheet) in capsys.readouterr().out
+
+
+def test_animate_writes_where_the_readme_looks_for_the_animation() -> None:
+    defaults = vars(msrelapse.cli._build_parser().parse_args(["animate"]))
+    assert defaults["out"] == Path("docs/assets/double_well.gif")
+    assert defaults["contact_sheet"] is None
+
+
+def test_the_animate_options_default_to_what_the_library_does() -> None:
+    # The three numbers the options restate are the defaults of the two
+    # functions of msrelapse.plots the subcommand calls, read off their
+    # signatures so that the two sets cannot drift apart unnoticed.
+    animation = inspect.signature(plots.animate_double_well).parameters
+    written = inspect.signature(plots.save_double_well_gif).parameters
+    defaults = vars(msrelapse.cli._build_parser().parse_args(["animate"]))
+    assert defaults["weeks"] == animation["n_weeks"].default
+    assert defaults["fps"] == written["fps"].default
+    assert defaults["dpi"] == written["dpi"].default
 
 
 def test_fit_prints_one_line_per_state(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
