@@ -238,8 +238,8 @@ Rebuild them with `python notebooks/build_notebooks.py`; see
 The user guide, the theory notes, the reproduction walkthrough and the API
 reference live at
 <https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/>. It is
-rebuilt from `main` by the docs workflow on every push, and builds locally with
-`uv run --group docs mkdocs serve`.
+published with GitHub Pages, rebuilt from `main` by the docs workflow on every
+push, and builds locally with `uv run --group docs mkdocs serve`.
 
 ## Citing
 
