@@ -1237,8 +1237,14 @@ installed wheel as well as from a checkout:</p>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">weekly</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"provenance"</span><span class="p">])</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">ms</span><span class="o">.</span><span class="n">provenance</span><span class="p">())</span>                               <span class="c1"># the whole note</span>
 </code></pre></div>
-<p><code>ms.regenerate_synthetic_bordi2013()</code> writes the three files again from the
-same seed, which is how they were made in the first place.</p>
+<p><code>ms.regenerate_synthetic_bordi2013("regenerated/")</code> writes the three files again
+from the same seed, which is how they were made in the first place. Called with
+no directory it writes them back into the data directory of the installed
+package, which is how the shipped copies were produced and which needs an
+install that can be written to: from a zip archive or a read-only install, name
+a directory of your own. Any seed but 20130910 is refused unless a directory is
+named, since a cohort under another seed is not the twin that the provenance
+note and the closing table describe.</p>
 <h3 id="how-they-were-made">How they were made<a class="headerlink" href="#how-they-were-made" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -1266,7 +1272,7 @@ same seed, which is how they were made in the first place.</p>
 </tr>
 <tr>
 <td>Follow up length</td>
-<td>One draw per patient from the Figure 3 histogram of relapsing-remitting phase lengths, which spans 40 to 1311 weeks in eight bins of 159 weeks</td>
+<td>One draw per patient from the Figure 3 histogram of relapsing-remitting phase lengths, which spans 40 to 1312 weeks in eight bins of 159 weeks, one week above the printed 1311 week maximum</td>
 </tr>
 <tr>
 <td>Generative mean remission</td>

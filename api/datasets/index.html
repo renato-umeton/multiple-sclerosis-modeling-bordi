@@ -1882,7 +1882,14 @@ None where no rule applies.</p>
             <td>
               <div class="doc-md-description">
                 <p>If <code>weekly</code> does not obey the weekly schema, if it holds no run of one
-of the two states, or if <code>alpha</code> is not strictly between 0 and 1.</p>
+of the two states, or if <code>alpha</code> is not strictly between 0 and 1. Two
+rows carry a requirement of their own on top of that, and a short record
+meets both easily: the goodness of fit rows need at least two complete,
+uncensored durations of each state, and the periodicity row needs at
+least one patient whose periodogram the pooled test can read, which asks
+for eight weeks of follow up, three relapse onsets and onsets that do
+not fall in every other week. The table is a cohort measurement; a
+handful of records does not carry it.</p>
               </div>
             </td>
           </tr>
@@ -1903,6 +1910,15 @@ by about 0.13, and the tolerances of the two mean rows above propagate to
 about 0.18. A bound as tight as 0.05 needs a cohort several times larger than
 the seventy records the article followed, whatever the pipeline does; the
 source of this module carries the measurement beside the constant.</p>
+<p>That row is the only barrier ratio row of the table, and the three worked
+examples of Section 3.4 are deliberately not rows of it. The ratios of
+patients 23, 32 and 53 are read off the durations the article prints for
+each of them and not off any record, so there is nothing in a weekly frame
+to put beside them: the twin holds no counterpart of those three patients,
+and a real series obtained from the corresponding authors would number its
+own. :func:<code>msrelapse.cohort.paper_patients</code> recomputes the three from the
+printed durations, one row per patient, which is where that comparison
+belongs.</p>
 <p>How often the whole table comes out True is worth knowing before reading one:
 not every time. Regenerating the twin under the sixty consecutive seeds from
 :data:<code>SYNTHETIC_SEED</code> and building this table on each of the sixty cohorts,
@@ -2098,7 +2114,24 @@ the article rather than as a confirmation of it.</p>
 <span class="normal"><a href="#__codelineno-0-474">474</a></span>
 <span class="normal"><a href="#__codelineno-0-475">475</a></span>
 <span class="normal"><a href="#__codelineno-0-476">476</a></span>
-<span class="normal"><a href="#__codelineno-0-477">477</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="k">def</span><span class="w"> </span><span class="nf">reproduction_table</span><span class="p">(</span><span class="n">weekly</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-477">477</a></span>
+<span class="normal"><a href="#__codelineno-0-478">478</a></span>
+<span class="normal"><a href="#__codelineno-0-479">479</a></span>
+<span class="normal"><a href="#__codelineno-0-480">480</a></span>
+<span class="normal"><a href="#__codelineno-0-481">481</a></span>
+<span class="normal"><a href="#__codelineno-0-482">482</a></span>
+<span class="normal"><a href="#__codelineno-0-483">483</a></span>
+<span class="normal"><a href="#__codelineno-0-484">484</a></span>
+<span class="normal"><a href="#__codelineno-0-485">485</a></span>
+<span class="normal"><a href="#__codelineno-0-486">486</a></span>
+<span class="normal"><a href="#__codelineno-0-487">487</a></span>
+<span class="normal"><a href="#__codelineno-0-488">488</a></span>
+<span class="normal"><a href="#__codelineno-0-489">489</a></span>
+<span class="normal"><a href="#__codelineno-0-490">490</a></span>
+<span class="normal"><a href="#__codelineno-0-491">491</a></span>
+<span class="normal"><a href="#__codelineno-0-492">492</a></span>
+<span class="normal"><a href="#__codelineno-0-493">493</a></span>
+<span class="normal"><a href="#__codelineno-0-494">494</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="k">def</span><span class="w"> </span><span class="nf">reproduction_table</span><span class="p">(</span><span class="n">weekly</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <a id="__codelineno-0-342" name="__codelineno-0-342"></a><span class="w">    </span><span class="sd">"""Measure on a weekly record every aggregate the article reports.</span>
 <a id="__codelineno-0-343" name="__codelineno-0-343"></a>
 <a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="sd">    Each row puts the number the article prints beside the number this record</span>
@@ -2130,111 +2163,128 @@ the article rather than as a confirmation of it.</p>
 <a id="__codelineno-0-370" name="__codelineno-0-370"></a><span class="sd">    ------</span>
 <a id="__codelineno-0-371" name="__codelineno-0-371"></a><span class="sd">    ValueError</span>
 <a id="__codelineno-0-372" name="__codelineno-0-372"></a><span class="sd">        If `weekly` does not obey the weekly schema, if it holds no run of one</span>
-<a id="__codelineno-0-373" name="__codelineno-0-373"></a><span class="sd">        of the two states, or if `alpha` is not strictly between 0 and 1.</span>
-<a id="__codelineno-0-374" name="__codelineno-0-374"></a>
-<a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">    Notes</span>
-<a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">    -----</span>
-<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">    The barrier ratio row is judged against what equation (7) gives for the two</span>
-<a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">    durations the article prints, which</span>
-<a id="__codelineno-0-379" name="__codelineno-0-379"></a><span class="sd">    :func:`msrelapse.model.barrier_ratio_from_durations` recomputes, and not</span>
-<a id="__codelineno-0-380" name="__codelineno-0-380"></a><span class="sd">    against the rounded ratio the article prints beside them. Its tolerance,</span>
-<a id="__codelineno-0-381" name="__codelineno-0-381"></a><span class="sd">    ``_BARRIER_RATIO_TOLERANCE``, is deliberately loose, because the ratio is</span>
-<a id="__codelineno-0-382" name="__codelineno-0-382"></a><span class="sd">    built from two mean durations and inherits the error of both: on a cohort of</span>
-<a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">    the size of the study, one standard error of the two means already moves it</span>
-<a id="__codelineno-0-384" name="__codelineno-0-384"></a><span class="sd">    by about 0.13, and the tolerances of the two mean rows above propagate to</span>
-<a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">    about 0.18. A bound as tight as 0.05 needs a cohort several times larger than</span>
-<a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">    the seventy records the article followed, whatever the pipeline does; the</span>
-<a id="__codelineno-0-387" name="__codelineno-0-387"></a><span class="sd">    source of this module carries the measurement beside the constant.</span>
-<a id="__codelineno-0-388" name="__codelineno-0-388"></a>
-<a id="__codelineno-0-389" name="__codelineno-0-389"></a><span class="sd">    How often the whole table comes out True is worth knowing before reading one:</span>
-<a id="__codelineno-0-390" name="__codelineno-0-390"></a><span class="sd">    not every time. Regenerating the twin under the sixty consecutive seeds from</span>
-<a id="__codelineno-0-391" name="__codelineno-0-391"></a><span class="sd">    :data:`SYNTHETIC_SEED` and building this table on each of the sixty cohorts,</span>
-<a id="__codelineno-0-392" name="__codelineno-0-392"></a><span class="sd">    every judged row is True on 27 of them. The five percent relapse mean row is</span>
-<a id="__codelineno-0-393" name="__codelineno-0-393"></a><span class="sd">    the one that fails most often, on 24 of the 60, and the ten percent remission</span>
-<a id="__codelineno-0-394" name="__codelineno-0-394"></a><span class="sd">    mean row on 8, the barrier ratio row on 7, the relapse range row on 6 and the</span>
-<a id="__codelineno-0-395" name="__codelineno-0-395"></a><span class="sd">    remission goodness of fit row on 1; the two remaining range rows, the relapse</span>
-<a id="__codelineno-0-396" name="__codelineno-0-396"></a><span class="sd">    goodness of fit row and the periodicity row are True on all sixty. A</span>
-<a id="__codelineno-0-397" name="__codelineno-0-397"></a><span class="sd">    False row is therefore the sampling noise of seventy records rather than a</span>
-<a id="__codelineno-0-398" name="__codelineno-0-398"></a><span class="sd">    fault of the pipeline that built them, and the source of this module carries</span>
-<a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">    the sweep beside each tolerance it belongs to. The</span>
-<a id="__codelineno-0-400" name="__codelineno-0-400"></a><span class="sd">    shipped twin is the first cohort of that sweep, the one :data:`SYNTHETIC_SEED`</span>
-<a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="sd">    names and the one the provenance note describes: on it the relapse mean lands</span>
-<a id="__codelineno-0-402" name="__codelineno-0-402"></a><span class="sd">    4.2 percent below the printed value and the remission mean 4.3 percent above</span>
-<a id="__codelineno-0-403" name="__codelineno-0-403"></a><span class="sd">    it.</span>
-<a id="__codelineno-0-404" name="__codelineno-0-404"></a>
-<a id="__codelineno-0-405" name="__codelineno-0-405"></a><span class="sd">    Three rows are not comparisons with a printed number, because the article</span>
-<a id="__codelineno-0-406" name="__codelineno-0-406"></a><span class="sd">    prints none: section 7 of ``docs/paper_facts.md`` records that it reports no</span>
-<a id="__codelineno-0-407" name="__codelineno-0-407"></a><span class="sd">    fit, no test and no interval anywhere, and that its exponential and</span>
-<a id="__codelineno-0-408" name="__codelineno-0-408"></a><span class="sd">    no-periodicity claims rest on the shape of two histograms. Their ``paper``</span>
-<a id="__codelineno-0-409" name="__codelineno-0-409"></a><span class="sd">    entry is therefore None, and they are read as follows.</span>
-<a id="__codelineno-0-410" name="__codelineno-0-410"></a>
-<a id="__codelineno-0-411" name="__codelineno-0-411"></a><span class="sd">    The two Kolmogorov-Smirnov rows are judged, at `alpha`, against the claim the</span>
-<a id="__codelineno-0-412" name="__codelineno-0-412"></a><span class="sd">    article makes in prose: that the durations of each state carry no typical</span>
-<a id="__codelineno-0-413" name="__codelineno-0-413"></a><span class="sd">    scale. The p value is the parametric bootstrap of</span>
-<a id="__codelineno-0-414" name="__codelineno-0-414"></a><span class="sd">    :func:`msrelapse.fit.test_memoryless`, drawn from a generator seeded inside</span>
-<a id="__codelineno-0-415" name="__codelineno-0-415"></a><span class="sd">    this module so that the table is the same table every time it is built, and a</span>
-<a id="__codelineno-0-416" name="__codelineno-0-416"></a><span class="sd">    p value above `alpha` means the record is consistent with a memoryless</span>
-<a id="__codelineno-0-417" name="__codelineno-0-417"></a><span class="sd">    duration rather than that it is one.</span>
-<a id="__codelineno-0-418" name="__codelineno-0-418"></a>
-<a id="__codelineno-0-419" name="__codelineno-0-419"></a><span class="sd">    The periodicity row is judged at `alpha` in the same way, against the</span>
-<a id="__codelineno-0-420" name="__codelineno-0-420"></a><span class="sd">    article's other claim in prose: that the relapses carry no typical period.</span>
-<a id="__codelineno-0-421" name="__codelineno-0-421"></a><span class="sd">    The p value is the pooled Fisher g test of</span>
-<a id="__codelineno-0-422" name="__codelineno-0-422"></a><span class="sd">    :func:`msrelapse.fit.test_periodicity`, read on the relapse onsets of every</span>
-<a id="__codelineno-0-423" name="__codelineno-0-423"></a><span class="sd">    patient rather than on the +1 and -1 state series, because the onsets of a</span>
-<a id="__codelineno-0-424" name="__codelineno-0-424"></a><span class="sd">    memoryless record have the flat spectrum the g test compares against while</span>
-<a id="__codelineno-0-425" name="__codelineno-0-425"></a><span class="sd">    the state series does not. A p value above `alpha` means the record leaves</span>
-<a id="__codelineno-0-426" name="__codelineno-0-426"></a><span class="sd">    the claim of the article standing, not that no rhythm exists.</span>
+<a id="__codelineno-0-373" name="__codelineno-0-373"></a><span class="sd">        of the two states, or if `alpha` is not strictly between 0 and 1. Two</span>
+<a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="sd">        rows carry a requirement of their own on top of that, and a short record</span>
+<a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">        meets both easily: the goodness of fit rows need at least two complete,</span>
+<a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">        uncensored durations of each state, and the periodicity row needs at</span>
+<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">        least one patient whose periodogram the pooled test can read, which asks</span>
+<a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">        for eight weeks of follow up, three relapse onsets and onsets that do</span>
+<a id="__codelineno-0-379" name="__codelineno-0-379"></a><span class="sd">        not fall in every other week. The table is a cohort measurement; a</span>
+<a id="__codelineno-0-380" name="__codelineno-0-380"></a><span class="sd">        handful of records does not carry it.</span>
+<a id="__codelineno-0-381" name="__codelineno-0-381"></a>
+<a id="__codelineno-0-382" name="__codelineno-0-382"></a><span class="sd">    Notes</span>
+<a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">    -----</span>
+<a id="__codelineno-0-384" name="__codelineno-0-384"></a><span class="sd">    The barrier ratio row is judged against what equation (7) gives for the two</span>
+<a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">    durations the article prints, which</span>
+<a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">    :func:`msrelapse.model.barrier_ratio_from_durations` recomputes, and not</span>
+<a id="__codelineno-0-387" name="__codelineno-0-387"></a><span class="sd">    against the rounded ratio the article prints beside them. Its tolerance,</span>
+<a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">    ``_BARRIER_RATIO_TOLERANCE``, is deliberately loose, because the ratio is</span>
+<a id="__codelineno-0-389" name="__codelineno-0-389"></a><span class="sd">    built from two mean durations and inherits the error of both: on a cohort of</span>
+<a id="__codelineno-0-390" name="__codelineno-0-390"></a><span class="sd">    the size of the study, one standard error of the two means already moves it</span>
+<a id="__codelineno-0-391" name="__codelineno-0-391"></a><span class="sd">    by about 0.13, and the tolerances of the two mean rows above propagate to</span>
+<a id="__codelineno-0-392" name="__codelineno-0-392"></a><span class="sd">    about 0.18. A bound as tight as 0.05 needs a cohort several times larger than</span>
+<a id="__codelineno-0-393" name="__codelineno-0-393"></a><span class="sd">    the seventy records the article followed, whatever the pipeline does; the</span>
+<a id="__codelineno-0-394" name="__codelineno-0-394"></a><span class="sd">    source of this module carries the measurement beside the constant.</span>
+<a id="__codelineno-0-395" name="__codelineno-0-395"></a>
+<a id="__codelineno-0-396" name="__codelineno-0-396"></a><span class="sd">    That row is the only barrier ratio row of the table, and the three worked</span>
+<a id="__codelineno-0-397" name="__codelineno-0-397"></a><span class="sd">    examples of Section 3.4 are deliberately not rows of it. The ratios of</span>
+<a id="__codelineno-0-398" name="__codelineno-0-398"></a><span class="sd">    patients 23, 32 and 53 are read off the durations the article prints for</span>
+<a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">    each of them and not off any record, so there is nothing in a weekly frame</span>
+<a id="__codelineno-0-400" name="__codelineno-0-400"></a><span class="sd">    to put beside them: the twin holds no counterpart of those three patients,</span>
+<a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="sd">    and a real series obtained from the corresponding authors would number its</span>
+<a id="__codelineno-0-402" name="__codelineno-0-402"></a><span class="sd">    own. :func:`msrelapse.cohort.paper_patients` recomputes the three from the</span>
+<a id="__codelineno-0-403" name="__codelineno-0-403"></a><span class="sd">    printed durations, one row per patient, which is where that comparison</span>
+<a id="__codelineno-0-404" name="__codelineno-0-404"></a><span class="sd">    belongs.</span>
+<a id="__codelineno-0-405" name="__codelineno-0-405"></a>
+<a id="__codelineno-0-406" name="__codelineno-0-406"></a><span class="sd">    How often the whole table comes out True is worth knowing before reading one:</span>
+<a id="__codelineno-0-407" name="__codelineno-0-407"></a><span class="sd">    not every time. Regenerating the twin under the sixty consecutive seeds from</span>
+<a id="__codelineno-0-408" name="__codelineno-0-408"></a><span class="sd">    :data:`SYNTHETIC_SEED` and building this table on each of the sixty cohorts,</span>
+<a id="__codelineno-0-409" name="__codelineno-0-409"></a><span class="sd">    every judged row is True on 27 of them. The five percent relapse mean row is</span>
+<a id="__codelineno-0-410" name="__codelineno-0-410"></a><span class="sd">    the one that fails most often, on 24 of the 60, and the ten percent remission</span>
+<a id="__codelineno-0-411" name="__codelineno-0-411"></a><span class="sd">    mean row on 8, the barrier ratio row on 7, the relapse range row on 6 and the</span>
+<a id="__codelineno-0-412" name="__codelineno-0-412"></a><span class="sd">    remission goodness of fit row on 1; the two remaining range rows, the relapse</span>
+<a id="__codelineno-0-413" name="__codelineno-0-413"></a><span class="sd">    goodness of fit row and the periodicity row are True on all sixty. A</span>
+<a id="__codelineno-0-414" name="__codelineno-0-414"></a><span class="sd">    False row is therefore the sampling noise of seventy records rather than a</span>
+<a id="__codelineno-0-415" name="__codelineno-0-415"></a><span class="sd">    fault of the pipeline that built them, and the source of this module carries</span>
+<a id="__codelineno-0-416" name="__codelineno-0-416"></a><span class="sd">    the sweep beside each tolerance it belongs to. The</span>
+<a id="__codelineno-0-417" name="__codelineno-0-417"></a><span class="sd">    shipped twin is the first cohort of that sweep, the one :data:`SYNTHETIC_SEED`</span>
+<a id="__codelineno-0-418" name="__codelineno-0-418"></a><span class="sd">    names and the one the provenance note describes: on it the relapse mean lands</span>
+<a id="__codelineno-0-419" name="__codelineno-0-419"></a><span class="sd">    4.2 percent below the printed value and the remission mean 4.3 percent above</span>
+<a id="__codelineno-0-420" name="__codelineno-0-420"></a><span class="sd">    it.</span>
+<a id="__codelineno-0-421" name="__codelineno-0-421"></a>
+<a id="__codelineno-0-422" name="__codelineno-0-422"></a><span class="sd">    Three rows are not comparisons with a printed number, because the article</span>
+<a id="__codelineno-0-423" name="__codelineno-0-423"></a><span class="sd">    prints none: section 7 of ``docs/paper_facts.md`` records that it reports no</span>
+<a id="__codelineno-0-424" name="__codelineno-0-424"></a><span class="sd">    fit, no test and no interval anywhere, and that its exponential and</span>
+<a id="__codelineno-0-425" name="__codelineno-0-425"></a><span class="sd">    no-periodicity claims rest on the shape of two histograms. Their ``paper``</span>
+<a id="__codelineno-0-426" name="__codelineno-0-426"></a><span class="sd">    entry is therefore None, and they are read as follows.</span>
 <a id="__codelineno-0-427" name="__codelineno-0-427"></a>
-<a id="__codelineno-0-428" name="__codelineno-0-428"></a><span class="sd">    That row says little about the shipped twin, and its own figures say how</span>
-<a id="__codelineno-0-429" name="__codelineno-0-429"></a><span class="sd">    little: 29 of the 70 records carry fewer than three relapse onsets and are</span>
-<a id="__codelineno-0-430" name="__codelineno-0-430"></a><span class="sd">    skipped, 28 of the 41 that are read give a per patient p value of exactly 1,</span>
-<a id="__codelineno-0-431" name="__codelineno-0-431"></a><span class="sd">    the smallest of the 41 is 0.24, and the pooled value is 1.0. At about four</span>
-<a id="__codelineno-0-432" name="__codelineno-0-432"></a><span class="sd">    onsets per record, that is what a test of almost no power returns rather than</span>
-<a id="__codelineno-0-433" name="__codelineno-0-433"></a><span class="sd">    a measurement of the cohort; the Notes of</span>
-<a id="__codelineno-0-434" name="__codelineno-0-434"></a><span class="sd">    :func:`msrelapse.fit.test_periodicity` carry the measured size at a handful</span>
-<a id="__codelineno-0-435" name="__codelineno-0-435"></a><span class="sd">    of onsets. Putting the claim of the article at any risk needs records</span>
-<a id="__codelineno-0-436" name="__codelineno-0-436"></a><span class="sd">    followed for longer, not a rule written more tightly.</span>
-<a id="__codelineno-0-437" name="__codelineno-0-437"></a>
-<a id="__codelineno-0-438" name="__codelineno-0-438"></a><span class="sd">    None of the three says more than a goodness of fit p value can. Failing to</span>
-<a id="__codelineno-0-439" name="__codelineno-0-439"></a><span class="sd">    reject is not evidence of the null, and a cohort of seventy records is not</span>
-<a id="__codelineno-0-440" name="__codelineno-0-440"></a><span class="sd">    a large sample; read the three rows as the record declining to contradict</span>
-<a id="__codelineno-0-441" name="__codelineno-0-441"></a><span class="sd">    the article rather than as a confirmation of it.</span>
-<a id="__codelineno-0-442" name="__codelineno-0-442"></a>
-<a id="__codelineno-0-443" name="__codelineno-0-443"></a><span class="sd">    Examples</span>
-<a id="__codelineno-0-444" name="__codelineno-0-444"></a><span class="sd">    --------</span>
-<a id="__codelineno-0-445" name="__codelineno-0-445"></a><span class="sd">    &gt;&gt;&gt; table = reproduction_table(load_synthetic_bordi2013())</span>
-<a id="__codelineno-0-446" name="__codelineno-0-446"></a><span class="sd">    &gt;&gt;&gt; table["quantity"].iloc[0]</span>
-<a id="__codelineno-0-447" name="__codelineno-0-447"></a><span class="sd">    'mean relapse duration (weeks)'</span>
-<a id="__codelineno-0-448" name="__codelineno-0-448"></a><span class="sd">    """</span>
-<a id="__codelineno-0-449" name="__codelineno-0-449"></a>    <span class="n">level</span> <span class="o">=</span> <span class="n">_DEFAULT_ALPHA</span> <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">alpha</span>
-<a id="__codelineno-0-450" name="__codelineno-0-450"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">level</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
-<a id="__codelineno-0-451" name="__codelineno-0-451"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"alpha must lie strictly between 0 and 1, got </span><span class="si">{</span><span class="n">alpha</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-0-452" name="__codelineno-0-452"></a>    <span class="n">runs</span> <span class="o">=</span> <span class="n">weekly_to_durations</span><span class="p">(</span><span class="n">weekly</span><span class="p">)</span>
-<a id="__codelineno-0-453" name="__codelineno-0-453"></a>    <span class="n">relapses</span> <span class="o">=</span> <span class="n">runs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">runs</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span> <span class="o">==</span> <span class="n">_NO_HEALTH</span><span class="p">,</span> <span class="s2">"duration_w"</span><span class="p">]</span>
-<a id="__codelineno-0-454" name="__codelineno-0-454"></a>    <span class="n">remissions</span> <span class="o">=</span> <span class="n">runs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">runs</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span> <span class="o">==</span> <span class="n">_HEALTH</span><span class="p">,</span> <span class="s2">"duration_w"</span><span class="p">]</span>
-<a id="__codelineno-0-455" name="__codelineno-0-455"></a>    <span class="k">if</span> <span class="n">relapses</span><span class="o">.</span><span class="n">empty</span> <span class="ow">or</span> <span class="n">remissions</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
-<a id="__codelineno-0-456" name="__codelineno-0-456"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-457" name="__codelineno-0-457"></a>            <span class="sa">f</span><span class="s2">"the record holds </span><span class="si">{</span><span class="n">relapses</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> relapse run(s) and </span><span class="si">{</span><span class="n">remissions</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> remission "</span>
-<a id="__codelineno-0-458" name="__codelineno-0-458"></a>            <span class="sa">f</span><span class="s2">"run(s), so the table has no mean duration to report for one of the two states"</span>
-<a id="__codelineno-0-459" name="__codelineno-0-459"></a>        <span class="p">)</span>
-<a id="__codelineno-0-460" name="__codelineno-0-460"></a>    <span class="n">phase</span> <span class="o">=</span> <span class="n">weekly</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"patient_id"</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
-<a id="__codelineno-0-461" name="__codelineno-0-461"></a>    <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-0-462" name="__codelineno-0-462"></a>        <span class="o">*</span><span class="n">_duration_rows</span><span class="p">(</span><span class="n">relapses</span><span class="p">,</span> <span class="n">remissions</span><span class="p">),</span>
-<a id="__codelineno-0-463" name="__codelineno-0-463"></a>        <span class="o">*</span><span class="n">_range_rows</span><span class="p">(</span><span class="n">relapses</span><span class="p">,</span> <span class="n">remissions</span><span class="p">,</span> <span class="n">phase</span><span class="p">),</span>
-<a id="__codelineno-0-464" name="__codelineno-0-464"></a>        <span class="n">_barrier_ratio_row</span><span class="p">(</span><span class="n">runs</span><span class="p">),</span>
-<a id="__codelineno-0-465" name="__codelineno-0-465"></a>        <span class="o">*</span><span class="n">_memoryless_rows</span><span class="p">(</span><span class="n">runs</span><span class="p">,</span> <span class="n">level</span><span class="p">),</span>
-<a id="__codelineno-0-466" name="__codelineno-0-466"></a>        <span class="n">_periodicity_row</span><span class="p">(</span><span class="n">weekly</span><span class="p">,</span> <span class="n">level</span><span class="p">),</span>
-<a id="__codelineno-0-467" name="__codelineno-0-467"></a>    <span class="p">]</span>
-<a id="__codelineno-0-468" name="__codelineno-0-468"></a>    <span class="c1"># Column by column and as object, so that a column holding both a value and</span>
-<a id="__codelineno-0-469" name="__codelineno-0-469"></a>    <span class="c1"># a None keeps the None rather than turning it into a missing float, and so</span>
-<a id="__codelineno-0-470" name="__codelineno-0-470"></a>    <span class="c1"># that the two columns holding a pair of weeks can hold the pair.</span>
-<a id="__codelineno-0-471" name="__codelineno-0-471"></a>    <span class="n">columns</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">rows</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-472" name="__codelineno-0-472"></a>    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-<a id="__codelineno-0-473" name="__codelineno-0-473"></a>        <span class="p">{</span>
-<a id="__codelineno-0-474" name="__codelineno-0-474"></a>            <span class="n">name</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
-<a id="__codelineno-0-475" name="__codelineno-0-475"></a>            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">_TABLE_COLUMNS</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-476" name="__codelineno-0-476"></a>        <span class="p">}</span>
-<a id="__codelineno-0-477" name="__codelineno-0-477"></a>    <span class="p">)</span>
+<a id="__codelineno-0-428" name="__codelineno-0-428"></a><span class="sd">    The two Kolmogorov-Smirnov rows are judged, at `alpha`, against the claim the</span>
+<a id="__codelineno-0-429" name="__codelineno-0-429"></a><span class="sd">    article makes in prose: that the durations of each state carry no typical</span>
+<a id="__codelineno-0-430" name="__codelineno-0-430"></a><span class="sd">    scale. The p value is the parametric bootstrap of</span>
+<a id="__codelineno-0-431" name="__codelineno-0-431"></a><span class="sd">    :func:`msrelapse.fit.test_memoryless`, drawn from a generator seeded inside</span>
+<a id="__codelineno-0-432" name="__codelineno-0-432"></a><span class="sd">    this module so that the table is the same table every time it is built, and a</span>
+<a id="__codelineno-0-433" name="__codelineno-0-433"></a><span class="sd">    p value above `alpha` means the record is consistent with a memoryless</span>
+<a id="__codelineno-0-434" name="__codelineno-0-434"></a><span class="sd">    duration rather than that it is one.</span>
+<a id="__codelineno-0-435" name="__codelineno-0-435"></a>
+<a id="__codelineno-0-436" name="__codelineno-0-436"></a><span class="sd">    The periodicity row is judged at `alpha` in the same way, against the</span>
+<a id="__codelineno-0-437" name="__codelineno-0-437"></a><span class="sd">    article's other claim in prose: that the relapses carry no typical period.</span>
+<a id="__codelineno-0-438" name="__codelineno-0-438"></a><span class="sd">    The p value is the pooled Fisher g test of</span>
+<a id="__codelineno-0-439" name="__codelineno-0-439"></a><span class="sd">    :func:`msrelapse.fit.test_periodicity`, read on the relapse onsets of every</span>
+<a id="__codelineno-0-440" name="__codelineno-0-440"></a><span class="sd">    patient rather than on the +1 and -1 state series, because the onsets of a</span>
+<a id="__codelineno-0-441" name="__codelineno-0-441"></a><span class="sd">    memoryless record have the flat spectrum the g test compares against while</span>
+<a id="__codelineno-0-442" name="__codelineno-0-442"></a><span class="sd">    the state series does not. A p value above `alpha` means the record leaves</span>
+<a id="__codelineno-0-443" name="__codelineno-0-443"></a><span class="sd">    the claim of the article standing, not that no rhythm exists.</span>
+<a id="__codelineno-0-444" name="__codelineno-0-444"></a>
+<a id="__codelineno-0-445" name="__codelineno-0-445"></a><span class="sd">    That row says little about the shipped twin, and its own figures say how</span>
+<a id="__codelineno-0-446" name="__codelineno-0-446"></a><span class="sd">    little: 29 of the 70 records carry fewer than three relapse onsets and are</span>
+<a id="__codelineno-0-447" name="__codelineno-0-447"></a><span class="sd">    skipped, 28 of the 41 that are read give a per patient p value of exactly 1,</span>
+<a id="__codelineno-0-448" name="__codelineno-0-448"></a><span class="sd">    the smallest of the 41 is 0.24, and the pooled value is 1.0. At about four</span>
+<a id="__codelineno-0-449" name="__codelineno-0-449"></a><span class="sd">    onsets per record, that is what a test of almost no power returns rather than</span>
+<a id="__codelineno-0-450" name="__codelineno-0-450"></a><span class="sd">    a measurement of the cohort; the Notes of</span>
+<a id="__codelineno-0-451" name="__codelineno-0-451"></a><span class="sd">    :func:`msrelapse.fit.test_periodicity` carry the measured size at a handful</span>
+<a id="__codelineno-0-452" name="__codelineno-0-452"></a><span class="sd">    of onsets. Putting the claim of the article at any risk needs records</span>
+<a id="__codelineno-0-453" name="__codelineno-0-453"></a><span class="sd">    followed for longer, not a rule written more tightly.</span>
+<a id="__codelineno-0-454" name="__codelineno-0-454"></a>
+<a id="__codelineno-0-455" name="__codelineno-0-455"></a><span class="sd">    None of the three says more than a goodness of fit p value can. Failing to</span>
+<a id="__codelineno-0-456" name="__codelineno-0-456"></a><span class="sd">    reject is not evidence of the null, and a cohort of seventy records is not</span>
+<a id="__codelineno-0-457" name="__codelineno-0-457"></a><span class="sd">    a large sample; read the three rows as the record declining to contradict</span>
+<a id="__codelineno-0-458" name="__codelineno-0-458"></a><span class="sd">    the article rather than as a confirmation of it.</span>
+<a id="__codelineno-0-459" name="__codelineno-0-459"></a>
+<a id="__codelineno-0-460" name="__codelineno-0-460"></a><span class="sd">    Examples</span>
+<a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="sd">    --------</span>
+<a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="sd">    &gt;&gt;&gt; table = reproduction_table(load_synthetic_bordi2013())</span>
+<a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="sd">    &gt;&gt;&gt; table["quantity"].iloc[0]</span>
+<a id="__codelineno-0-464" name="__codelineno-0-464"></a><span class="sd">    'mean relapse duration (weeks)'</span>
+<a id="__codelineno-0-465" name="__codelineno-0-465"></a><span class="sd">    """</span>
+<a id="__codelineno-0-466" name="__codelineno-0-466"></a>    <span class="n">level</span> <span class="o">=</span> <span class="n">_DEFAULT_ALPHA</span> <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">alpha</span>
+<a id="__codelineno-0-467" name="__codelineno-0-467"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">level</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
+<a id="__codelineno-0-468" name="__codelineno-0-468"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"alpha must lie strictly between 0 and 1, got </span><span class="si">{</span><span class="n">alpha</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-469" name="__codelineno-0-469"></a>    <span class="n">runs</span> <span class="o">=</span> <span class="n">weekly_to_durations</span><span class="p">(</span><span class="n">weekly</span><span class="p">)</span>
+<a id="__codelineno-0-470" name="__codelineno-0-470"></a>    <span class="n">relapses</span> <span class="o">=</span> <span class="n">runs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">runs</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span> <span class="o">==</span> <span class="n">_NO_HEALTH</span><span class="p">,</span> <span class="s2">"duration_w"</span><span class="p">]</span>
+<a id="__codelineno-0-471" name="__codelineno-0-471"></a>    <span class="n">remissions</span> <span class="o">=</span> <span class="n">runs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">runs</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span> <span class="o">==</span> <span class="n">_HEALTH</span><span class="p">,</span> <span class="s2">"duration_w"</span><span class="p">]</span>
+<a id="__codelineno-0-472" name="__codelineno-0-472"></a>    <span class="k">if</span> <span class="n">relapses</span><span class="o">.</span><span class="n">empty</span> <span class="ow">or</span> <span class="n">remissions</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+<a id="__codelineno-0-473" name="__codelineno-0-473"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="__codelineno-0-474" name="__codelineno-0-474"></a>            <span class="sa">f</span><span class="s2">"the record holds </span><span class="si">{</span><span class="n">relapses</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> relapse run(s) and </span><span class="si">{</span><span class="n">remissions</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> remission "</span>
+<a id="__codelineno-0-475" name="__codelineno-0-475"></a>            <span class="sa">f</span><span class="s2">"run(s), so the table has no mean duration to report for one of the two states"</span>
+<a id="__codelineno-0-476" name="__codelineno-0-476"></a>        <span class="p">)</span>
+<a id="__codelineno-0-477" name="__codelineno-0-477"></a>    <span class="n">phase</span> <span class="o">=</span> <span class="n">weekly</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"patient_id"</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+<a id="__codelineno-0-478" name="__codelineno-0-478"></a>    <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-0-479" name="__codelineno-0-479"></a>        <span class="o">*</span><span class="n">_duration_rows</span><span class="p">(</span><span class="n">relapses</span><span class="p">,</span> <span class="n">remissions</span><span class="p">),</span>
+<a id="__codelineno-0-480" name="__codelineno-0-480"></a>        <span class="o">*</span><span class="n">_range_rows</span><span class="p">(</span><span class="n">relapses</span><span class="p">,</span> <span class="n">remissions</span><span class="p">,</span> <span class="n">phase</span><span class="p">),</span>
+<a id="__codelineno-0-481" name="__codelineno-0-481"></a>        <span class="n">_barrier_ratio_row</span><span class="p">(</span><span class="n">runs</span><span class="p">),</span>
+<a id="__codelineno-0-482" name="__codelineno-0-482"></a>        <span class="o">*</span><span class="n">_memoryless_rows</span><span class="p">(</span><span class="n">runs</span><span class="p">,</span> <span class="n">level</span><span class="p">),</span>
+<a id="__codelineno-0-483" name="__codelineno-0-483"></a>        <span class="n">_periodicity_row</span><span class="p">(</span><span class="n">weekly</span><span class="p">,</span> <span class="n">level</span><span class="p">),</span>
+<a id="__codelineno-0-484" name="__codelineno-0-484"></a>    <span class="p">]</span>
+<a id="__codelineno-0-485" name="__codelineno-0-485"></a>    <span class="c1"># Column by column and as object, so that a column holding both a value and</span>
+<a id="__codelineno-0-486" name="__codelineno-0-486"></a>    <span class="c1"># a None keeps the None rather than turning it into a missing float, and so</span>
+<a id="__codelineno-0-487" name="__codelineno-0-487"></a>    <span class="c1"># that the two columns holding a pair of weeks can hold the pair.</span>
+<a id="__codelineno-0-488" name="__codelineno-0-488"></a>    <span class="n">columns</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">rows</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-0-489" name="__codelineno-0-489"></a>    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<a id="__codelineno-0-490" name="__codelineno-0-490"></a>        <span class="p">{</span>
+<a id="__codelineno-0-491" name="__codelineno-0-491"></a>            <span class="n">name</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+<a id="__codelineno-0-492" name="__codelineno-0-492"></a>            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">_TABLE_COLUMNS</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-0-493" name="__codelineno-0-493"></a>        <span class="p">}</span>
+<a id="__codelineno-0-494" name="__codelineno-0-494"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

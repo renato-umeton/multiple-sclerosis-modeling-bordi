@@ -1791,6 +1791,13 @@ is neither a state nor an error further down the pipeline: it compares
 False against both hysteresis thresholds, so :func:<code>to_states</code> would freeze
 the state and the weekly record would read as an ordinary clinical one.
 Every recorded path is therefore checked before it is returned.</p>
+<p>The potential and the noise amplitude are held fixed for the whole run:
+<code>well</code> is one frozen :class:<code>~msrelapse.model.DoubleWell</code> and <code>sigma</code> is one
+number, and neither is read as a function of time. A within patient drift of
+the barrier or of the noise, a slowly varying beta(t) or sigma(t), is
+therefore outside what this module produces. The over-dispersion the package
+does carry is the between patient kind, the gamma mixture of relapse rates
+of :func:<code>msrelapse.renewal.gamma_rates</code>.</p>
 </details>
 
 <p><span class="doc-section-title">Examples:</span></p>
@@ -1901,7 +1908,15 @@ Every recorded path is therefore checked before it is returned.</p>
 <span class="normal"><a href="#__codelineno-0-269">269</a></span>
 <span class="normal"><a href="#__codelineno-0-270">270</a></span>
 <span class="normal"><a href="#__codelineno-0-271">271</a></span>
-<span class="normal"><a href="#__codelineno-0-272">272</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="k">def</span><span class="w"> </span><span class="nf">simulate_paths</span><span class="p">(</span>  <span class="c1"># noqa: PLR0917</span>
+<span class="normal"><a href="#__codelineno-0-272">272</a></span>
+<span class="normal"><a href="#__codelineno-0-273">273</a></span>
+<span class="normal"><a href="#__codelineno-0-274">274</a></span>
+<span class="normal"><a href="#__codelineno-0-275">275</a></span>
+<span class="normal"><a href="#__codelineno-0-276">276</a></span>
+<span class="normal"><a href="#__codelineno-0-277">277</a></span>
+<span class="normal"><a href="#__codelineno-0-278">278</a></span>
+<span class="normal"><a href="#__codelineno-0-279">279</a></span>
+<span class="normal"><a href="#__codelineno-0-280">280</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="k">def</span><span class="w"> </span><span class="nf">simulate_paths</span><span class="p">(</span>  <span class="c1"># noqa: PLR0917</span>
 <a id="__codelineno-0-174" name="__codelineno-0-174"></a>    <span class="n">well</span><span class="p">:</span> <span class="n">DoubleWell</span><span class="p">,</span>
 <a id="__codelineno-0-175" name="__codelineno-0-175"></a>    <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 <a id="__codelineno-0-176" name="__codelineno-0-176"></a>    <span class="n">t_end</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -1968,39 +1983,47 @@ Every recorded path is therefore checked before it is returned.</p>
 <a id="__codelineno-0-237" name="__codelineno-0-237"></a><span class="sd">    the state and the weekly record would read as an ordinary clinical one.</span>
 <a id="__codelineno-0-238" name="__codelineno-0-238"></a><span class="sd">    Every recorded path is therefore checked before it is returned.</span>
 <a id="__codelineno-0-239" name="__codelineno-0-239"></a>
-<a id="__codelineno-0-240" name="__codelineno-0-240"></a><span class="sd">    Examples</span>
-<a id="__codelineno-0-241" name="__codelineno-0-241"></a><span class="sd">    --------</span>
-<a id="__codelineno-0-242" name="__codelineno-0-242"></a><span class="sd">    &gt;&gt;&gt; paths = simulate_paths(DoubleWell(1.0, 0.08), 0.36, 1.0, dt=0.1, rng=0)</span>
-<a id="__codelineno-0-243" name="__codelineno-0-243"></a><span class="sd">    &gt;&gt;&gt; paths.t.shape, paths.x.shape</span>
-<a id="__codelineno-0-244" name="__codelineno-0-244"></a><span class="sd">    ((11,), (1, 11))</span>
-<a id="__codelineno-0-245" name="__codelineno-0-245"></a><span class="sd">    """</span>
-<a id="__codelineno-0-246" name="__codelineno-0-246"></a>    <span class="n">_check_step</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
-<a id="__codelineno-0-247" name="__codelineno-0-247"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">t_end</span><span class="p">)</span> <span class="ow">or</span> <span class="n">t_end</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
-<a id="__codelineno-0-248" name="__codelineno-0-248"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"t_end must be a positive finite number of weeks, got </span><span class="si">{</span><span class="n">t_end</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-0-249" name="__codelineno-0-249"></a>    <span class="k">if</span> <span class="n">n_paths</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-<a id="__codelineno-0-250" name="__codelineno-0-250"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"n_paths must be at least 1, got </span><span class="si">{</span><span class="n">n_paths</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-0-251" name="__codelineno-0-251"></a>    <span class="k">if</span> <span class="n">record_every</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-<a id="__codelineno-0-252" name="__codelineno-0-252"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"record_every must be at least 1, got </span><span class="si">{</span><span class="n">record_every</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-0-253" name="__codelineno-0-253"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span> <span class="ow">or</span> <span class="n">sigma</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
-<a id="__codelineno-0-254" name="__codelineno-0-254"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"sigma must be a non-negative finite number, got </span><span class="si">{</span><span class="n">sigma</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-0-255" name="__codelineno-0-255"></a>
-<a id="__codelineno-0-256" name="__codelineno-0-256"></a>    <span class="n">n_steps</span> <span class="o">=</span> <span class="n">_step_count</span><span class="p">(</span><span class="n">t_end</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
-<a id="__codelineno-0-257" name="__codelineno-0-257"></a>    <span class="n">n_records</span> <span class="o">=</span> <span class="n">n_steps</span> <span class="o">//</span> <span class="n">record_every</span> <span class="o">+</span> <span class="mi">1</span>
-<a id="__codelineno-0-258" name="__codelineno-0-258"></a>    <span class="n">x</span> <span class="o">=</span> <span class="n">_starting_positions</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">n_paths</span><span class="p">,</span> <span class="n">well</span><span class="p">)</span>
-<a id="__codelineno-0-259" name="__codelineno-0-259"></a>    <span class="n">recorded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">n_paths</span><span class="p">,</span> <span class="n">n_records</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-<a id="__codelineno-0-260" name="__codelineno-0-260"></a>    <span class="n">recorded</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
-<a id="__codelineno-0-261" name="__codelineno-0-261"></a>    <span class="n">advance</span> <span class="o">=</span> <span class="n">_advance_kernel</span><span class="p">(</span><span class="n">use_numba</span><span class="p">)</span>
-<a id="__codelineno-0-262" name="__codelineno-0-262"></a>    <span class="n">generator</span> <span class="o">=</span> <span class="n">_generator</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
-<a id="__codelineno-0-263" name="__codelineno-0-263"></a>    <span class="n">noise_step</span> <span class="o">=</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
-<a id="__codelineno-0-264" name="__codelineno-0-264"></a>    <span class="n">step</span> <span class="o">=</span> <span class="mi">0</span>
-<a id="__codelineno-0-265" name="__codelineno-0-265"></a>    <span class="k">while</span> <span class="n">step</span> <span class="o">&lt;</span> <span class="n">n_steps</span><span class="p">:</span>
-<a id="__codelineno-0-266" name="__codelineno-0-266"></a>        <span class="n">chunk</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">_chunk_steps</span><span class="p">(</span><span class="n">n_paths</span><span class="p">),</span> <span class="n">n_steps</span> <span class="o">-</span> <span class="n">step</span><span class="p">)</span>
-<a id="__codelineno-0-267" name="__codelineno-0-267"></a>        <span class="n">noise</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="n">chunk</span><span class="p">,</span> <span class="n">n_paths</span><span class="p">))</span>
-<a id="__codelineno-0-268" name="__codelineno-0-268"></a>        <span class="n">advance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">recorded</span><span class="p">,</span> <span class="n">well</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="n">well</span><span class="o">.</span><span class="n">beta</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">noise_step</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">record_every</span><span class="p">)</span>
-<a id="__codelineno-0-269" name="__codelineno-0-269"></a>        <span class="n">step</span> <span class="o">+=</span> <span class="n">chunk</span>
-<a id="__codelineno-0-270" name="__codelineno-0-270"></a>    <span class="n">_check_paths_finite</span><span class="p">(</span><span class="n">recorded</span><span class="p">,</span> <span class="n">well</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
-<a id="__codelineno-0-271" name="__codelineno-0-271"></a>    <span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_records</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">record_every</span> <span class="o">*</span> <span class="n">dt</span><span class="p">)</span>
-<a id="__codelineno-0-272" name="__codelineno-0-272"></a>    <span class="k">return</span> <span class="n">Paths</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">times</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">recorded</span><span class="p">)</span>
+<a id="__codelineno-0-240" name="__codelineno-0-240"></a><span class="sd">    The potential and the noise amplitude are held fixed for the whole run:</span>
+<a id="__codelineno-0-241" name="__codelineno-0-241"></a><span class="sd">    `well` is one frozen :class:`~msrelapse.model.DoubleWell` and `sigma` is one</span>
+<a id="__codelineno-0-242" name="__codelineno-0-242"></a><span class="sd">    number, and neither is read as a function of time. A within patient drift of</span>
+<a id="__codelineno-0-243" name="__codelineno-0-243"></a><span class="sd">    the barrier or of the noise, a slowly varying beta(t) or sigma(t), is</span>
+<a id="__codelineno-0-244" name="__codelineno-0-244"></a><span class="sd">    therefore outside what this module produces. The over-dispersion the package</span>
+<a id="__codelineno-0-245" name="__codelineno-0-245"></a><span class="sd">    does carry is the between patient kind, the gamma mixture of relapse rates</span>
+<a id="__codelineno-0-246" name="__codelineno-0-246"></a><span class="sd">    of :func:`msrelapse.renewal.gamma_rates`.</span>
+<a id="__codelineno-0-247" name="__codelineno-0-247"></a>
+<a id="__codelineno-0-248" name="__codelineno-0-248"></a><span class="sd">    Examples</span>
+<a id="__codelineno-0-249" name="__codelineno-0-249"></a><span class="sd">    --------</span>
+<a id="__codelineno-0-250" name="__codelineno-0-250"></a><span class="sd">    &gt;&gt;&gt; paths = simulate_paths(DoubleWell(1.0, 0.08), 0.36, 1.0, dt=0.1, rng=0)</span>
+<a id="__codelineno-0-251" name="__codelineno-0-251"></a><span class="sd">    &gt;&gt;&gt; paths.t.shape, paths.x.shape</span>
+<a id="__codelineno-0-252" name="__codelineno-0-252"></a><span class="sd">    ((11,), (1, 11))</span>
+<a id="__codelineno-0-253" name="__codelineno-0-253"></a><span class="sd">    """</span>
+<a id="__codelineno-0-254" name="__codelineno-0-254"></a>    <span class="n">_check_step</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+<a id="__codelineno-0-255" name="__codelineno-0-255"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">t_end</span><span class="p">)</span> <span class="ow">or</span> <span class="n">t_end</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+<a id="__codelineno-0-256" name="__codelineno-0-256"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"t_end must be a positive finite number of weeks, got </span><span class="si">{</span><span class="n">t_end</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-257" name="__codelineno-0-257"></a>    <span class="k">if</span> <span class="n">n_paths</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+<a id="__codelineno-0-258" name="__codelineno-0-258"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"n_paths must be at least 1, got </span><span class="si">{</span><span class="n">n_paths</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-259" name="__codelineno-0-259"></a>    <span class="k">if</span> <span class="n">record_every</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+<a id="__codelineno-0-260" name="__codelineno-0-260"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"record_every must be at least 1, got </span><span class="si">{</span><span class="n">record_every</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-261" name="__codelineno-0-261"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span> <span class="ow">or</span> <span class="n">sigma</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+<a id="__codelineno-0-262" name="__codelineno-0-262"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"sigma must be a non-negative finite number, got </span><span class="si">{</span><span class="n">sigma</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-263" name="__codelineno-0-263"></a>
+<a id="__codelineno-0-264" name="__codelineno-0-264"></a>    <span class="n">n_steps</span> <span class="o">=</span> <span class="n">_step_count</span><span class="p">(</span><span class="n">t_end</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+<a id="__codelineno-0-265" name="__codelineno-0-265"></a>    <span class="n">n_records</span> <span class="o">=</span> <span class="n">n_steps</span> <span class="o">//</span> <span class="n">record_every</span> <span class="o">+</span> <span class="mi">1</span>
+<a id="__codelineno-0-266" name="__codelineno-0-266"></a>    <span class="n">x</span> <span class="o">=</span> <span class="n">_starting_positions</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">n_paths</span><span class="p">,</span> <span class="n">well</span><span class="p">)</span>
+<a id="__codelineno-0-267" name="__codelineno-0-267"></a>    <span class="n">recorded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">n_paths</span><span class="p">,</span> <span class="n">n_records</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<a id="__codelineno-0-268" name="__codelineno-0-268"></a>    <span class="n">recorded</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
+<a id="__codelineno-0-269" name="__codelineno-0-269"></a>    <span class="n">advance</span> <span class="o">=</span> <span class="n">_advance_kernel</span><span class="p">(</span><span class="n">use_numba</span><span class="p">)</span>
+<a id="__codelineno-0-270" name="__codelineno-0-270"></a>    <span class="n">generator</span> <span class="o">=</span> <span class="n">_generator</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
+<a id="__codelineno-0-271" name="__codelineno-0-271"></a>    <span class="n">noise_step</span> <span class="o">=</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+<a id="__codelineno-0-272" name="__codelineno-0-272"></a>    <span class="n">step</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-273" name="__codelineno-0-273"></a>    <span class="k">while</span> <span class="n">step</span> <span class="o">&lt;</span> <span class="n">n_steps</span><span class="p">:</span>
+<a id="__codelineno-0-274" name="__codelineno-0-274"></a>        <span class="n">chunk</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">_chunk_steps</span><span class="p">(</span><span class="n">n_paths</span><span class="p">),</span> <span class="n">n_steps</span> <span class="o">-</span> <span class="n">step</span><span class="p">)</span>
+<a id="__codelineno-0-275" name="__codelineno-0-275"></a>        <span class="n">noise</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="n">chunk</span><span class="p">,</span> <span class="n">n_paths</span><span class="p">))</span>
+<a id="__codelineno-0-276" name="__codelineno-0-276"></a>        <span class="n">advance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">recorded</span><span class="p">,</span> <span class="n">well</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="n">well</span><span class="o">.</span><span class="n">beta</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">noise_step</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">record_every</span><span class="p">)</span>
+<a id="__codelineno-0-277" name="__codelineno-0-277"></a>        <span class="n">step</span> <span class="o">+=</span> <span class="n">chunk</span>
+<a id="__codelineno-0-278" name="__codelineno-0-278"></a>    <span class="n">_check_paths_finite</span><span class="p">(</span><span class="n">recorded</span><span class="p">,</span> <span class="n">well</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+<a id="__codelineno-0-279" name="__codelineno-0-279"></a>    <span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_records</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">record_every</span> <span class="o">*</span> <span class="n">dt</span><span class="p">)</span>
+<a id="__codelineno-0-280" name="__codelineno-0-280"></a>    <span class="k">return</span> <span class="n">Paths</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">times</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">recorded</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2330,15 +2353,7 @@ the same one lengthened.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/msrelapse/simulate.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-275">275</a></span>
-<span class="normal"><a href="#__codelineno-0-276">276</a></span>
-<span class="normal"><a href="#__codelineno-0-277">277</a></span>
-<span class="normal"><a href="#__codelineno-0-278">278</a></span>
-<span class="normal"><a href="#__codelineno-0-279">279</a></span>
-<span class="normal"><a href="#__codelineno-0-280">280</a></span>
-<span class="normal"><a href="#__codelineno-0-281">281</a></span>
-<span class="normal"><a href="#__codelineno-0-282">282</a></span>
-<span class="normal"><a href="#__codelineno-0-283">283</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-283">283</a></span>
 <span class="normal"><a href="#__codelineno-0-284">284</a></span>
 <span class="normal"><a href="#__codelineno-0-285">285</a></span>
 <span class="normal"><a href="#__codelineno-0-286">286</a></span>
@@ -2458,135 +2473,143 @@ the same one lengthened.</p>
 <span class="normal"><a href="#__codelineno-0-400">400</a></span>
 <span class="normal"><a href="#__codelineno-0-401">401</a></span>
 <span class="normal"><a href="#__codelineno-0-402">402</a></span>
-<span class="normal"><a href="#__codelineno-0-403">403</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-275" name="__codelineno-0-275"></a><span class="k">def</span><span class="w"> </span><span class="nf">exit_times</span><span class="p">(</span>  <span class="c1"># noqa: PLR0917</span>
-<a id="__codelineno-0-276" name="__codelineno-0-276"></a>    <span class="n">well</span><span class="p">:</span> <span class="n">DoubleWell</span><span class="p">,</span>
-<a id="__codelineno-0-277" name="__codelineno-0-277"></a>    <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-<a id="__codelineno-0-278" name="__codelineno-0-278"></a>    <span class="n">side</span><span class="p">:</span> <span class="n">Side</span><span class="p">,</span>
-<a id="__codelineno-0-279" name="__codelineno-0-279"></a>    <span class="n">n_paths</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<a id="__codelineno-0-280" name="__codelineno-0-280"></a>    <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.02</span><span class="p">,</span>
-<a id="__codelineno-0-281" name="__codelineno-0-281"></a>    <span class="n">rng</span><span class="p">:</span> <span class="n">Seed</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-282" name="__codelineno-0-282"></a>    <span class="n">passage</span><span class="p">:</span> <span class="n">Passage</span> <span class="o">=</span> <span class="s2">"bottom_to_saddle"</span><span class="p">,</span>
-<a id="__codelineno-0-283" name="__codelineno-0-283"></a>    <span class="n">band_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span>
-<a id="__codelineno-0-284" name="__codelineno-0-284"></a>    <span class="n">bridge_correction</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-285" name="__codelineno-0-285"></a>    <span class="n">max_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20000.0</span><span class="p">,</span>
-<a id="__codelineno-0-286" name="__codelineno-0-286"></a>    <span class="n">use_numba</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<a id="__codelineno-0-288" name="__codelineno-0-288"></a><span class="w">    </span><span class="sd">"""Measure the first passage time of one episode, once per path.</span>
-<a id="__codelineno-0-289" name="__codelineno-0-289"></a>
-<a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">    Every path starts at the first endpoint of</span>
-<a id="__codelineno-0-291" name="__codelineno-0-291"></a><span class="sd">    :func:`msrelapse.model.passage_endpoints` and is followed until it reaches</span>
-<a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">    the second one. A health passage runs towards increasing x and a relapse</span>
-<a id="__codelineno-0-293" name="__codelineno-0-293"></a><span class="sd">    passage towards decreasing x, and the time recorded is the first grid time</span>
-<a id="__codelineno-0-294" name="__codelineno-0-294"></a><span class="sd">    at which the absorbing level is crossed. Paths are retired as they are</span>
-<a id="__codelineno-0-295" name="__codelineno-0-295"></a><span class="sd">    absorbed, so a cohort whose exit times are spread over decades costs little</span>
-<a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="sd">    more than its mean.</span>
+<span class="normal"><a href="#__codelineno-0-403">403</a></span>
+<span class="normal"><a href="#__codelineno-0-404">404</a></span>
+<span class="normal"><a href="#__codelineno-0-405">405</a></span>
+<span class="normal"><a href="#__codelineno-0-406">406</a></span>
+<span class="normal"><a href="#__codelineno-0-407">407</a></span>
+<span class="normal"><a href="#__codelineno-0-408">408</a></span>
+<span class="normal"><a href="#__codelineno-0-409">409</a></span>
+<span class="normal"><a href="#__codelineno-0-410">410</a></span>
+<span class="normal"><a href="#__codelineno-0-411">411</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-283" name="__codelineno-0-283"></a><span class="k">def</span><span class="w"> </span><span class="nf">exit_times</span><span class="p">(</span>  <span class="c1"># noqa: PLR0917</span>
+<a id="__codelineno-0-284" name="__codelineno-0-284"></a>    <span class="n">well</span><span class="p">:</span> <span class="n">DoubleWell</span><span class="p">,</span>
+<a id="__codelineno-0-285" name="__codelineno-0-285"></a>    <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<a id="__codelineno-0-286" name="__codelineno-0-286"></a>    <span class="n">side</span><span class="p">:</span> <span class="n">Side</span><span class="p">,</span>
+<a id="__codelineno-0-287" name="__codelineno-0-287"></a>    <span class="n">n_paths</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<a id="__codelineno-0-288" name="__codelineno-0-288"></a>    <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.02</span><span class="p">,</span>
+<a id="__codelineno-0-289" name="__codelineno-0-289"></a>    <span class="n">rng</span><span class="p">:</span> <span class="n">Seed</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-290" name="__codelineno-0-290"></a>    <span class="n">passage</span><span class="p">:</span> <span class="n">Passage</span> <span class="o">=</span> <span class="s2">"bottom_to_saddle"</span><span class="p">,</span>
+<a id="__codelineno-0-291" name="__codelineno-0-291"></a>    <span class="n">band_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span>
+<a id="__codelineno-0-292" name="__codelineno-0-292"></a>    <span class="n">bridge_correction</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-0-293" name="__codelineno-0-293"></a>    <span class="n">max_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20000.0</span><span class="p">,</span>
+<a id="__codelineno-0-294" name="__codelineno-0-294"></a>    <span class="n">use_numba</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-295" name="__codelineno-0-295"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
+<a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="w">    </span><span class="sd">"""Measure the first passage time of one episode, once per path.</span>
 <a id="__codelineno-0-297" name="__codelineno-0-297"></a>
-<a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="sd">    Parameters</span>
-<a id="__codelineno-0-299" name="__codelineno-0-299"></a><span class="sd">    ----------</span>
-<a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="sd">    well : DoubleWell</span>
-<a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">        The potential.</span>
-<a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="sd">    sigma : float</span>
-<a id="__codelineno-0-303" name="__codelineno-0-303"></a><span class="sd">        Noise amplitude, the square root of the paper's variance epsilon.</span>
-<a id="__codelineno-0-304" name="__codelineno-0-304"></a><span class="sd">    side : {'health', 'relapse'}</span>
-<a id="__codelineno-0-305" name="__codelineno-0-305"></a><span class="sd">        Which state the episode is spent in.</span>
-<a id="__codelineno-0-306" name="__codelineno-0-306"></a><span class="sd">    n_paths : int</span>
-<a id="__codelineno-0-307" name="__codelineno-0-307"></a><span class="sd">        Number of independent paths to measure. Must be at least one.</span>
-<a id="__codelineno-0-308" name="__codelineno-0-308"></a><span class="sd">    dt : float, optional</span>
-<a id="__codelineno-0-309" name="__codelineno-0-309"></a><span class="sd">        Time step, in weeks.</span>
-<a id="__codelineno-0-310" name="__codelineno-0-310"></a><span class="sd">    rng : numpy.random.Generator or int or None, optional</span>
-<a id="__codelineno-0-311" name="__codelineno-0-311"></a><span class="sd">        Generator to draw the normal increments from, or a seed for</span>
-<a id="__codelineno-0-312" name="__codelineno-0-312"></a><span class="sd">        :func:`numpy.random.default_rng`.</span>
-<a id="__codelineno-0-313" name="__codelineno-0-313"></a><span class="sd">    passage : {'bottom_to_saddle', 'bottom_to_bottom', 'band'}, optional</span>
-<a id="__codelineno-0-314" name="__codelineno-0-314"></a><span class="sd">        Which crossing counts as one episode.</span>
-<a id="__codelineno-0-315" name="__codelineno-0-315"></a><span class="sd">    band_fraction : float, optional</span>
-<a id="__codelineno-0-316" name="__codelineno-0-316"></a><span class="sd">        Threshold position of the ``band`` passage, ignored otherwise.</span>
-<a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="sd">    bridge_correction : bool, optional</span>
-<a id="__codelineno-0-318" name="__codelineno-0-318"></a><span class="sd">        Whether to move the absorbing level towards the walker by</span>
-<a id="__codelineno-0-319" name="__codelineno-0-319"></a><span class="sd">        :data:`BRIDGE_CONSTANT` ``sigma sqrt(dt)``, which removes the</span>
-<a id="__codelineno-0-320" name="__codelineno-0-320"></a><span class="sd">        ``sqrt(dt)`` bias of a crossing test evaluated only at the grid points.</span>
-<a id="__codelineno-0-321" name="__codelineno-0-321"></a><span class="sd">        Without it a step of 0.1 weeks runs about a fifth long; with it the</span>
-<a id="__codelineno-0-322" name="__codelineno-0-322"></a><span class="sd">        same step lands within a few percent of the exact answer.</span>
-<a id="__codelineno-0-323" name="__codelineno-0-323"></a><span class="sd">    max_time : float, optional</span>
-<a id="__codelineno-0-324" name="__codelineno-0-324"></a><span class="sd">        How long, in weeks, a path is followed before the measurement is</span>
-<a id="__codelineno-0-325" name="__codelineno-0-325"></a><span class="sd">        declared a failure.</span>
-<a id="__codelineno-0-326" name="__codelineno-0-326"></a><span class="sd">    use_numba : bool or None, optional</span>
-<a id="__codelineno-0-327" name="__codelineno-0-327"></a><span class="sd">        Whether to run the compiled kernel. The default uses it when numba is</span>
-<a id="__codelineno-0-328" name="__codelineno-0-328"></a><span class="sd">        importable.</span>
-<a id="__codelineno-0-329" name="__codelineno-0-329"></a>
-<a id="__codelineno-0-330" name="__codelineno-0-330"></a><span class="sd">    Returns</span>
-<a id="__codelineno-0-331" name="__codelineno-0-331"></a><span class="sd">    -------</span>
-<a id="__codelineno-0-332" name="__codelineno-0-332"></a><span class="sd">    numpy.ndarray</span>
-<a id="__codelineno-0-333" name="__codelineno-0-333"></a><span class="sd">        One first passage time in weeks per path, of shape ``(n_paths,)``.</span>
-<a id="__codelineno-0-334" name="__codelineno-0-334"></a>
-<a id="__codelineno-0-335" name="__codelineno-0-335"></a><span class="sd">    Raises</span>
-<a id="__codelineno-0-336" name="__codelineno-0-336"></a><span class="sd">    ------</span>
-<a id="__codelineno-0-337" name="__codelineno-0-337"></a><span class="sd">    ValueError</span>
-<a id="__codelineno-0-338" name="__codelineno-0-338"></a><span class="sd">        If `dt`, `n_paths`, `sigma`, `side`, `passage` or `band_fraction` is</span>
-<a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="sd">        out of range, if `max_time` is not positive, if `use_numba` is True</span>
-<a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="sd">        while numba is not installed, if the bridge correction is wider than</span>
-<a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="sd">        the passage itself, or if any path is still running at `max_time`.</span>
+<a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="sd">    Every path starts at the first endpoint of</span>
+<a id="__codelineno-0-299" name="__codelineno-0-299"></a><span class="sd">    :func:`msrelapse.model.passage_endpoints` and is followed until it reaches</span>
+<a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="sd">    the second one. A health passage runs towards increasing x and a relapse</span>
+<a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">    passage towards decreasing x, and the time recorded is the first grid time</span>
+<a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="sd">    at which the absorbing level is crossed. Paths are retired as they are</span>
+<a id="__codelineno-0-303" name="__codelineno-0-303"></a><span class="sd">    absorbed, so a cohort whose exit times are spread over decades costs little</span>
+<a id="__codelineno-0-304" name="__codelineno-0-304"></a><span class="sd">    more than its mean.</span>
+<a id="__codelineno-0-305" name="__codelineno-0-305"></a>
+<a id="__codelineno-0-306" name="__codelineno-0-306"></a><span class="sd">    Parameters</span>
+<a id="__codelineno-0-307" name="__codelineno-0-307"></a><span class="sd">    ----------</span>
+<a id="__codelineno-0-308" name="__codelineno-0-308"></a><span class="sd">    well : DoubleWell</span>
+<a id="__codelineno-0-309" name="__codelineno-0-309"></a><span class="sd">        The potential.</span>
+<a id="__codelineno-0-310" name="__codelineno-0-310"></a><span class="sd">    sigma : float</span>
+<a id="__codelineno-0-311" name="__codelineno-0-311"></a><span class="sd">        Noise amplitude, the square root of the paper's variance epsilon.</span>
+<a id="__codelineno-0-312" name="__codelineno-0-312"></a><span class="sd">    side : {'health', 'relapse'}</span>
+<a id="__codelineno-0-313" name="__codelineno-0-313"></a><span class="sd">        Which state the episode is spent in.</span>
+<a id="__codelineno-0-314" name="__codelineno-0-314"></a><span class="sd">    n_paths : int</span>
+<a id="__codelineno-0-315" name="__codelineno-0-315"></a><span class="sd">        Number of independent paths to measure. Must be at least one.</span>
+<a id="__codelineno-0-316" name="__codelineno-0-316"></a><span class="sd">    dt : float, optional</span>
+<a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="sd">        Time step, in weeks.</span>
+<a id="__codelineno-0-318" name="__codelineno-0-318"></a><span class="sd">    rng : numpy.random.Generator or int or None, optional</span>
+<a id="__codelineno-0-319" name="__codelineno-0-319"></a><span class="sd">        Generator to draw the normal increments from, or a seed for</span>
+<a id="__codelineno-0-320" name="__codelineno-0-320"></a><span class="sd">        :func:`numpy.random.default_rng`.</span>
+<a id="__codelineno-0-321" name="__codelineno-0-321"></a><span class="sd">    passage : {'bottom_to_saddle', 'bottom_to_bottom', 'band'}, optional</span>
+<a id="__codelineno-0-322" name="__codelineno-0-322"></a><span class="sd">        Which crossing counts as one episode.</span>
+<a id="__codelineno-0-323" name="__codelineno-0-323"></a><span class="sd">    band_fraction : float, optional</span>
+<a id="__codelineno-0-324" name="__codelineno-0-324"></a><span class="sd">        Threshold position of the ``band`` passage, ignored otherwise.</span>
+<a id="__codelineno-0-325" name="__codelineno-0-325"></a><span class="sd">    bridge_correction : bool, optional</span>
+<a id="__codelineno-0-326" name="__codelineno-0-326"></a><span class="sd">        Whether to move the absorbing level towards the walker by</span>
+<a id="__codelineno-0-327" name="__codelineno-0-327"></a><span class="sd">        :data:`BRIDGE_CONSTANT` ``sigma sqrt(dt)``, which removes the</span>
+<a id="__codelineno-0-328" name="__codelineno-0-328"></a><span class="sd">        ``sqrt(dt)`` bias of a crossing test evaluated only at the grid points.</span>
+<a id="__codelineno-0-329" name="__codelineno-0-329"></a><span class="sd">        Without it a step of 0.1 weeks runs about a fifth long; with it the</span>
+<a id="__codelineno-0-330" name="__codelineno-0-330"></a><span class="sd">        same step lands within a few percent of the exact answer.</span>
+<a id="__codelineno-0-331" name="__codelineno-0-331"></a><span class="sd">    max_time : float, optional</span>
+<a id="__codelineno-0-332" name="__codelineno-0-332"></a><span class="sd">        How long, in weeks, a path is followed before the measurement is</span>
+<a id="__codelineno-0-333" name="__codelineno-0-333"></a><span class="sd">        declared a failure.</span>
+<a id="__codelineno-0-334" name="__codelineno-0-334"></a><span class="sd">    use_numba : bool or None, optional</span>
+<a id="__codelineno-0-335" name="__codelineno-0-335"></a><span class="sd">        Whether to run the compiled kernel. The default uses it when numba is</span>
+<a id="__codelineno-0-336" name="__codelineno-0-336"></a><span class="sd">        importable.</span>
+<a id="__codelineno-0-337" name="__codelineno-0-337"></a>
+<a id="__codelineno-0-338" name="__codelineno-0-338"></a><span class="sd">    Returns</span>
+<a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="sd">    -------</span>
+<a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="sd">    numpy.ndarray</span>
+<a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="sd">        One first passage time in weeks per path, of shape ``(n_paths,)``.</span>
 <a id="__codelineno-0-342" name="__codelineno-0-342"></a>
-<a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="sd">    See Also</span>
-<a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="sd">    --------</span>
-<a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="sd">    msrelapse.model.mfpt : The exact mean of the same passage, by quadrature.</span>
-<a id="__codelineno-0-346" name="__codelineno-0-346"></a>
-<a id="__codelineno-0-347" name="__codelineno-0-347"></a><span class="sd">    Notes</span>
-<a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="sd">    -----</span>
-<a id="__codelineno-0-349" name="__codelineno-0-349"></a><span class="sd">    Retiring the absorbed paths is what keeps a long run cheap, and it also</span>
-<a id="__codelineno-0-350" name="__codelineno-0-350"></a><span class="sd">    means the draws a given path receives depend on how many of its neighbours</span>
-<a id="__codelineno-0-351" name="__codelineno-0-351"></a><span class="sd">    are still running. A call is reproducible from its seed, but a call with a</span>
-<a id="__codelineno-0-352" name="__codelineno-0-352"></a><span class="sd">    different `n_paths`, `dt` or `max_time` is a different sample rather than</span>
-<a id="__codelineno-0-353" name="__codelineno-0-353"></a><span class="sd">    the same one lengthened.</span>
-<a id="__codelineno-0-354" name="__codelineno-0-354"></a><span class="sd">    """</span>
-<a id="__codelineno-0-355" name="__codelineno-0-355"></a>    <span class="n">_check_step</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
-<a id="__codelineno-0-356" name="__codelineno-0-356"></a>    <span class="k">if</span> <span class="n">n_paths</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-<a id="__codelineno-0-357" name="__codelineno-0-357"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"n_paths must be at least 1, got </span><span class="si">{</span><span class="n">n_paths</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-0-358" name="__codelineno-0-358"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span> <span class="ow">or</span> <span class="n">sigma</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
-<a id="__codelineno-0-359" name="__codelineno-0-359"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"sigma must be a non-negative finite number, got </span><span class="si">{</span><span class="n">sigma</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-0-360" name="__codelineno-0-360"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">max_time</span><span class="p">)</span> <span class="ow">or</span> <span class="n">max_time</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
-<a id="__codelineno-0-361" name="__codelineno-0-361"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"max_time must be a positive finite number of weeks, got </span><span class="si">{</span><span class="n">max_time</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-0-362" name="__codelineno-0-362"></a>
-<a id="__codelineno-0-363" name="__codelineno-0-363"></a>    <span class="n">start</span><span class="p">,</span> <span class="n">absorb</span> <span class="o">=</span> <span class="n">passage_endpoints</span><span class="p">(</span><span class="n">well</span><span class="p">,</span> <span class="n">side</span><span class="p">,</span> <span class="n">passage</span><span class="p">,</span> <span class="n">band_fraction</span><span class="p">)</span>
-<a id="__codelineno-0-364" name="__codelineno-0-364"></a>    <span class="n">rising</span> <span class="o">=</span> <span class="n">side</span> <span class="o">==</span> <span class="s2">"health"</span>
-<a id="__codelineno-0-365" name="__codelineno-0-365"></a>    <span class="n">overshoot</span> <span class="o">=</span> <span class="n">BRIDGE_CONSTANT</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="k">if</span> <span class="n">bridge_correction</span> <span class="k">else</span> <span class="mf">0.0</span>
-<a id="__codelineno-0-366" name="__codelineno-0-366"></a>    <span class="n">level</span> <span class="o">=</span> <span class="n">absorb</span> <span class="o">-</span> <span class="n">overshoot</span> <span class="k">if</span> <span class="n">rising</span> <span class="k">else</span> <span class="n">absorb</span> <span class="o">+</span> <span class="n">overshoot</span>
-<a id="__codelineno-0-367" name="__codelineno-0-367"></a>    <span class="n">collapsed</span> <span class="o">=</span> <span class="n">level</span> <span class="o">&lt;=</span> <span class="n">start</span> <span class="k">if</span> <span class="n">rising</span> <span class="k">else</span> <span class="n">level</span> <span class="o">&gt;=</span> <span class="n">start</span>
-<a id="__codelineno-0-368" name="__codelineno-0-368"></a>    <span class="k">if</span> <span class="n">collapsed</span><span class="p">:</span>
-<a id="__codelineno-0-369" name="__codelineno-0-369"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-370" name="__codelineno-0-370"></a>            <span class="sa">f</span><span class="s2">"the bridge correction of </span><span class="si">{</span><span class="n">overshoot</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2"> moves the absorbing level from "</span>
-<a id="__codelineno-0-371" name="__codelineno-0-371"></a>            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">absorb</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">level</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2">, which is at or past the start of the passage at "</span>
-<a id="__codelineno-0-372" name="__codelineno-0-372"></a>            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">start</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2">, so every path would be absorbed in one step; shorten dt or turn "</span>
-<a id="__codelineno-0-373" name="__codelineno-0-373"></a>            <span class="sa">f</span><span class="s2">"bridge_correction off"</span>
-<a id="__codelineno-0-374" name="__codelineno-0-374"></a>        <span class="p">)</span>
-<a id="__codelineno-0-375" name="__codelineno-0-375"></a>
-<a id="__codelineno-0-376" name="__codelineno-0-376"></a>    <span class="n">n_steps</span> <span class="o">=</span> <span class="n">_step_count</span><span class="p">(</span><span class="n">max_time</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
-<a id="__codelineno-0-377" name="__codelineno-0-377"></a>    <span class="n">advance</span> <span class="o">=</span> <span class="n">_exit_kernel</span><span class="p">(</span><span class="n">use_numba</span><span class="p">)</span>
-<a id="__codelineno-0-378" name="__codelineno-0-378"></a>    <span class="n">generator</span> <span class="o">=</span> <span class="n">_generator</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
-<a id="__codelineno-0-379" name="__codelineno-0-379"></a>    <span class="n">noise_step</span> <span class="o">=</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
-<a id="__codelineno-0-380" name="__codelineno-0-380"></a>    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_paths</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-<a id="__codelineno-0-381" name="__codelineno-0-381"></a>    <span class="n">active</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_paths</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-<a id="__codelineno-0-382" name="__codelineno-0-382"></a>    <span class="n">steps_taken</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_paths</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-<a id="__codelineno-0-383" name="__codelineno-0-383"></a>    <span class="n">step</span> <span class="o">=</span> <span class="mi">0</span>
-<a id="__codelineno-0-384" name="__codelineno-0-384"></a>    <span class="k">while</span> <span class="n">active</span><span class="o">.</span><span class="n">size</span> <span class="ow">and</span> <span class="n">step</span> <span class="o">&lt;</span> <span class="n">n_steps</span><span class="p">:</span>
-<a id="__codelineno-0-385" name="__codelineno-0-385"></a>        <span class="n">chunk</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">_chunk_steps</span><span class="p">(</span><span class="n">active</span><span class="o">.</span><span class="n">size</span><span class="p">),</span> <span class="n">n_steps</span> <span class="o">-</span> <span class="n">step</span><span class="p">)</span>
-<a id="__codelineno-0-386" name="__codelineno-0-386"></a>        <span class="n">noise</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="n">chunk</span><span class="p">,</span> <span class="n">active</span><span class="o">.</span><span class="n">size</span><span class="p">))</span>
-<a id="__codelineno-0-387" name="__codelineno-0-387"></a>        <span class="n">crossed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">active</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-<a id="__codelineno-0-388" name="__codelineno-0-388"></a>        <span class="n">advance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">crossed</span><span class="p">,</span> <span class="n">well</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="n">well</span><span class="o">.</span><span class="n">beta</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">noise_step</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">rising</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span>
-<a id="__codelineno-0-389" name="__codelineno-0-389"></a>        <span class="n">done</span> <span class="o">=</span> <span class="n">crossed</span> <span class="o">&gt;=</span> <span class="mi">0</span>
-<a id="__codelineno-0-390" name="__codelineno-0-390"></a>        <span class="k">if</span> <span class="n">done</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-<a id="__codelineno-0-391" name="__codelineno-0-391"></a>            <span class="n">steps_taken</span><span class="p">[</span><span class="n">active</span><span class="p">[</span><span class="n">done</span><span class="p">]]</span> <span class="o">=</span> <span class="n">crossed</span><span class="p">[</span><span class="n">done</span><span class="p">]</span>
-<a id="__codelineno-0-392" name="__codelineno-0-392"></a>            <span class="n">keep</span> <span class="o">=</span> <span class="o">~</span><span class="n">done</span>
-<a id="__codelineno-0-393" name="__codelineno-0-393"></a>            <span class="n">active</span> <span class="o">=</span> <span class="n">active</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
-<a id="__codelineno-0-394" name="__codelineno-0-394"></a>            <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">keep</span><span class="p">])</span>
-<a id="__codelineno-0-395" name="__codelineno-0-395"></a>        <span class="n">step</span> <span class="o">+=</span> <span class="n">chunk</span>
-<a id="__codelineno-0-396" name="__codelineno-0-396"></a>    <span class="n">unfinished</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">steps_taken</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">))</span>
-<a id="__codelineno-0-397" name="__codelineno-0-397"></a>    <span class="k">if</span> <span class="n">unfinished</span><span class="p">:</span>
-<a id="__codelineno-0-398" name="__codelineno-0-398"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-399" name="__codelineno-0-399"></a>            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">unfinished</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="n">n_paths</span><span class="si">}</span><span class="s2"> paths had not reached x=</span><span class="si">{</span><span class="n">level</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2"> within "</span>
-<a id="__codelineno-0-400" name="__codelineno-0-400"></a>            <span class="sa">f</span><span class="s2">"max_time=</span><span class="si">{</span><span class="n">max_time</span><span class="si">!r}</span><span class="s2"> weeks, so their </span><span class="si">{</span><span class="n">side</span><span class="si">}</span><span class="s2"> exit times are unknown; raise "</span>
-<a id="__codelineno-0-401" name="__codelineno-0-401"></a>            <span class="sa">f</span><span class="s2">"max_time or check that sigma=</span><span class="si">{</span><span class="n">sigma</span><span class="si">!r}</span><span class="s2"> can carry the path over the barrier"</span>
-<a id="__codelineno-0-402" name="__codelineno-0-402"></a>        <span class="p">)</span>
-<a id="__codelineno-0-403" name="__codelineno-0-403"></a>    <span class="k">return</span> <span class="n">steps_taken</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span>
+<a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="sd">    Raises</span>
+<a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="sd">    ------</span>
+<a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="sd">    ValueError</span>
+<a id="__codelineno-0-346" name="__codelineno-0-346"></a><span class="sd">        If `dt`, `n_paths`, `sigma`, `side`, `passage` or `band_fraction` is</span>
+<a id="__codelineno-0-347" name="__codelineno-0-347"></a><span class="sd">        out of range, if `max_time` is not positive, if `use_numba` is True</span>
+<a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="sd">        while numba is not installed, if the bridge correction is wider than</span>
+<a id="__codelineno-0-349" name="__codelineno-0-349"></a><span class="sd">        the passage itself, or if any path is still running at `max_time`.</span>
+<a id="__codelineno-0-350" name="__codelineno-0-350"></a>
+<a id="__codelineno-0-351" name="__codelineno-0-351"></a><span class="sd">    See Also</span>
+<a id="__codelineno-0-352" name="__codelineno-0-352"></a><span class="sd">    --------</span>
+<a id="__codelineno-0-353" name="__codelineno-0-353"></a><span class="sd">    msrelapse.model.mfpt : The exact mean of the same passage, by quadrature.</span>
+<a id="__codelineno-0-354" name="__codelineno-0-354"></a>
+<a id="__codelineno-0-355" name="__codelineno-0-355"></a><span class="sd">    Notes</span>
+<a id="__codelineno-0-356" name="__codelineno-0-356"></a><span class="sd">    -----</span>
+<a id="__codelineno-0-357" name="__codelineno-0-357"></a><span class="sd">    Retiring the absorbed paths is what keeps a long run cheap, and it also</span>
+<a id="__codelineno-0-358" name="__codelineno-0-358"></a><span class="sd">    means the draws a given path receives depend on how many of its neighbours</span>
+<a id="__codelineno-0-359" name="__codelineno-0-359"></a><span class="sd">    are still running. A call is reproducible from its seed, but a call with a</span>
+<a id="__codelineno-0-360" name="__codelineno-0-360"></a><span class="sd">    different `n_paths`, `dt` or `max_time` is a different sample rather than</span>
+<a id="__codelineno-0-361" name="__codelineno-0-361"></a><span class="sd">    the same one lengthened.</span>
+<a id="__codelineno-0-362" name="__codelineno-0-362"></a><span class="sd">    """</span>
+<a id="__codelineno-0-363" name="__codelineno-0-363"></a>    <span class="n">_check_step</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+<a id="__codelineno-0-364" name="__codelineno-0-364"></a>    <span class="k">if</span> <span class="n">n_paths</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+<a id="__codelineno-0-365" name="__codelineno-0-365"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"n_paths must be at least 1, got </span><span class="si">{</span><span class="n">n_paths</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-366" name="__codelineno-0-366"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span> <span class="ow">or</span> <span class="n">sigma</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+<a id="__codelineno-0-367" name="__codelineno-0-367"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"sigma must be a non-negative finite number, got </span><span class="si">{</span><span class="n">sigma</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-368" name="__codelineno-0-368"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">max_time</span><span class="p">)</span> <span class="ow">or</span> <span class="n">max_time</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+<a id="__codelineno-0-369" name="__codelineno-0-369"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"max_time must be a positive finite number of weeks, got </span><span class="si">{</span><span class="n">max_time</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-370" name="__codelineno-0-370"></a>
+<a id="__codelineno-0-371" name="__codelineno-0-371"></a>    <span class="n">start</span><span class="p">,</span> <span class="n">absorb</span> <span class="o">=</span> <span class="n">passage_endpoints</span><span class="p">(</span><span class="n">well</span><span class="p">,</span> <span class="n">side</span><span class="p">,</span> <span class="n">passage</span><span class="p">,</span> <span class="n">band_fraction</span><span class="p">)</span>
+<a id="__codelineno-0-372" name="__codelineno-0-372"></a>    <span class="n">rising</span> <span class="o">=</span> <span class="n">side</span> <span class="o">==</span> <span class="s2">"health"</span>
+<a id="__codelineno-0-373" name="__codelineno-0-373"></a>    <span class="n">overshoot</span> <span class="o">=</span> <span class="n">BRIDGE_CONSTANT</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="k">if</span> <span class="n">bridge_correction</span> <span class="k">else</span> <span class="mf">0.0</span>
+<a id="__codelineno-0-374" name="__codelineno-0-374"></a>    <span class="n">level</span> <span class="o">=</span> <span class="n">absorb</span> <span class="o">-</span> <span class="n">overshoot</span> <span class="k">if</span> <span class="n">rising</span> <span class="k">else</span> <span class="n">absorb</span> <span class="o">+</span> <span class="n">overshoot</span>
+<a id="__codelineno-0-375" name="__codelineno-0-375"></a>    <span class="n">collapsed</span> <span class="o">=</span> <span class="n">level</span> <span class="o">&lt;=</span> <span class="n">start</span> <span class="k">if</span> <span class="n">rising</span> <span class="k">else</span> <span class="n">level</span> <span class="o">&gt;=</span> <span class="n">start</span>
+<a id="__codelineno-0-376" name="__codelineno-0-376"></a>    <span class="k">if</span> <span class="n">collapsed</span><span class="p">:</span>
+<a id="__codelineno-0-377" name="__codelineno-0-377"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="__codelineno-0-378" name="__codelineno-0-378"></a>            <span class="sa">f</span><span class="s2">"the bridge correction of </span><span class="si">{</span><span class="n">overshoot</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2"> moves the absorbing level from "</span>
+<a id="__codelineno-0-379" name="__codelineno-0-379"></a>            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">absorb</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">level</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2">, which is at or past the start of the passage at "</span>
+<a id="__codelineno-0-380" name="__codelineno-0-380"></a>            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">start</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2">, so every path would be absorbed in one step; shorten dt or turn "</span>
+<a id="__codelineno-0-381" name="__codelineno-0-381"></a>            <span class="sa">f</span><span class="s2">"bridge_correction off"</span>
+<a id="__codelineno-0-382" name="__codelineno-0-382"></a>        <span class="p">)</span>
+<a id="__codelineno-0-383" name="__codelineno-0-383"></a>
+<a id="__codelineno-0-384" name="__codelineno-0-384"></a>    <span class="n">n_steps</span> <span class="o">=</span> <span class="n">_step_count</span><span class="p">(</span><span class="n">max_time</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+<a id="__codelineno-0-385" name="__codelineno-0-385"></a>    <span class="n">advance</span> <span class="o">=</span> <span class="n">_exit_kernel</span><span class="p">(</span><span class="n">use_numba</span><span class="p">)</span>
+<a id="__codelineno-0-386" name="__codelineno-0-386"></a>    <span class="n">generator</span> <span class="o">=</span> <span class="n">_generator</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
+<a id="__codelineno-0-387" name="__codelineno-0-387"></a>    <span class="n">noise_step</span> <span class="o">=</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+<a id="__codelineno-0-388" name="__codelineno-0-388"></a>    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_paths</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<a id="__codelineno-0-389" name="__codelineno-0-389"></a>    <span class="n">active</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_paths</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+<a id="__codelineno-0-390" name="__codelineno-0-390"></a>    <span class="n">steps_taken</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_paths</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+<a id="__codelineno-0-391" name="__codelineno-0-391"></a>    <span class="n">step</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-392" name="__codelineno-0-392"></a>    <span class="k">while</span> <span class="n">active</span><span class="o">.</span><span class="n">size</span> <span class="ow">and</span> <span class="n">step</span> <span class="o">&lt;</span> <span class="n">n_steps</span><span class="p">:</span>
+<a id="__codelineno-0-393" name="__codelineno-0-393"></a>        <span class="n">chunk</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">_chunk_steps</span><span class="p">(</span><span class="n">active</span><span class="o">.</span><span class="n">size</span><span class="p">),</span> <span class="n">n_steps</span> <span class="o">-</span> <span class="n">step</span><span class="p">)</span>
+<a id="__codelineno-0-394" name="__codelineno-0-394"></a>        <span class="n">noise</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="n">chunk</span><span class="p">,</span> <span class="n">active</span><span class="o">.</span><span class="n">size</span><span class="p">))</span>
+<a id="__codelineno-0-395" name="__codelineno-0-395"></a>        <span class="n">crossed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">active</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+<a id="__codelineno-0-396" name="__codelineno-0-396"></a>        <span class="n">advance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">crossed</span><span class="p">,</span> <span class="n">well</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="n">well</span><span class="o">.</span><span class="n">beta</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">noise_step</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">rising</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span>
+<a id="__codelineno-0-397" name="__codelineno-0-397"></a>        <span class="n">done</span> <span class="o">=</span> <span class="n">crossed</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+<a id="__codelineno-0-398" name="__codelineno-0-398"></a>        <span class="k">if</span> <span class="n">done</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+<a id="__codelineno-0-399" name="__codelineno-0-399"></a>            <span class="n">steps_taken</span><span class="p">[</span><span class="n">active</span><span class="p">[</span><span class="n">done</span><span class="p">]]</span> <span class="o">=</span> <span class="n">crossed</span><span class="p">[</span><span class="n">done</span><span class="p">]</span>
+<a id="__codelineno-0-400" name="__codelineno-0-400"></a>            <span class="n">keep</span> <span class="o">=</span> <span class="o">~</span><span class="n">done</span>
+<a id="__codelineno-0-401" name="__codelineno-0-401"></a>            <span class="n">active</span> <span class="o">=</span> <span class="n">active</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+<a id="__codelineno-0-402" name="__codelineno-0-402"></a>            <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">keep</span><span class="p">])</span>
+<a id="__codelineno-0-403" name="__codelineno-0-403"></a>        <span class="n">step</span> <span class="o">+=</span> <span class="n">chunk</span>
+<a id="__codelineno-0-404" name="__codelineno-0-404"></a>    <span class="n">unfinished</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">steps_taken</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">))</span>
+<a id="__codelineno-0-405" name="__codelineno-0-405"></a>    <span class="k">if</span> <span class="n">unfinished</span><span class="p">:</span>
+<a id="__codelineno-0-406" name="__codelineno-0-406"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="__codelineno-0-407" name="__codelineno-0-407"></a>            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">unfinished</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="n">n_paths</span><span class="si">}</span><span class="s2"> paths had not reached x=</span><span class="si">{</span><span class="n">level</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2"> within "</span>
+<a id="__codelineno-0-408" name="__codelineno-0-408"></a>            <span class="sa">f</span><span class="s2">"max_time=</span><span class="si">{</span><span class="n">max_time</span><span class="si">!r}</span><span class="s2"> weeks, so their </span><span class="si">{</span><span class="n">side</span><span class="si">}</span><span class="s2"> exit times are unknown; raise "</span>
+<a id="__codelineno-0-409" name="__codelineno-0-409"></a>            <span class="sa">f</span><span class="s2">"max_time or check that sigma=</span><span class="si">{</span><span class="n">sigma</span><span class="si">!r}</span><span class="s2"> can carry the path over the barrier"</span>
+<a id="__codelineno-0-410" name="__codelineno-0-410"></a>        <span class="p">)</span>
+<a id="__codelineno-0-411" name="__codelineno-0-411"></a>    <span class="k">return</span> <span class="n">steps_taken</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2816,15 +2839,7 @@ the bias the shift is there to remove.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/msrelapse/simulate.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-406">406</a></span>
-<span class="normal"><a href="#__codelineno-0-407">407</a></span>
-<span class="normal"><a href="#__codelineno-0-408">408</a></span>
-<span class="normal"><a href="#__codelineno-0-409">409</a></span>
-<span class="normal"><a href="#__codelineno-0-410">410</a></span>
-<span class="normal"><a href="#__codelineno-0-411">411</a></span>
-<span class="normal"><a href="#__codelineno-0-412">412</a></span>
-<span class="normal"><a href="#__codelineno-0-413">413</a></span>
-<span class="normal"><a href="#__codelineno-0-414">414</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-414">414</a></span>
 <span class="normal"><a href="#__codelineno-0-415">415</a></span>
 <span class="normal"><a href="#__codelineno-0-416">416</a></span>
 <span class="normal"><a href="#__codelineno-0-417">417</a></span>
@@ -2899,90 +2914,98 @@ the bias the shift is there to remove.</p>
 <span class="normal"><a href="#__codelineno-0-486">486</a></span>
 <span class="normal"><a href="#__codelineno-0-487">487</a></span>
 <span class="normal"><a href="#__codelineno-0-488">488</a></span>
-<span class="normal"><a href="#__codelineno-0-489">489</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-406" name="__codelineno-0-406"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_states</span><span class="p">(</span>
-<a id="__codelineno-0-407" name="__codelineno-0-407"></a>    <span class="n">x</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span>
-<a id="__codelineno-0-408" name="__codelineno-0-408"></a>    <span class="n">well</span><span class="p">:</span> <span class="n">DoubleWell</span><span class="p">,</span>
-<a id="__codelineno-0-409" name="__codelineno-0-409"></a>    <span class="n">band_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span>
-<a id="__codelineno-0-410" name="__codelineno-0-410"></a>    <span class="n">initial</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-411" name="__codelineno-0-411"></a>    <span class="n">level_shift</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
-<a id="__codelineno-0-412" name="__codelineno-0-412"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">]:</span>
-<a id="__codelineno-0-413" name="__codelineno-0-413"></a><span class="w">    </span><span class="sd">"""Map a path to the two clinical states through a hysteresis band.</span>
-<a id="__codelineno-0-414" name="__codelineno-0-414"></a>
-<a id="__codelineno-0-415" name="__codelineno-0-415"></a><span class="sd">    The path switches to no health only once it climbs above the relapse</span>
-<a id="__codelineno-0-416" name="__codelineno-0-416"></a><span class="sd">    threshold and back to health only once it drops below the health</span>
-<a id="__codelineno-0-417" name="__codelineno-0-417"></a><span class="sd">    threshold, so the band between the two thresholds carries no switch at all.</span>
-<a id="__codelineno-0-418" name="__codelineno-0-418"></a><span class="sd">    Both thresholds come from ``passage_endpoints(well, 'health', 'band',</span>
-<a id="__codelineno-0-419" name="__codelineno-0-419"></a><span class="sd">    band_fraction)``.</span>
-<a id="__codelineno-0-420" name="__codelineno-0-420"></a>
-<a id="__codelineno-0-421" name="__codelineno-0-421"></a><span class="sd">    Parameters</span>
-<a id="__codelineno-0-422" name="__codelineno-0-422"></a><span class="sd">    ----------</span>
-<a id="__codelineno-0-423" name="__codelineno-0-423"></a><span class="sd">    x : numpy.ndarray</span>
-<a id="__codelineno-0-424" name="__codelineno-0-424"></a><span class="sd">        One path, of shape ``(n_records,)``, or a cohort of paths, of shape</span>
-<a id="__codelineno-0-425" name="__codelineno-0-425"></a><span class="sd">        ``(n_paths, n_records)``.</span>
-<a id="__codelineno-0-426" name="__codelineno-0-426"></a><span class="sd">    well : DoubleWell</span>
-<a id="__codelineno-0-427" name="__codelineno-0-427"></a><span class="sd">        The potential the path was drawn from, which fixes the thresholds.</span>
-<a id="__codelineno-0-428" name="__codelineno-0-428"></a><span class="sd">    band_fraction : float, optional</span>
-<a id="__codelineno-0-429" name="__codelineno-0-429"></a><span class="sd">        Position of the two thresholds, as a fraction of the distance from the</span>
-<a id="__codelineno-0-430" name="__codelineno-0-430"></a><span class="sd">        saddle to each well bottom. Must lie strictly between 0 and 1.</span>
-<a id="__codelineno-0-431" name="__codelineno-0-431"></a><span class="sd">    initial : int, optional</span>
-<a id="__codelineno-0-432" name="__codelineno-0-432"></a><span class="sd">        State to start every path in. The default starts a path in health when</span>
-<a id="__codelineno-0-433" name="__codelineno-0-433"></a><span class="sd">        its first sample lies below the saddle and in no health otherwise.</span>
-<a id="__codelineno-0-434" name="__codelineno-0-434"></a><span class="sd">    level_shift : float, optional</span>
-<a id="__codelineno-0-435" name="__codelineno-0-435"></a><span class="sd">        The Brownian bridge correction for crossings read off a grid, in units</span>
-<a id="__codelineno-0-436" name="__codelineno-0-436"></a><span class="sd">        of x. It moves the relapse entry threshold down by this much and the</span>
-<a id="__codelineno-0-437" name="__codelineno-0-437"></a><span class="sd">        health entry threshold up by it, which brings each of them towards the</span>
-<a id="__codelineno-0-438" name="__codelineno-0-438"></a><span class="sd">        walker that has to reach it. Must be finite and not negative, and it</span>
-<a id="__codelineno-0-439" name="__codelineno-0-439"></a><span class="sd">        must be narrow enough to leave the two thresholds apart. Pass</span>
-<a id="__codelineno-0-440" name="__codelineno-0-440"></a><span class="sd">        ``BRIDGE_CONSTANT * sigma * sqrt(dt)`` for the path this is mapping;</span>
-<a id="__codelineno-0-441" name="__codelineno-0-441"></a><span class="sd">        the default of 0 leaves the thresholds where `band_fraction` puts them.</span>
-<a id="__codelineno-0-442" name="__codelineno-0-442"></a>
-<a id="__codelineno-0-443" name="__codelineno-0-443"></a><span class="sd">    Returns</span>
-<a id="__codelineno-0-444" name="__codelineno-0-444"></a><span class="sd">    -------</span>
-<a id="__codelineno-0-445" name="__codelineno-0-445"></a><span class="sd">    numpy.ndarray</span>
-<a id="__codelineno-0-446" name="__codelineno-0-446"></a><span class="sd">        The states, of the same shape as `x` and of dtype int64, holding the</span>
-<a id="__codelineno-0-447" name="__codelineno-0-447"></a><span class="sd">        two codes of ``PAPER.state_health`` and ``PAPER.state_no_health``.</span>
-<a id="__codelineno-0-448" name="__codelineno-0-448"></a>
-<a id="__codelineno-0-449" name="__codelineno-0-449"></a><span class="sd">    Raises</span>
-<a id="__codelineno-0-450" name="__codelineno-0-450"></a><span class="sd">    ------</span>
-<a id="__codelineno-0-451" name="__codelineno-0-451"></a><span class="sd">    ValueError</span>
-<a id="__codelineno-0-452" name="__codelineno-0-452"></a><span class="sd">        If `x` is not one or two dimensional, is empty or holds a sample that</span>
-<a id="__codelineno-0-453" name="__codelineno-0-453"></a><span class="sd">        is not a finite number, if `band_fraction` is not strictly between 0</span>
-<a id="__codelineno-0-454" name="__codelineno-0-454"></a><span class="sd">        and 1, if `initial` is neither of the two state codes, or if</span>
-<a id="__codelineno-0-455" name="__codelineno-0-455"></a><span class="sd">        `level_shift` is negative, is not finite, or is wide enough to close</span>
-<a id="__codelineno-0-456" name="__codelineno-0-456"></a><span class="sd">        the band.</span>
-<a id="__codelineno-0-457" name="__codelineno-0-457"></a>
-<a id="__codelineno-0-458" name="__codelineno-0-458"></a><span class="sd">    Notes</span>
-<a id="__codelineno-0-459" name="__codelineno-0-459"></a><span class="sd">    -----</span>
-<a id="__codelineno-0-460" name="__codelineno-0-460"></a><span class="sd">    A sample that is not a finite number compares False against both</span>
-<a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="sd">    thresholds, so it would neither switch the state nor raise. Such a path is</span>
-<a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="sd">    refused by name instead, which also catches a caller who brings paths of</span>
-<a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="sd">    their own from an integration that blew up.</span>
-<a id="__codelineno-0-464" name="__codelineno-0-464"></a>
-<a id="__codelineno-0-465" name="__codelineno-0-465"></a><span class="sd">    A threshold tested only at the grid points is crossed a step late, so a</span>
-<a id="__codelineno-0-466" name="__codelineno-0-466"></a><span class="sd">    walk watched that way behaves like a continuously watched walk whose</span>
-<a id="__codelineno-0-467" name="__codelineno-0-467"></a><span class="sd">    threshold sits :data:`BRIDGE_CONSTANT` ``sigma sqrt(dt)`` further away. Left</span>
-<a id="__codelineno-0-468" name="__codelineno-0-468"></a><span class="sd">    uncorrected that lengthens both ends of every episode, by about a tenth at</span>
-<a id="__codelineno-0-469" name="__codelineno-0-469"></a><span class="sd">    the calibrated parameters and a step of 0.02 weeks; see the module</span>
-<a id="__codelineno-0-470" name="__codelineno-0-470"></a><span class="sd">    docstring for the measurement.</span>
-<a id="__codelineno-0-471" name="__codelineno-0-471"></a>
-<a id="__codelineno-0-472" name="__codelineno-0-472"></a><span class="sd">    The shift brings the two thresholds together and does not move them apart,</span>
-<a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="sd">    which is the direction :func:`exit_times` already moves its single level in.</span>
-<a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="sd">    Measured on 50 records of 12000 weeks at a step of 0.02 weeks on the band</span>
-<a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">    calibrated potential, as the ratio of the mean complete episode to the exact</span>
-<a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="sd">    first passage time over the same band: 1.113 in health and 1.128 in no health</span>
-<a id="__codelineno-0-477" name="__codelineno-0-477"></a><span class="sd">    with no shift, 0.988 and 1.005 with the thresholds brought together as they</span>
-<a id="__codelineno-0-478" name="__codelineno-0-478"></a><span class="sd">    are here, and 1.233 and 1.244 with them moved apart, which roughly doubles</span>
-<a id="__codelineno-0-479" name="__codelineno-0-479"></a><span class="sd">    the bias the shift is there to remove.</span>
-<a id="__codelineno-0-480" name="__codelineno-0-480"></a>
-<a id="__codelineno-0-481" name="__codelineno-0-481"></a><span class="sd">    Examples</span>
-<a id="__codelineno-0-482" name="__codelineno-0-482"></a><span class="sd">    --------</span>
-<a id="__codelineno-0-483" name="__codelineno-0-483"></a><span class="sd">    &gt;&gt;&gt; well = DoubleWell(1.0, 0.08)</span>
-<a id="__codelineno-0-484" name="__codelineno-0-484"></a><span class="sd">    &gt;&gt;&gt; to_states(np.array([-1.0, 0.0, 1.0]), well).tolist()</span>
-<a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">    [-1, -1, 1]</span>
-<a id="__codelineno-0-486" name="__codelineno-0-486"></a><span class="sd">    """</span>
-<a id="__codelineno-0-487" name="__codelineno-0-487"></a>    <span class="n">rows</span> <span class="o">=</span> <span class="n">_as_rows</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">)</span>
-<a id="__codelineno-0-488" name="__codelineno-0-488"></a>    <span class="n">_check_samples_finite</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">)</span>
-<a id="__codelineno-0-489" name="__codelineno-0-489"></a>    <span class="k">return</span> <span class="n">_to_states</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">well</span><span class="p">,</span> <span class="n">band_fraction</span><span class="p">,</span> <span class="n">initial</span><span class="p">,</span> <span class="n">level_shift</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+<span class="normal"><a href="#__codelineno-0-489">489</a></span>
+<span class="normal"><a href="#__codelineno-0-490">490</a></span>
+<span class="normal"><a href="#__codelineno-0-491">491</a></span>
+<span class="normal"><a href="#__codelineno-0-492">492</a></span>
+<span class="normal"><a href="#__codelineno-0-493">493</a></span>
+<span class="normal"><a href="#__codelineno-0-494">494</a></span>
+<span class="normal"><a href="#__codelineno-0-495">495</a></span>
+<span class="normal"><a href="#__codelineno-0-496">496</a></span>
+<span class="normal"><a href="#__codelineno-0-497">497</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-414" name="__codelineno-0-414"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_states</span><span class="p">(</span>
+<a id="__codelineno-0-415" name="__codelineno-0-415"></a>    <span class="n">x</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span>
+<a id="__codelineno-0-416" name="__codelineno-0-416"></a>    <span class="n">well</span><span class="p">:</span> <span class="n">DoubleWell</span><span class="p">,</span>
+<a id="__codelineno-0-417" name="__codelineno-0-417"></a>    <span class="n">band_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span>
+<a id="__codelineno-0-418" name="__codelineno-0-418"></a>    <span class="n">initial</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-419" name="__codelineno-0-419"></a>    <span class="n">level_shift</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+<a id="__codelineno-0-420" name="__codelineno-0-420"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">]:</span>
+<a id="__codelineno-0-421" name="__codelineno-0-421"></a><span class="w">    </span><span class="sd">"""Map a path to the two clinical states through a hysteresis band.</span>
+<a id="__codelineno-0-422" name="__codelineno-0-422"></a>
+<a id="__codelineno-0-423" name="__codelineno-0-423"></a><span class="sd">    The path switches to no health only once it climbs above the relapse</span>
+<a id="__codelineno-0-424" name="__codelineno-0-424"></a><span class="sd">    threshold and back to health only once it drops below the health</span>
+<a id="__codelineno-0-425" name="__codelineno-0-425"></a><span class="sd">    threshold, so the band between the two thresholds carries no switch at all.</span>
+<a id="__codelineno-0-426" name="__codelineno-0-426"></a><span class="sd">    Both thresholds come from ``passage_endpoints(well, 'health', 'band',</span>
+<a id="__codelineno-0-427" name="__codelineno-0-427"></a><span class="sd">    band_fraction)``.</span>
+<a id="__codelineno-0-428" name="__codelineno-0-428"></a>
+<a id="__codelineno-0-429" name="__codelineno-0-429"></a><span class="sd">    Parameters</span>
+<a id="__codelineno-0-430" name="__codelineno-0-430"></a><span class="sd">    ----------</span>
+<a id="__codelineno-0-431" name="__codelineno-0-431"></a><span class="sd">    x : numpy.ndarray</span>
+<a id="__codelineno-0-432" name="__codelineno-0-432"></a><span class="sd">        One path, of shape ``(n_records,)``, or a cohort of paths, of shape</span>
+<a id="__codelineno-0-433" name="__codelineno-0-433"></a><span class="sd">        ``(n_paths, n_records)``.</span>
+<a id="__codelineno-0-434" name="__codelineno-0-434"></a><span class="sd">    well : DoubleWell</span>
+<a id="__codelineno-0-435" name="__codelineno-0-435"></a><span class="sd">        The potential the path was drawn from, which fixes the thresholds.</span>
+<a id="__codelineno-0-436" name="__codelineno-0-436"></a><span class="sd">    band_fraction : float, optional</span>
+<a id="__codelineno-0-437" name="__codelineno-0-437"></a><span class="sd">        Position of the two thresholds, as a fraction of the distance from the</span>
+<a id="__codelineno-0-438" name="__codelineno-0-438"></a><span class="sd">        saddle to each well bottom. Must lie strictly between 0 and 1.</span>
+<a id="__codelineno-0-439" name="__codelineno-0-439"></a><span class="sd">    initial : int, optional</span>
+<a id="__codelineno-0-440" name="__codelineno-0-440"></a><span class="sd">        State to start every path in. The default starts a path in health when</span>
+<a id="__codelineno-0-441" name="__codelineno-0-441"></a><span class="sd">        its first sample lies below the saddle and in no health otherwise.</span>
+<a id="__codelineno-0-442" name="__codelineno-0-442"></a><span class="sd">    level_shift : float, optional</span>
+<a id="__codelineno-0-443" name="__codelineno-0-443"></a><span class="sd">        The Brownian bridge correction for crossings read off a grid, in units</span>
+<a id="__codelineno-0-444" name="__codelineno-0-444"></a><span class="sd">        of x. It moves the relapse entry threshold down by this much and the</span>
+<a id="__codelineno-0-445" name="__codelineno-0-445"></a><span class="sd">        health entry threshold up by it, which brings each of them towards the</span>
+<a id="__codelineno-0-446" name="__codelineno-0-446"></a><span class="sd">        walker that has to reach it. Must be finite and not negative, and it</span>
+<a id="__codelineno-0-447" name="__codelineno-0-447"></a><span class="sd">        must be narrow enough to leave the two thresholds apart. Pass</span>
+<a id="__codelineno-0-448" name="__codelineno-0-448"></a><span class="sd">        ``BRIDGE_CONSTANT * sigma * sqrt(dt)`` for the path this is mapping;</span>
+<a id="__codelineno-0-449" name="__codelineno-0-449"></a><span class="sd">        the default of 0 leaves the thresholds where `band_fraction` puts them.</span>
+<a id="__codelineno-0-450" name="__codelineno-0-450"></a>
+<a id="__codelineno-0-451" name="__codelineno-0-451"></a><span class="sd">    Returns</span>
+<a id="__codelineno-0-452" name="__codelineno-0-452"></a><span class="sd">    -------</span>
+<a id="__codelineno-0-453" name="__codelineno-0-453"></a><span class="sd">    numpy.ndarray</span>
+<a id="__codelineno-0-454" name="__codelineno-0-454"></a><span class="sd">        The states, of the same shape as `x` and of dtype int64, holding the</span>
+<a id="__codelineno-0-455" name="__codelineno-0-455"></a><span class="sd">        two codes of ``PAPER.state_health`` and ``PAPER.state_no_health``.</span>
+<a id="__codelineno-0-456" name="__codelineno-0-456"></a>
+<a id="__codelineno-0-457" name="__codelineno-0-457"></a><span class="sd">    Raises</span>
+<a id="__codelineno-0-458" name="__codelineno-0-458"></a><span class="sd">    ------</span>
+<a id="__codelineno-0-459" name="__codelineno-0-459"></a><span class="sd">    ValueError</span>
+<a id="__codelineno-0-460" name="__codelineno-0-460"></a><span class="sd">        If `x` is not one or two dimensional, is empty or holds a sample that</span>
+<a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="sd">        is not a finite number, if `band_fraction` is not strictly between 0</span>
+<a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="sd">        and 1, if `initial` is neither of the two state codes, or if</span>
+<a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="sd">        `level_shift` is negative, is not finite, or is wide enough to close</span>
+<a id="__codelineno-0-464" name="__codelineno-0-464"></a><span class="sd">        the band.</span>
+<a id="__codelineno-0-465" name="__codelineno-0-465"></a>
+<a id="__codelineno-0-466" name="__codelineno-0-466"></a><span class="sd">    Notes</span>
+<a id="__codelineno-0-467" name="__codelineno-0-467"></a><span class="sd">    -----</span>
+<a id="__codelineno-0-468" name="__codelineno-0-468"></a><span class="sd">    A sample that is not a finite number compares False against both</span>
+<a id="__codelineno-0-469" name="__codelineno-0-469"></a><span class="sd">    thresholds, so it would neither switch the state nor raise. Such a path is</span>
+<a id="__codelineno-0-470" name="__codelineno-0-470"></a><span class="sd">    refused by name instead, which also catches a caller who brings paths of</span>
+<a id="__codelineno-0-471" name="__codelineno-0-471"></a><span class="sd">    their own from an integration that blew up.</span>
+<a id="__codelineno-0-472" name="__codelineno-0-472"></a>
+<a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="sd">    A threshold tested only at the grid points is crossed a step late, so a</span>
+<a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="sd">    walk watched that way behaves like a continuously watched walk whose</span>
+<a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">    threshold sits :data:`BRIDGE_CONSTANT` ``sigma sqrt(dt)`` further away. Left</span>
+<a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="sd">    uncorrected that lengthens both ends of every episode, by about a tenth at</span>
+<a id="__codelineno-0-477" name="__codelineno-0-477"></a><span class="sd">    the calibrated parameters and a step of 0.02 weeks; see the module</span>
+<a id="__codelineno-0-478" name="__codelineno-0-478"></a><span class="sd">    docstring for the measurement.</span>
+<a id="__codelineno-0-479" name="__codelineno-0-479"></a>
+<a id="__codelineno-0-480" name="__codelineno-0-480"></a><span class="sd">    The shift brings the two thresholds together and does not move them apart,</span>
+<a id="__codelineno-0-481" name="__codelineno-0-481"></a><span class="sd">    which is the direction :func:`exit_times` already moves its single level in.</span>
+<a id="__codelineno-0-482" name="__codelineno-0-482"></a><span class="sd">    Measured on 50 records of 12000 weeks at a step of 0.02 weeks on the band</span>
+<a id="__codelineno-0-483" name="__codelineno-0-483"></a><span class="sd">    calibrated potential, as the ratio of the mean complete episode to the exact</span>
+<a id="__codelineno-0-484" name="__codelineno-0-484"></a><span class="sd">    first passage time over the same band: 1.113 in health and 1.128 in no health</span>
+<a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">    with no shift, 0.988 and 1.005 with the thresholds brought together as they</span>
+<a id="__codelineno-0-486" name="__codelineno-0-486"></a><span class="sd">    are here, and 1.233 and 1.244 with them moved apart, which roughly doubles</span>
+<a id="__codelineno-0-487" name="__codelineno-0-487"></a><span class="sd">    the bias the shift is there to remove.</span>
+<a id="__codelineno-0-488" name="__codelineno-0-488"></a>
+<a id="__codelineno-0-489" name="__codelineno-0-489"></a><span class="sd">    Examples</span>
+<a id="__codelineno-0-490" name="__codelineno-0-490"></a><span class="sd">    --------</span>
+<a id="__codelineno-0-491" name="__codelineno-0-491"></a><span class="sd">    &gt;&gt;&gt; well = DoubleWell(1.0, 0.08)</span>
+<a id="__codelineno-0-492" name="__codelineno-0-492"></a><span class="sd">    &gt;&gt;&gt; to_states(np.array([-1.0, 0.0, 1.0]), well).tolist()</span>
+<a id="__codelineno-0-493" name="__codelineno-0-493"></a><span class="sd">    [-1, -1, 1]</span>
+<a id="__codelineno-0-494" name="__codelineno-0-494"></a><span class="sd">    """</span>
+<a id="__codelineno-0-495" name="__codelineno-0-495"></a>    <span class="n">rows</span> <span class="o">=</span> <span class="n">_as_rows</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">)</span>
+<a id="__codelineno-0-496" name="__codelineno-0-496"></a>    <span class="n">_check_samples_finite</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">)</span>
+<a id="__codelineno-0-497" name="__codelineno-0-497"></a>    <span class="k">return</span> <span class="n">_to_states</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">well</span><span class="p">,</span> <span class="n">band_fraction</span><span class="p">,</span> <span class="n">initial</span><span class="p">,</span> <span class="n">level_shift</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3135,15 +3158,7 @@ does not hold one complete week.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/msrelapse/simulate.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-558">558</a></span>
-<span class="normal"><a href="#__codelineno-0-559">559</a></span>
-<span class="normal"><a href="#__codelineno-0-560">560</a></span>
-<span class="normal"><a href="#__codelineno-0-561">561</a></span>
-<span class="normal"><a href="#__codelineno-0-562">562</a></span>
-<span class="normal"><a href="#__codelineno-0-563">563</a></span>
-<span class="normal"><a href="#__codelineno-0-564">564</a></span>
-<span class="normal"><a href="#__codelineno-0-565">565</a></span>
-<span class="normal"><a href="#__codelineno-0-566">566</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-566">566</a></span>
 <span class="normal"><a href="#__codelineno-0-567">567</a></span>
 <span class="normal"><a href="#__codelineno-0-568">568</a></span>
 <span class="normal"><a href="#__codelineno-0-569">569</a></span>
@@ -3199,71 +3214,79 @@ does not hold one complete week.</p>
 <span class="normal"><a href="#__codelineno-0-619">619</a></span>
 <span class="normal"><a href="#__codelineno-0-620">620</a></span>
 <span class="normal"><a href="#__codelineno-0-621">621</a></span>
-<span class="normal"><a href="#__codelineno-0-622">622</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-558" name="__codelineno-0-558"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_weekly</span><span class="p">(</span>
-<a id="__codelineno-0-559" name="__codelineno-0-559"></a>    <span class="n">states</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">],</span>
-<a id="__codelineno-0-560" name="__codelineno-0-560"></a>    <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-<a id="__codelineno-0-561" name="__codelineno-0-561"></a>    <span class="n">week</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">_WEEK</span><span class="p">,</span>
-<a id="__codelineno-0-562" name="__codelineno-0-562"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">]:</span>
-<a id="__codelineno-0-563" name="__codelineno-0-563"></a><span class="w">    </span><span class="sd">"""Downsample a state series to whole weeks under the rounding rule.</span>
-<a id="__codelineno-0-564" name="__codelineno-0-564"></a>
-<a id="__codelineno-0-565" name="__codelineno-0-565"></a><span class="sd">    Week ``k`` covers the samples whose time lies in ``[k week, (k + 1) week)``</span>
-<a id="__codelineno-0-566" name="__codelineno-0-566"></a><span class="sd">    and is a relapse week when any sample inside it is a relapse, which is the</span>
-<a id="__codelineno-0-567" name="__codelineno-0-567"></a><span class="sd">    rule the study applies to its own records: "shorter exacerbations have been</span>
-<a id="__codelineno-0-568" name="__codelineno-0-568"></a><span class="sd">    rounded up to one week". Only complete weeks are returned.</span>
-<a id="__codelineno-0-569" name="__codelineno-0-569"></a>
-<a id="__codelineno-0-570" name="__codelineno-0-570"></a><span class="sd">    Parameters</span>
-<a id="__codelineno-0-571" name="__codelineno-0-571"></a><span class="sd">    ----------</span>
-<a id="__codelineno-0-572" name="__codelineno-0-572"></a><span class="sd">    states : numpy.ndarray</span>
-<a id="__codelineno-0-573" name="__codelineno-0-573"></a><span class="sd">        One state series, of shape ``(n_records,)``, or a cohort of them, of</span>
-<a id="__codelineno-0-574" name="__codelineno-0-574"></a><span class="sd">        shape ``(n_paths, n_records)``. Sample ``j`` is taken to sit at time</span>
-<a id="__codelineno-0-575" name="__codelineno-0-575"></a><span class="sd">        ``j dt``.</span>
-<a id="__codelineno-0-576" name="__codelineno-0-576"></a><span class="sd">    dt : float</span>
-<a id="__codelineno-0-577" name="__codelineno-0-577"></a><span class="sd">        Spacing of the samples, in weeks. Must be positive.</span>
-<a id="__codelineno-0-578" name="__codelineno-0-578"></a><span class="sd">    week : float, optional</span>
-<a id="__codelineno-0-579" name="__codelineno-0-579"></a><span class="sd">        Length of a week in the same units, which the paper's weekly scale puts</span>
-<a id="__codelineno-0-580" name="__codelineno-0-580"></a><span class="sd">        at one. Must be positive.</span>
-<a id="__codelineno-0-581" name="__codelineno-0-581"></a>
-<a id="__codelineno-0-582" name="__codelineno-0-582"></a><span class="sd">    Returns</span>
-<a id="__codelineno-0-583" name="__codelineno-0-583"></a><span class="sd">    -------</span>
-<a id="__codelineno-0-584" name="__codelineno-0-584"></a><span class="sd">    numpy.ndarray</span>
-<a id="__codelineno-0-585" name="__codelineno-0-585"></a><span class="sd">        The weekly states, of dtype int64, with the last axis of length</span>
-<a id="__codelineno-0-586" name="__codelineno-0-586"></a><span class="sd">        ``floor(n_records dt / week)``.</span>
-<a id="__codelineno-0-587" name="__codelineno-0-587"></a>
-<a id="__codelineno-0-588" name="__codelineno-0-588"></a><span class="sd">    Raises</span>
-<a id="__codelineno-0-589" name="__codelineno-0-589"></a><span class="sd">    ------</span>
-<a id="__codelineno-0-590" name="__codelineno-0-590"></a><span class="sd">    ValueError</span>
-<a id="__codelineno-0-591" name="__codelineno-0-591"></a><span class="sd">        If `states` is not one or two dimensional or is empty, if `dt` or</span>
-<a id="__codelineno-0-592" name="__codelineno-0-592"></a><span class="sd">        `week` is not positive, if `dt` is longer than `week`, or if the record</span>
-<a id="__codelineno-0-593" name="__codelineno-0-593"></a><span class="sd">        does not hold one complete week.</span>
-<a id="__codelineno-0-594" name="__codelineno-0-594"></a>
-<a id="__codelineno-0-595" name="__codelineno-0-595"></a><span class="sd">    Examples</span>
-<a id="__codelineno-0-596" name="__codelineno-0-596"></a><span class="sd">    --------</span>
-<a id="__codelineno-0-597" name="__codelineno-0-597"></a><span class="sd">    &gt;&gt;&gt; steps = np.array([-1, -1, -1, -1, -1, 1, -1, -1])</span>
-<a id="__codelineno-0-598" name="__codelineno-0-598"></a><span class="sd">    &gt;&gt;&gt; to_weekly(steps, 0.25).tolist()</span>
-<a id="__codelineno-0-599" name="__codelineno-0-599"></a><span class="sd">    [-1, 1]</span>
-<a id="__codelineno-0-600" name="__codelineno-0-600"></a><span class="sd">    """</span>
-<a id="__codelineno-0-601" name="__codelineno-0-601"></a>    <span class="n">values</span> <span class="o">=</span> <span class="n">_as_rows</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="s2">"states"</span><span class="p">)</span>
-<a id="__codelineno-0-602" name="__codelineno-0-602"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="ow">or</span> <span class="n">dt</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
-<a id="__codelineno-0-603" name="__codelineno-0-603"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"dt must be a positive finite number of weeks, got </span><span class="si">{</span><span class="n">dt</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-0-604" name="__codelineno-0-604"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">week</span><span class="p">)</span> <span class="ow">or</span> <span class="n">week</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
-<a id="__codelineno-0-605" name="__codelineno-0-605"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"week must be a positive finite number of weeks, got </span><span class="si">{</span><span class="n">week</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-0-606" name="__codelineno-0-606"></a>    <span class="k">if</span> <span class="n">dt</span> <span class="o">&gt;</span> <span class="n">week</span><span class="p">:</span>
-<a id="__codelineno-0-607" name="__codelineno-0-607"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-608" name="__codelineno-0-608"></a>            <span class="sa">f</span><span class="s2">"dt=</span><span class="si">{</span><span class="n">dt</span><span class="si">!r}</span><span class="s2"> is longer than week=</span><span class="si">{</span><span class="n">week</span><span class="si">!r}</span><span class="s2">, so a week could hold no sample at all "</span>
-<a id="__codelineno-0-609" name="__codelineno-0-609"></a>            <span class="sa">f</span><span class="s2">"and its state would be unknown; downsample to a week that holds at least one "</span>
-<a id="__codelineno-0-610" name="__codelineno-0-610"></a>            <span class="sa">f</span><span class="s2">"sample"</span>
-<a id="__codelineno-0-611" name="__codelineno-0-611"></a>        <span class="p">)</span>
-<a id="__codelineno-0-612" name="__codelineno-0-612"></a>    <span class="n">n_records</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-<a id="__codelineno-0-613" name="__codelineno-0-613"></a>    <span class="n">n_weeks</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">_snap</span><span class="p">(</span><span class="n">n_records</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">/</span> <span class="n">week</span><span class="p">))</span>
-<a id="__codelineno-0-614" name="__codelineno-0-614"></a>    <span class="k">if</span> <span class="n">n_weeks</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-622">622</a></span>
+<span class="normal"><a href="#__codelineno-0-623">623</a></span>
+<span class="normal"><a href="#__codelineno-0-624">624</a></span>
+<span class="normal"><a href="#__codelineno-0-625">625</a></span>
+<span class="normal"><a href="#__codelineno-0-626">626</a></span>
+<span class="normal"><a href="#__codelineno-0-627">627</a></span>
+<span class="normal"><a href="#__codelineno-0-628">628</a></span>
+<span class="normal"><a href="#__codelineno-0-629">629</a></span>
+<span class="normal"><a href="#__codelineno-0-630">630</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-566" name="__codelineno-0-566"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_weekly</span><span class="p">(</span>
+<a id="__codelineno-0-567" name="__codelineno-0-567"></a>    <span class="n">states</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">],</span>
+<a id="__codelineno-0-568" name="__codelineno-0-568"></a>    <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<a id="__codelineno-0-569" name="__codelineno-0-569"></a>    <span class="n">week</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">_WEEK</span><span class="p">,</span>
+<a id="__codelineno-0-570" name="__codelineno-0-570"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">]:</span>
+<a id="__codelineno-0-571" name="__codelineno-0-571"></a><span class="w">    </span><span class="sd">"""Downsample a state series to whole weeks under the rounding rule.</span>
+<a id="__codelineno-0-572" name="__codelineno-0-572"></a>
+<a id="__codelineno-0-573" name="__codelineno-0-573"></a><span class="sd">    Week ``k`` covers the samples whose time lies in ``[k week, (k + 1) week)``</span>
+<a id="__codelineno-0-574" name="__codelineno-0-574"></a><span class="sd">    and is a relapse week when any sample inside it is a relapse, which is the</span>
+<a id="__codelineno-0-575" name="__codelineno-0-575"></a><span class="sd">    rule the study applies to its own records: "shorter exacerbations have been</span>
+<a id="__codelineno-0-576" name="__codelineno-0-576"></a><span class="sd">    rounded up to one week". Only complete weeks are returned.</span>
+<a id="__codelineno-0-577" name="__codelineno-0-577"></a>
+<a id="__codelineno-0-578" name="__codelineno-0-578"></a><span class="sd">    Parameters</span>
+<a id="__codelineno-0-579" name="__codelineno-0-579"></a><span class="sd">    ----------</span>
+<a id="__codelineno-0-580" name="__codelineno-0-580"></a><span class="sd">    states : numpy.ndarray</span>
+<a id="__codelineno-0-581" name="__codelineno-0-581"></a><span class="sd">        One state series, of shape ``(n_records,)``, or a cohort of them, of</span>
+<a id="__codelineno-0-582" name="__codelineno-0-582"></a><span class="sd">        shape ``(n_paths, n_records)``. Sample ``j`` is taken to sit at time</span>
+<a id="__codelineno-0-583" name="__codelineno-0-583"></a><span class="sd">        ``j dt``.</span>
+<a id="__codelineno-0-584" name="__codelineno-0-584"></a><span class="sd">    dt : float</span>
+<a id="__codelineno-0-585" name="__codelineno-0-585"></a><span class="sd">        Spacing of the samples, in weeks. Must be positive.</span>
+<a id="__codelineno-0-586" name="__codelineno-0-586"></a><span class="sd">    week : float, optional</span>
+<a id="__codelineno-0-587" name="__codelineno-0-587"></a><span class="sd">        Length of a week in the same units, which the paper's weekly scale puts</span>
+<a id="__codelineno-0-588" name="__codelineno-0-588"></a><span class="sd">        at one. Must be positive.</span>
+<a id="__codelineno-0-589" name="__codelineno-0-589"></a>
+<a id="__codelineno-0-590" name="__codelineno-0-590"></a><span class="sd">    Returns</span>
+<a id="__codelineno-0-591" name="__codelineno-0-591"></a><span class="sd">    -------</span>
+<a id="__codelineno-0-592" name="__codelineno-0-592"></a><span class="sd">    numpy.ndarray</span>
+<a id="__codelineno-0-593" name="__codelineno-0-593"></a><span class="sd">        The weekly states, of dtype int64, with the last axis of length</span>
+<a id="__codelineno-0-594" name="__codelineno-0-594"></a><span class="sd">        ``floor(n_records dt / week)``.</span>
+<a id="__codelineno-0-595" name="__codelineno-0-595"></a>
+<a id="__codelineno-0-596" name="__codelineno-0-596"></a><span class="sd">    Raises</span>
+<a id="__codelineno-0-597" name="__codelineno-0-597"></a><span class="sd">    ------</span>
+<a id="__codelineno-0-598" name="__codelineno-0-598"></a><span class="sd">    ValueError</span>
+<a id="__codelineno-0-599" name="__codelineno-0-599"></a><span class="sd">        If `states` is not one or two dimensional or is empty, if `dt` or</span>
+<a id="__codelineno-0-600" name="__codelineno-0-600"></a><span class="sd">        `week` is not positive, if `dt` is longer than `week`, or if the record</span>
+<a id="__codelineno-0-601" name="__codelineno-0-601"></a><span class="sd">        does not hold one complete week.</span>
+<a id="__codelineno-0-602" name="__codelineno-0-602"></a>
+<a id="__codelineno-0-603" name="__codelineno-0-603"></a><span class="sd">    Examples</span>
+<a id="__codelineno-0-604" name="__codelineno-0-604"></a><span class="sd">    --------</span>
+<a id="__codelineno-0-605" name="__codelineno-0-605"></a><span class="sd">    &gt;&gt;&gt; steps = np.array([-1, -1, -1, -1, -1, 1, -1, -1])</span>
+<a id="__codelineno-0-606" name="__codelineno-0-606"></a><span class="sd">    &gt;&gt;&gt; to_weekly(steps, 0.25).tolist()</span>
+<a id="__codelineno-0-607" name="__codelineno-0-607"></a><span class="sd">    [-1, 1]</span>
+<a id="__codelineno-0-608" name="__codelineno-0-608"></a><span class="sd">    """</span>
+<a id="__codelineno-0-609" name="__codelineno-0-609"></a>    <span class="n">values</span> <span class="o">=</span> <span class="n">_as_rows</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="s2">"states"</span><span class="p">)</span>
+<a id="__codelineno-0-610" name="__codelineno-0-610"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="ow">or</span> <span class="n">dt</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+<a id="__codelineno-0-611" name="__codelineno-0-611"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"dt must be a positive finite number of weeks, got </span><span class="si">{</span><span class="n">dt</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-612" name="__codelineno-0-612"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">week</span><span class="p">)</span> <span class="ow">or</span> <span class="n">week</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+<a id="__codelineno-0-613" name="__codelineno-0-613"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"week must be a positive finite number of weeks, got </span><span class="si">{</span><span class="n">week</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-614" name="__codelineno-0-614"></a>    <span class="k">if</span> <span class="n">dt</span> <span class="o">&gt;</span> <span class="n">week</span><span class="p">:</span>
 <a id="__codelineno-0-615" name="__codelineno-0-615"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-616" name="__codelineno-0-616"></a>            <span class="sa">f</span><span class="s2">"a record of </span><span class="si">{</span><span class="n">n_records</span><span class="si">}</span><span class="s2"> samples of dt=</span><span class="si">{</span><span class="n">dt</span><span class="si">!r}</span><span class="s2"> weeks spans "</span>
-<a id="__codelineno-0-617" name="__codelineno-0-617"></a>            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">n_records</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dt</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2"> weeks, which is not one complete week of </span><span class="si">{</span><span class="n">week</span><span class="si">!r}</span><span class="s2">"</span>
-<a id="__codelineno-0-618" name="__codelineno-0-618"></a>        <span class="p">)</span>
-<a id="__codelineno-0-619" name="__codelineno-0-619"></a>    <span class="n">starts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">_grid_index</span><span class="p">(</span><span class="n">index</span> <span class="o">*</span> <span class="n">week</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_weeks</span><span class="p">)])</span>
-<a id="__codelineno-0-620" name="__codelineno-0-620"></a>    <span class="n">end</span> <span class="o">=</span> <span class="n">_grid_index</span><span class="p">(</span><span class="n">n_weeks</span> <span class="o">*</span> <span class="n">week</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
-<a id="__codelineno-0-621" name="__codelineno-0-621"></a>    <span class="n">weekly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="o">.</span><span class="n">reduceat</span><span class="p">(</span><span class="n">values</span><span class="p">[:,</span> <span class="p">:</span><span class="n">end</span><span class="p">],</span> <span class="n">starts</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-<a id="__codelineno-0-622" name="__codelineno-0-622"></a>    <span class="k">return</span> <span class="n">weekly</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">states</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">n_weeks</span><span class="p">))</span>
+<a id="__codelineno-0-616" name="__codelineno-0-616"></a>            <span class="sa">f</span><span class="s2">"dt=</span><span class="si">{</span><span class="n">dt</span><span class="si">!r}</span><span class="s2"> is longer than week=</span><span class="si">{</span><span class="n">week</span><span class="si">!r}</span><span class="s2">, so a week could hold no sample at all "</span>
+<a id="__codelineno-0-617" name="__codelineno-0-617"></a>            <span class="sa">f</span><span class="s2">"and its state would be unknown; downsample to a week that holds at least one "</span>
+<a id="__codelineno-0-618" name="__codelineno-0-618"></a>            <span class="sa">f</span><span class="s2">"sample"</span>
+<a id="__codelineno-0-619" name="__codelineno-0-619"></a>        <span class="p">)</span>
+<a id="__codelineno-0-620" name="__codelineno-0-620"></a>    <span class="n">n_records</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<a id="__codelineno-0-621" name="__codelineno-0-621"></a>    <span class="n">n_weeks</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">_snap</span><span class="p">(</span><span class="n">n_records</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">/</span> <span class="n">week</span><span class="p">))</span>
+<a id="__codelineno-0-622" name="__codelineno-0-622"></a>    <span class="k">if</span> <span class="n">n_weeks</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+<a id="__codelineno-0-623" name="__codelineno-0-623"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="__codelineno-0-624" name="__codelineno-0-624"></a>            <span class="sa">f</span><span class="s2">"a record of </span><span class="si">{</span><span class="n">n_records</span><span class="si">}</span><span class="s2"> samples of dt=</span><span class="si">{</span><span class="n">dt</span><span class="si">!r}</span><span class="s2"> weeks spans "</span>
+<a id="__codelineno-0-625" name="__codelineno-0-625"></a>            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">n_records</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dt</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2"> weeks, which is not one complete week of </span><span class="si">{</span><span class="n">week</span><span class="si">!r}</span><span class="s2">"</span>
+<a id="__codelineno-0-626" name="__codelineno-0-626"></a>        <span class="p">)</span>
+<a id="__codelineno-0-627" name="__codelineno-0-627"></a>    <span class="n">starts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">_grid_index</span><span class="p">(</span><span class="n">index</span> <span class="o">*</span> <span class="n">week</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_weeks</span><span class="p">)])</span>
+<a id="__codelineno-0-628" name="__codelineno-0-628"></a>    <span class="n">end</span> <span class="o">=</span> <span class="n">_grid_index</span><span class="p">(</span><span class="n">n_weeks</span> <span class="o">*</span> <span class="n">week</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+<a id="__codelineno-0-629" name="__codelineno-0-629"></a>    <span class="n">weekly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="o">.</span><span class="n">reduceat</span><span class="p">(</span><span class="n">values</span><span class="p">[:,</span> <span class="p">:</span><span class="n">end</span><span class="p">],</span> <span class="n">starts</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-0-630" name="__codelineno-0-630"></a>    <span class="k">return</span> <span class="n">weekly</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">states</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">n_weeks</span><span class="p">))</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3396,15 +3419,7 @@ the weekly schema.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/msrelapse/simulate.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-625">625</a></span>
-<span class="normal"><a href="#__codelineno-0-626">626</a></span>
-<span class="normal"><a href="#__codelineno-0-627">627</a></span>
-<span class="normal"><a href="#__codelineno-0-628">628</a></span>
-<span class="normal"><a href="#__codelineno-0-629">629</a></span>
-<span class="normal"><a href="#__codelineno-0-630">630</a></span>
-<span class="normal"><a href="#__codelineno-0-631">631</a></span>
-<span class="normal"><a href="#__codelineno-0-632">632</a></span>
-<span class="normal"><a href="#__codelineno-0-633">633</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-633">633</a></span>
 <span class="normal"><a href="#__codelineno-0-634">634</a></span>
 <span class="normal"><a href="#__codelineno-0-635">635</a></span>
 <span class="normal"><a href="#__codelineno-0-636">636</a></span>
@@ -3430,41 +3445,49 @@ the weekly schema.</p>
 <span class="normal"><a href="#__codelineno-0-656">656</a></span>
 <span class="normal"><a href="#__codelineno-0-657">657</a></span>
 <span class="normal"><a href="#__codelineno-0-658">658</a></span>
-<span class="normal"><a href="#__codelineno-0-659">659</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-625" name="__codelineno-0-625"></a><span class="k">def</span><span class="w"> </span><span class="nf">durations</span><span class="p">(</span>
-<a id="__codelineno-0-626" name="__codelineno-0-626"></a>    <span class="n">states</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">],</span>
-<a id="__codelineno-0-627" name="__codelineno-0-627"></a>    <span class="n">patient_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-628" name="__codelineno-0-628"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-<a id="__codelineno-0-629" name="__codelineno-0-629"></a><span class="w">    </span><span class="sd">"""Run length encode a weekly record into one row per episode.</span>
-<a id="__codelineno-0-630" name="__codelineno-0-630"></a>
-<a id="__codelineno-0-631" name="__codelineno-0-631"></a><span class="sd">    Parameters</span>
-<a id="__codelineno-0-632" name="__codelineno-0-632"></a><span class="sd">    ----------</span>
-<a id="__codelineno-0-633" name="__codelineno-0-633"></a><span class="sd">    states : numpy.ndarray</span>
-<a id="__codelineno-0-634" name="__codelineno-0-634"></a><span class="sd">        Weekly states, of shape ``(n_weeks,)`` for a single patient or</span>
-<a id="__codelineno-0-635" name="__codelineno-0-635"></a><span class="sd">        ``(n_patients, n_weeks)`` for a cohort.</span>
-<a id="__codelineno-0-636" name="__codelineno-0-636"></a><span class="sd">    patient_ids : sequence of str, optional</span>
-<a id="__codelineno-0-637" name="__codelineno-0-637"></a><span class="sd">        One identifier per row, which must be distinct and in ascending order.</span>
-<a id="__codelineno-0-638" name="__codelineno-0-638"></a><span class="sd">        Defaults to p0001, p0002 and so on.</span>
-<a id="__codelineno-0-639" name="__codelineno-0-639"></a>
-<a id="__codelineno-0-640" name="__codelineno-0-640"></a><span class="sd">    Returns</span>
-<a id="__codelineno-0-641" name="__codelineno-0-641"></a><span class="sd">    -------</span>
-<a id="__codelineno-0-642" name="__codelineno-0-642"></a><span class="sd">    pandas.DataFrame</span>
-<a id="__codelineno-0-643" name="__codelineno-0-643"></a><span class="sd">        A frame in the durations schema of :mod:`msrelapse.io`, in which</span>
-<a id="__codelineno-0-644" name="__codelineno-0-644"></a><span class="sd">        ``censored`` is True only on a final remission.</span>
-<a id="__codelineno-0-645" name="__codelineno-0-645"></a>
-<a id="__codelineno-0-646" name="__codelineno-0-646"></a><span class="sd">    Raises</span>
-<a id="__codelineno-0-647" name="__codelineno-0-647"></a><span class="sd">    ------</span>
-<a id="__codelineno-0-648" name="__codelineno-0-648"></a><span class="sd">    ValueError</span>
-<a id="__codelineno-0-649" name="__codelineno-0-649"></a><span class="sd">        If `states` is not one or two dimensional or is empty, if</span>
-<a id="__codelineno-0-650" name="__codelineno-0-650"></a><span class="sd">        `patient_ids` does not have one entry per row, or if the record breaks</span>
-<a id="__codelineno-0-651" name="__codelineno-0-651"></a><span class="sd">        the weekly schema.</span>
-<a id="__codelineno-0-652" name="__codelineno-0-652"></a>
-<a id="__codelineno-0-653" name="__codelineno-0-653"></a><span class="sd">    Examples</span>
-<a id="__codelineno-0-654" name="__codelineno-0-654"></a><span class="sd">    --------</span>
-<a id="__codelineno-0-655" name="__codelineno-0-655"></a><span class="sd">    &gt;&gt;&gt; runs = durations(np.array([-1, -1, 1, -1]))</span>
-<a id="__codelineno-0-656" name="__codelineno-0-656"></a><span class="sd">    &gt;&gt;&gt; runs["duration_w"].tolist()</span>
-<a id="__codelineno-0-657" name="__codelineno-0-657"></a><span class="sd">    [2, 1, 1]</span>
-<a id="__codelineno-0-658" name="__codelineno-0-658"></a><span class="sd">    """</span>
-<a id="__codelineno-0-659" name="__codelineno-0-659"></a>    <span class="k">return</span> <span class="n">weekly_to_durations</span><span class="p">(</span><span class="n">_weekly_frame</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">patient_ids</span><span class="p">))</span>
+<span class="normal"><a href="#__codelineno-0-659">659</a></span>
+<span class="normal"><a href="#__codelineno-0-660">660</a></span>
+<span class="normal"><a href="#__codelineno-0-661">661</a></span>
+<span class="normal"><a href="#__codelineno-0-662">662</a></span>
+<span class="normal"><a href="#__codelineno-0-663">663</a></span>
+<span class="normal"><a href="#__codelineno-0-664">664</a></span>
+<span class="normal"><a href="#__codelineno-0-665">665</a></span>
+<span class="normal"><a href="#__codelineno-0-666">666</a></span>
+<span class="normal"><a href="#__codelineno-0-667">667</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-633" name="__codelineno-0-633"></a><span class="k">def</span><span class="w"> </span><span class="nf">durations</span><span class="p">(</span>
+<a id="__codelineno-0-634" name="__codelineno-0-634"></a>    <span class="n">states</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">],</span>
+<a id="__codelineno-0-635" name="__codelineno-0-635"></a>    <span class="n">patient_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-636" name="__codelineno-0-636"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<a id="__codelineno-0-637" name="__codelineno-0-637"></a><span class="w">    </span><span class="sd">"""Run length encode a weekly record into one row per episode.</span>
+<a id="__codelineno-0-638" name="__codelineno-0-638"></a>
+<a id="__codelineno-0-639" name="__codelineno-0-639"></a><span class="sd">    Parameters</span>
+<a id="__codelineno-0-640" name="__codelineno-0-640"></a><span class="sd">    ----------</span>
+<a id="__codelineno-0-641" name="__codelineno-0-641"></a><span class="sd">    states : numpy.ndarray</span>
+<a id="__codelineno-0-642" name="__codelineno-0-642"></a><span class="sd">        Weekly states, of shape ``(n_weeks,)`` for a single patient or</span>
+<a id="__codelineno-0-643" name="__codelineno-0-643"></a><span class="sd">        ``(n_patients, n_weeks)`` for a cohort.</span>
+<a id="__codelineno-0-644" name="__codelineno-0-644"></a><span class="sd">    patient_ids : sequence of str, optional</span>
+<a id="__codelineno-0-645" name="__codelineno-0-645"></a><span class="sd">        One identifier per row, which must be distinct and in ascending order.</span>
+<a id="__codelineno-0-646" name="__codelineno-0-646"></a><span class="sd">        Defaults to p0001, p0002 and so on.</span>
+<a id="__codelineno-0-647" name="__codelineno-0-647"></a>
+<a id="__codelineno-0-648" name="__codelineno-0-648"></a><span class="sd">    Returns</span>
+<a id="__codelineno-0-649" name="__codelineno-0-649"></a><span class="sd">    -------</span>
+<a id="__codelineno-0-650" name="__codelineno-0-650"></a><span class="sd">    pandas.DataFrame</span>
+<a id="__codelineno-0-651" name="__codelineno-0-651"></a><span class="sd">        A frame in the durations schema of :mod:`msrelapse.io`, in which</span>
+<a id="__codelineno-0-652" name="__codelineno-0-652"></a><span class="sd">        ``censored`` is True only on a final remission.</span>
+<a id="__codelineno-0-653" name="__codelineno-0-653"></a>
+<a id="__codelineno-0-654" name="__codelineno-0-654"></a><span class="sd">    Raises</span>
+<a id="__codelineno-0-655" name="__codelineno-0-655"></a><span class="sd">    ------</span>
+<a id="__codelineno-0-656" name="__codelineno-0-656"></a><span class="sd">    ValueError</span>
+<a id="__codelineno-0-657" name="__codelineno-0-657"></a><span class="sd">        If `states` is not one or two dimensional or is empty, if</span>
+<a id="__codelineno-0-658" name="__codelineno-0-658"></a><span class="sd">        `patient_ids` does not have one entry per row, or if the record breaks</span>
+<a id="__codelineno-0-659" name="__codelineno-0-659"></a><span class="sd">        the weekly schema.</span>
+<a id="__codelineno-0-660" name="__codelineno-0-660"></a>
+<a id="__codelineno-0-661" name="__codelineno-0-661"></a><span class="sd">    Examples</span>
+<a id="__codelineno-0-662" name="__codelineno-0-662"></a><span class="sd">    --------</span>
+<a id="__codelineno-0-663" name="__codelineno-0-663"></a><span class="sd">    &gt;&gt;&gt; runs = durations(np.array([-1, -1, 1, -1]))</span>
+<a id="__codelineno-0-664" name="__codelineno-0-664"></a><span class="sd">    &gt;&gt;&gt; runs["duration_w"].tolist()</span>
+<a id="__codelineno-0-665" name="__codelineno-0-665"></a><span class="sd">    [2, 1, 1]</span>
+<a id="__codelineno-0-666" name="__codelineno-0-666"></a><span class="sd">    """</span>
+<a id="__codelineno-0-667" name="__codelineno-0-667"></a>    <span class="k">return</span> <span class="n">weekly_to_durations</span><span class="p">(</span><span class="n">_weekly_frame</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">patient_ids</span><span class="p">))</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3818,15 +3841,7 @@ batches of patients and concatenate the frames.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/msrelapse/simulate.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-662">662</a></span>
-<span class="normal"><a href="#__codelineno-0-663">663</a></span>
-<span class="normal"><a href="#__codelineno-0-664">664</a></span>
-<span class="normal"><a href="#__codelineno-0-665">665</a></span>
-<span class="normal"><a href="#__codelineno-0-666">666</a></span>
-<span class="normal"><a href="#__codelineno-0-667">667</a></span>
-<span class="normal"><a href="#__codelineno-0-668">668</a></span>
-<span class="normal"><a href="#__codelineno-0-669">669</a></span>
-<span class="normal"><a href="#__codelineno-0-670">670</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-670">670</a></span>
 <span class="normal"><a href="#__codelineno-0-671">671</a></span>
 <span class="normal"><a href="#__codelineno-0-672">672</a></span>
 <span class="normal"><a href="#__codelineno-0-673">673</a></span>
@@ -3952,141 +3967,149 @@ batches of patients and concatenate the frames.</p>
 <span class="normal"><a href="#__codelineno-0-793">793</a></span>
 <span class="normal"><a href="#__codelineno-0-794">794</a></span>
 <span class="normal"><a href="#__codelineno-0-795">795</a></span>
-<span class="normal"><a href="#__codelineno-0-796">796</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-662" name="__codelineno-0-662"></a><span class="k">def</span><span class="w"> </span><span class="nf">simulate_weekly</span><span class="p">(</span>  <span class="c1"># noqa: PLR0917</span>
-<a id="__codelineno-0-663" name="__codelineno-0-663"></a>    <span class="n">well</span><span class="p">:</span> <span class="n">DoubleWell</span><span class="p">,</span>
-<a id="__codelineno-0-664" name="__codelineno-0-664"></a>    <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-<a id="__codelineno-0-665" name="__codelineno-0-665"></a>    <span class="n">n_weeks</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<a id="__codelineno-0-666" name="__codelineno-0-666"></a>    <span class="n">n_paths</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-0-667" name="__codelineno-0-667"></a>    <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.02</span><span class="p">,</span>
-<a id="__codelineno-0-668" name="__codelineno-0-668"></a>    <span class="n">rng</span><span class="p">:</span> <span class="n">Seed</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-669" name="__codelineno-0-669"></a>    <span class="n">band_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span>
-<a id="__codelineno-0-670" name="__codelineno-0-670"></a>    <span class="n">x0</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-671" name="__codelineno-0-671"></a>    <span class="n">patient_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-672" name="__codelineno-0-672"></a>    <span class="n">use_numba</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-673" name="__codelineno-0-673"></a>    <span class="n">bridge_correction</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-674" name="__codelineno-0-674"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-<a id="__codelineno-0-675" name="__codelineno-0-675"></a><span class="w">    </span><span class="sd">"""Simulate a cohort and return its weekly record.</span>
-<a id="__codelineno-0-676" name="__codelineno-0-676"></a>
-<a id="__codelineno-0-677" name="__codelineno-0-677"></a><span class="sd">    This is :func:`simulate_paths`, :func:`to_states` and :func:`to_weekly` in</span>
-<a id="__codelineno-0-678" name="__codelineno-0-678"></a><span class="sd">    a row, and it is the entry point a cohort engine calls.</span>
-<a id="__codelineno-0-679" name="__codelineno-0-679"></a>
-<a id="__codelineno-0-680" name="__codelineno-0-680"></a><span class="sd">    Parameters</span>
-<a id="__codelineno-0-681" name="__codelineno-0-681"></a><span class="sd">    ----------</span>
-<a id="__codelineno-0-682" name="__codelineno-0-682"></a><span class="sd">    well : DoubleWell</span>
-<a id="__codelineno-0-683" name="__codelineno-0-683"></a><span class="sd">        The potential. Calibrating it with ``passage='band'`` and the same</span>
-<a id="__codelineno-0-684" name="__codelineno-0-684"></a><span class="sd">        `band_fraction` brings the simulated episode durations towards the</span>
-<a id="__codelineno-0-685" name="__codelineno-0-685"></a><span class="sd">        calibration targets, the more closely the shorter `dt` is; see Notes.</span>
-<a id="__codelineno-0-686" name="__codelineno-0-686"></a><span class="sd">    sigma : float</span>
-<a id="__codelineno-0-687" name="__codelineno-0-687"></a><span class="sd">        Noise amplitude, the square root of the paper's variance epsilon.</span>
-<a id="__codelineno-0-688" name="__codelineno-0-688"></a><span class="sd">    n_weeks : int</span>
-<a id="__codelineno-0-689" name="__codelineno-0-689"></a><span class="sd">        Length of the record, in whole weeks. Must be at least one.</span>
-<a id="__codelineno-0-690" name="__codelineno-0-690"></a><span class="sd">    n_paths : int, optional</span>
-<a id="__codelineno-0-691" name="__codelineno-0-691"></a><span class="sd">        Number of patients. Must be at least one.</span>
-<a id="__codelineno-0-692" name="__codelineno-0-692"></a><span class="sd">    dt : float, optional</span>
-<a id="__codelineno-0-693" name="__codelineno-0-693"></a><span class="sd">        Time step, in weeks.</span>
-<a id="__codelineno-0-694" name="__codelineno-0-694"></a><span class="sd">    rng : numpy.random.Generator or int or None, optional</span>
-<a id="__codelineno-0-695" name="__codelineno-0-695"></a><span class="sd">        Generator to draw the normal increments from, or a seed for</span>
-<a id="__codelineno-0-696" name="__codelineno-0-696"></a><span class="sd">        :func:`numpy.random.default_rng`.</span>
-<a id="__codelineno-0-697" name="__codelineno-0-697"></a><span class="sd">    band_fraction : float, optional</span>
-<a id="__codelineno-0-698" name="__codelineno-0-698"></a><span class="sd">        Position of the two hysteresis thresholds.</span>
-<a id="__codelineno-0-699" name="__codelineno-0-699"></a><span class="sd">    x0 : float or numpy.ndarray, optional</span>
-<a id="__codelineno-0-700" name="__codelineno-0-700"></a><span class="sd">        Starting position of each path. Defaults to the bottom of the health</span>
-<a id="__codelineno-0-701" name="__codelineno-0-701"></a><span class="sd">        well, so every patient starts in remission.</span>
-<a id="__codelineno-0-702" name="__codelineno-0-702"></a><span class="sd">    patient_ids : sequence of str, optional</span>
-<a id="__codelineno-0-703" name="__codelineno-0-703"></a><span class="sd">        One identifier per patient. Defaults to p0001, p0002 and so on.</span>
-<a id="__codelineno-0-704" name="__codelineno-0-704"></a><span class="sd">    use_numba : bool or None, optional</span>
-<a id="__codelineno-0-705" name="__codelineno-0-705"></a><span class="sd">        Whether to run the compiled integration kernel. The default uses it</span>
-<a id="__codelineno-0-706" name="__codelineno-0-706"></a><span class="sd">        when numba is importable. The hysteresis kernel of :func:`to_states` is</span>
-<a id="__codelineno-0-707" name="__codelineno-0-707"></a><span class="sd">        always the compiled one when numba is importable, because</span>
-<a id="__codelineno-0-708" name="__codelineno-0-708"></a><span class="sd">        :func:`to_states` takes no such argument.</span>
-<a id="__codelineno-0-709" name="__codelineno-0-709"></a><span class="sd">    bridge_correction : bool, optional</span>
-<a id="__codelineno-0-710" name="__codelineno-0-710"></a><span class="sd">        Whether to hand :func:`to_states` the Brownian bridge shift</span>
-<a id="__codelineno-0-711" name="__codelineno-0-711"></a><span class="sd">        :data:`BRIDGE_CONSTANT` ``sigma sqrt(dt)`` computed from this call's own</span>
-<a id="__codelineno-0-712" name="__codelineno-0-712"></a><span class="sd">        `sigma` and `dt`, which removes the ``sqrt(dt)`` bias of a crossing</span>
-<a id="__codelineno-0-713" name="__codelineno-0-713"></a><span class="sd">        tested only at the grid points. On by default; see Notes for what it is</span>
-<a id="__codelineno-0-714" name="__codelineno-0-714"></a><span class="sd">        worth and for what it does not cover.</span>
-<a id="__codelineno-0-715" name="__codelineno-0-715"></a>
-<a id="__codelineno-0-716" name="__codelineno-0-716"></a><span class="sd">    Returns</span>
-<a id="__codelineno-0-717" name="__codelineno-0-717"></a><span class="sd">    -------</span>
-<a id="__codelineno-0-718" name="__codelineno-0-718"></a><span class="sd">    pandas.DataFrame</span>
-<a id="__codelineno-0-719" name="__codelineno-0-719"></a><span class="sd">        A frame in the weekly schema of :mod:`msrelapse.io`, holding `n_weeks`</span>
-<a id="__codelineno-0-720" name="__codelineno-0-720"></a><span class="sd">        rows per patient.</span>
-<a id="__codelineno-0-721" name="__codelineno-0-721"></a>
-<a id="__codelineno-0-722" name="__codelineno-0-722"></a><span class="sd">    Raises</span>
-<a id="__codelineno-0-723" name="__codelineno-0-723"></a><span class="sd">    ------</span>
-<a id="__codelineno-0-724" name="__codelineno-0-724"></a><span class="sd">    ValueError</span>
-<a id="__codelineno-0-725" name="__codelineno-0-725"></a><span class="sd">        If `n_weeks` is below one, if any argument of :func:`simulate_paths` is</span>
-<a id="__codelineno-0-726" name="__codelineno-0-726"></a><span class="sd">        out of range, if `patient_ids` does not have one entry per patient, or</span>
-<a id="__codelineno-0-727" name="__codelineno-0-727"></a><span class="sd">        if the bridge correction is wide enough to close the hysteresis band.</span>
-<a id="__codelineno-0-728" name="__codelineno-0-728"></a>
-<a id="__codelineno-0-729" name="__codelineno-0-729"></a><span class="sd">    Notes</span>
-<a id="__codelineno-0-730" name="__codelineno-0-730"></a><span class="sd">    -----</span>
-<a id="__codelineno-0-731" name="__codelineno-0-731"></a><span class="sd">    Two effects stand between a band calibrated potential and the weekly record</span>
-<a id="__codelineno-0-732" name="__codelineno-0-732"></a><span class="sd">    this returns, and a caller correcting the record back to the calibration</span>
-<a id="__codelineno-0-733" name="__codelineno-0-733"></a><span class="sd">    targets has to allow for both.</span>
-<a id="__codelineno-0-734" name="__codelineno-0-734"></a>
-<a id="__codelineno-0-735" name="__codelineno-0-735"></a><span class="sd">    The rounding rule of :func:`to_weekly` lengthens every relapse: a relapse</span>
-<a id="__codelineno-0-736" name="__codelineno-0-736"></a><span class="sd">    of continuous length L is marked in every week it touches and so occupies</span>
-<a id="__codelineno-0-737" name="__codelineno-0-737"></a><span class="sd">    L + 1 whole weeks on average, and the remissions around it lose that week.</span>
-<a id="__codelineno-0-738" name="__codelineno-0-738"></a><span class="sd">    A weekly record therefore reports a relapse burden shifted by about a week</span>
-<a id="__codelineno-0-739" name="__codelineno-0-739"></a><span class="sd">    per relapse from the continuous durations the potential was calibrated to.</span>
-<a id="__codelineno-0-740" name="__codelineno-0-740"></a>
-<a id="__codelineno-0-741" name="__codelineno-0-741"></a><span class="sd">    Two relapses separated by less than a week fall in the same week and merge</span>
-<a id="__codelineno-0-742" name="__codelineno-0-742"></a><span class="sd">    into a single weekly episode, which is why a weekly record holds fewer and</span>
-<a id="__codelineno-0-743" name="__codelineno-0-743"></a><span class="sd">    longer episodes than the path it came from. The hysteresis band removes the</span>
-<a id="__codelineno-0-744" name="__codelineno-0-744"></a><span class="sd">    chatter of a path wobbling across the barrier top, but it cannot remove a</span>
-<a id="__codelineno-0-745" name="__codelineno-0-745"></a><span class="sd">    genuine short return to health. On the potential</span>
-<a id="__codelineno-0-746" name="__codelineno-0-746"></a><span class="sd">    :func:`msrelapse.model.calibrate` returns for 100 and 4.3 weeks with</span>
-<a id="__codelineno-0-747" name="__codelineno-0-747"></a><span class="sd">    ``passage='band'`` and a band fraction of 0.3, the default here, about one</span>
-<a id="__codelineno-0-748" name="__codelineno-0-748"></a><span class="sd">    remission in six is shorter than a week: measured over 20 paths of 20000</span>
-<a id="__codelineno-0-749" name="__codelineno-0-749"></a><span class="sd">    weeks at a step of 0.02 weeks and the three seeds 3, 7 and 11, one in 6.1 to</span>
-<a id="__codelineno-0-750" name="__codelineno-0-750"></a><span class="sd">    6.6 of the complete remissions of the path. A wider band leaves fewer of</span>
-<a id="__codelineno-0-751" name="__codelineno-0-751"></a><span class="sd">    them, which is why :class:`msrelapse.cohort.CohortSpec` widens it; the table</span>
-<a id="__codelineno-0-752" name="__codelineno-0-752"></a><span class="sd">    is in the Notes of that class. The mean weekly episode duration is inflated</span>
-<a id="__codelineno-0-753" name="__codelineno-0-753"></a><span class="sd">    by that merging while the weekly relapse burden is not, so a caller</span>
-<a id="__codelineno-0-754" name="__codelineno-0-754"></a><span class="sd">    comparing durations with the paper should compare burdens rather than per</span>
-<a id="__codelineno-0-755" name="__codelineno-0-755"></a><span class="sd">    episode means.</span>
-<a id="__codelineno-0-756" name="__codelineno-0-756"></a>
-<a id="__codelineno-0-757" name="__codelineno-0-757"></a><span class="sd">    A third effect used to sit beside them and no longer does. Read on the</span>
-<a id="__codelineno-0-758" name="__codelineno-0-758"></a><span class="sd">    integration grid alone the two band thresholds are crossed a step late, and</span>
-<a id="__codelineno-0-759" name="__codelineno-0-759"></a><span class="sd">    at the default step of 0.02 weeks that put the mean episode of the path</span>
-<a id="__codelineno-0-760" name="__codelineno-0-760"></a><span class="sd">    about 13 percent above its target on the relapse side and about 11 percent</span>
-<a id="__codelineno-0-761" name="__codelineno-0-761"></a><span class="sd">    above it on the health side. `bridge_correction` removes it before the</span>
-<a id="__codelineno-0-762" name="__codelineno-0-762"></a><span class="sd">    rounding rule is applied. Turning it off restores the older behaviour, for</span>
-<a id="__codelineno-0-763" name="__codelineno-0-763"></a><span class="sd">    a caller comparing with a record made before the correction existed.</span>
+<span class="normal"><a href="#__codelineno-0-796">796</a></span>
+<span class="normal"><a href="#__codelineno-0-797">797</a></span>
+<span class="normal"><a href="#__codelineno-0-798">798</a></span>
+<span class="normal"><a href="#__codelineno-0-799">799</a></span>
+<span class="normal"><a href="#__codelineno-0-800">800</a></span>
+<span class="normal"><a href="#__codelineno-0-801">801</a></span>
+<span class="normal"><a href="#__codelineno-0-802">802</a></span>
+<span class="normal"><a href="#__codelineno-0-803">803</a></span>
+<span class="normal"><a href="#__codelineno-0-804">804</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-670" name="__codelineno-0-670"></a><span class="k">def</span><span class="w"> </span><span class="nf">simulate_weekly</span><span class="p">(</span>  <span class="c1"># noqa: PLR0917</span>
+<a id="__codelineno-0-671" name="__codelineno-0-671"></a>    <span class="n">well</span><span class="p">:</span> <span class="n">DoubleWell</span><span class="p">,</span>
+<a id="__codelineno-0-672" name="__codelineno-0-672"></a>    <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<a id="__codelineno-0-673" name="__codelineno-0-673"></a>    <span class="n">n_weeks</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<a id="__codelineno-0-674" name="__codelineno-0-674"></a>    <span class="n">n_paths</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-0-675" name="__codelineno-0-675"></a>    <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.02</span><span class="p">,</span>
+<a id="__codelineno-0-676" name="__codelineno-0-676"></a>    <span class="n">rng</span><span class="p">:</span> <span class="n">Seed</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-677" name="__codelineno-0-677"></a>    <span class="n">band_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span>
+<a id="__codelineno-0-678" name="__codelineno-0-678"></a>    <span class="n">x0</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-679" name="__codelineno-0-679"></a>    <span class="n">patient_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-680" name="__codelineno-0-680"></a>    <span class="n">use_numba</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-681" name="__codelineno-0-681"></a>    <span class="n">bridge_correction</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-0-682" name="__codelineno-0-682"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<a id="__codelineno-0-683" name="__codelineno-0-683"></a><span class="w">    </span><span class="sd">"""Simulate a cohort and return its weekly record.</span>
+<a id="__codelineno-0-684" name="__codelineno-0-684"></a>
+<a id="__codelineno-0-685" name="__codelineno-0-685"></a><span class="sd">    This is :func:`simulate_paths`, :func:`to_states` and :func:`to_weekly` in</span>
+<a id="__codelineno-0-686" name="__codelineno-0-686"></a><span class="sd">    a row, and it is the entry point a cohort engine calls.</span>
+<a id="__codelineno-0-687" name="__codelineno-0-687"></a>
+<a id="__codelineno-0-688" name="__codelineno-0-688"></a><span class="sd">    Parameters</span>
+<a id="__codelineno-0-689" name="__codelineno-0-689"></a><span class="sd">    ----------</span>
+<a id="__codelineno-0-690" name="__codelineno-0-690"></a><span class="sd">    well : DoubleWell</span>
+<a id="__codelineno-0-691" name="__codelineno-0-691"></a><span class="sd">        The potential. Calibrating it with ``passage='band'`` and the same</span>
+<a id="__codelineno-0-692" name="__codelineno-0-692"></a><span class="sd">        `band_fraction` brings the simulated episode durations towards the</span>
+<a id="__codelineno-0-693" name="__codelineno-0-693"></a><span class="sd">        calibration targets, the more closely the shorter `dt` is; see Notes.</span>
+<a id="__codelineno-0-694" name="__codelineno-0-694"></a><span class="sd">    sigma : float</span>
+<a id="__codelineno-0-695" name="__codelineno-0-695"></a><span class="sd">        Noise amplitude, the square root of the paper's variance epsilon.</span>
+<a id="__codelineno-0-696" name="__codelineno-0-696"></a><span class="sd">    n_weeks : int</span>
+<a id="__codelineno-0-697" name="__codelineno-0-697"></a><span class="sd">        Length of the record, in whole weeks. Must be at least one.</span>
+<a id="__codelineno-0-698" name="__codelineno-0-698"></a><span class="sd">    n_paths : int, optional</span>
+<a id="__codelineno-0-699" name="__codelineno-0-699"></a><span class="sd">        Number of patients. Must be at least one.</span>
+<a id="__codelineno-0-700" name="__codelineno-0-700"></a><span class="sd">    dt : float, optional</span>
+<a id="__codelineno-0-701" name="__codelineno-0-701"></a><span class="sd">        Time step, in weeks.</span>
+<a id="__codelineno-0-702" name="__codelineno-0-702"></a><span class="sd">    rng : numpy.random.Generator or int or None, optional</span>
+<a id="__codelineno-0-703" name="__codelineno-0-703"></a><span class="sd">        Generator to draw the normal increments from, or a seed for</span>
+<a id="__codelineno-0-704" name="__codelineno-0-704"></a><span class="sd">        :func:`numpy.random.default_rng`.</span>
+<a id="__codelineno-0-705" name="__codelineno-0-705"></a><span class="sd">    band_fraction : float, optional</span>
+<a id="__codelineno-0-706" name="__codelineno-0-706"></a><span class="sd">        Position of the two hysteresis thresholds.</span>
+<a id="__codelineno-0-707" name="__codelineno-0-707"></a><span class="sd">    x0 : float or numpy.ndarray, optional</span>
+<a id="__codelineno-0-708" name="__codelineno-0-708"></a><span class="sd">        Starting position of each path. Defaults to the bottom of the health</span>
+<a id="__codelineno-0-709" name="__codelineno-0-709"></a><span class="sd">        well, so every patient starts in remission.</span>
+<a id="__codelineno-0-710" name="__codelineno-0-710"></a><span class="sd">    patient_ids : sequence of str, optional</span>
+<a id="__codelineno-0-711" name="__codelineno-0-711"></a><span class="sd">        One identifier per patient. Defaults to p0001, p0002 and so on.</span>
+<a id="__codelineno-0-712" name="__codelineno-0-712"></a><span class="sd">    use_numba : bool or None, optional</span>
+<a id="__codelineno-0-713" name="__codelineno-0-713"></a><span class="sd">        Whether to run the compiled integration kernel. The default uses it</span>
+<a id="__codelineno-0-714" name="__codelineno-0-714"></a><span class="sd">        when numba is importable. The hysteresis kernel of :func:`to_states` is</span>
+<a id="__codelineno-0-715" name="__codelineno-0-715"></a><span class="sd">        always the compiled one when numba is importable, because</span>
+<a id="__codelineno-0-716" name="__codelineno-0-716"></a><span class="sd">        :func:`to_states` takes no such argument.</span>
+<a id="__codelineno-0-717" name="__codelineno-0-717"></a><span class="sd">    bridge_correction : bool, optional</span>
+<a id="__codelineno-0-718" name="__codelineno-0-718"></a><span class="sd">        Whether to hand :func:`to_states` the Brownian bridge shift</span>
+<a id="__codelineno-0-719" name="__codelineno-0-719"></a><span class="sd">        :data:`BRIDGE_CONSTANT` ``sigma sqrt(dt)`` computed from this call's own</span>
+<a id="__codelineno-0-720" name="__codelineno-0-720"></a><span class="sd">        `sigma` and `dt`, which removes the ``sqrt(dt)`` bias of a crossing</span>
+<a id="__codelineno-0-721" name="__codelineno-0-721"></a><span class="sd">        tested only at the grid points. On by default; see Notes for what it is</span>
+<a id="__codelineno-0-722" name="__codelineno-0-722"></a><span class="sd">        worth and for what it does not cover.</span>
+<a id="__codelineno-0-723" name="__codelineno-0-723"></a>
+<a id="__codelineno-0-724" name="__codelineno-0-724"></a><span class="sd">    Returns</span>
+<a id="__codelineno-0-725" name="__codelineno-0-725"></a><span class="sd">    -------</span>
+<a id="__codelineno-0-726" name="__codelineno-0-726"></a><span class="sd">    pandas.DataFrame</span>
+<a id="__codelineno-0-727" name="__codelineno-0-727"></a><span class="sd">        A frame in the weekly schema of :mod:`msrelapse.io`, holding `n_weeks`</span>
+<a id="__codelineno-0-728" name="__codelineno-0-728"></a><span class="sd">        rows per patient.</span>
+<a id="__codelineno-0-729" name="__codelineno-0-729"></a>
+<a id="__codelineno-0-730" name="__codelineno-0-730"></a><span class="sd">    Raises</span>
+<a id="__codelineno-0-731" name="__codelineno-0-731"></a><span class="sd">    ------</span>
+<a id="__codelineno-0-732" name="__codelineno-0-732"></a><span class="sd">    ValueError</span>
+<a id="__codelineno-0-733" name="__codelineno-0-733"></a><span class="sd">        If `n_weeks` is below one, if any argument of :func:`simulate_paths` is</span>
+<a id="__codelineno-0-734" name="__codelineno-0-734"></a><span class="sd">        out of range, if `patient_ids` does not have one entry per patient, or</span>
+<a id="__codelineno-0-735" name="__codelineno-0-735"></a><span class="sd">        if the bridge correction is wide enough to close the hysteresis band.</span>
+<a id="__codelineno-0-736" name="__codelineno-0-736"></a>
+<a id="__codelineno-0-737" name="__codelineno-0-737"></a><span class="sd">    Notes</span>
+<a id="__codelineno-0-738" name="__codelineno-0-738"></a><span class="sd">    -----</span>
+<a id="__codelineno-0-739" name="__codelineno-0-739"></a><span class="sd">    Two effects stand between a band calibrated potential and the weekly record</span>
+<a id="__codelineno-0-740" name="__codelineno-0-740"></a><span class="sd">    this returns, and a caller correcting the record back to the calibration</span>
+<a id="__codelineno-0-741" name="__codelineno-0-741"></a><span class="sd">    targets has to allow for both.</span>
+<a id="__codelineno-0-742" name="__codelineno-0-742"></a>
+<a id="__codelineno-0-743" name="__codelineno-0-743"></a><span class="sd">    The rounding rule of :func:`to_weekly` lengthens every relapse: a relapse</span>
+<a id="__codelineno-0-744" name="__codelineno-0-744"></a><span class="sd">    of continuous length L is marked in every week it touches and so occupies</span>
+<a id="__codelineno-0-745" name="__codelineno-0-745"></a><span class="sd">    L + 1 whole weeks on average, and the remissions around it lose that week.</span>
+<a id="__codelineno-0-746" name="__codelineno-0-746"></a><span class="sd">    A weekly record therefore reports a relapse burden shifted by about a week</span>
+<a id="__codelineno-0-747" name="__codelineno-0-747"></a><span class="sd">    per relapse from the continuous durations the potential was calibrated to.</span>
+<a id="__codelineno-0-748" name="__codelineno-0-748"></a>
+<a id="__codelineno-0-749" name="__codelineno-0-749"></a><span class="sd">    Two relapses separated by less than a week fall in the same week and merge</span>
+<a id="__codelineno-0-750" name="__codelineno-0-750"></a><span class="sd">    into a single weekly episode, which is why a weekly record holds fewer and</span>
+<a id="__codelineno-0-751" name="__codelineno-0-751"></a><span class="sd">    longer episodes than the path it came from. The hysteresis band removes the</span>
+<a id="__codelineno-0-752" name="__codelineno-0-752"></a><span class="sd">    chatter of a path wobbling across the barrier top, but it cannot remove a</span>
+<a id="__codelineno-0-753" name="__codelineno-0-753"></a><span class="sd">    genuine short return to health. On the potential</span>
+<a id="__codelineno-0-754" name="__codelineno-0-754"></a><span class="sd">    :func:`msrelapse.model.calibrate` returns for 100 and 4.3 weeks with</span>
+<a id="__codelineno-0-755" name="__codelineno-0-755"></a><span class="sd">    ``passage='band'`` and a band fraction of 0.3, the default here, about one</span>
+<a id="__codelineno-0-756" name="__codelineno-0-756"></a><span class="sd">    remission in six is shorter than a week: measured over 20 paths of 20000</span>
+<a id="__codelineno-0-757" name="__codelineno-0-757"></a><span class="sd">    weeks at a step of 0.02 weeks and the three seeds 3, 7 and 11, one in 6.1 to</span>
+<a id="__codelineno-0-758" name="__codelineno-0-758"></a><span class="sd">    6.6 of the complete remissions of the path. A wider band leaves fewer of</span>
+<a id="__codelineno-0-759" name="__codelineno-0-759"></a><span class="sd">    them, which is why :class:`msrelapse.cohort.CohortSpec` widens it; the table</span>
+<a id="__codelineno-0-760" name="__codelineno-0-760"></a><span class="sd">    is in the Notes of that class. The mean weekly episode duration is inflated</span>
+<a id="__codelineno-0-761" name="__codelineno-0-761"></a><span class="sd">    by that merging while the weekly relapse burden is not, so a caller</span>
+<a id="__codelineno-0-762" name="__codelineno-0-762"></a><span class="sd">    comparing durations with the paper should compare burdens rather than per</span>
+<a id="__codelineno-0-763" name="__codelineno-0-763"></a><span class="sd">    episode means.</span>
 <a id="__codelineno-0-764" name="__codelineno-0-764"></a>
-<a id="__codelineno-0-765" name="__codelineno-0-765"></a><span class="sd">    The whole integration grid is held in memory for the whole cohort, twice</span>
-<a id="__codelineno-0-766" name="__codelineno-0-766"></a><span class="sd">    over: ``n_paths * n_weeks / dt`` samples as float64 and the same count again</span>
-<a id="__codelineno-0-767" name="__codelineno-0-767"></a><span class="sd">    as int64. A hundred patients over 1500 weeks at a step of 0.02 weeks peaked</span>
-<a id="__codelineno-0-768" name="__codelineno-0-768"></a><span class="sd">    at about 150 MB, and the cost grows linearly in every one of the three, so a</span>
-<a id="__codelineno-0-769" name="__codelineno-0-769"></a><span class="sd">    cohort of a thousand patients of that length needs about 1.5 GB. The</span>
-<a id="__codelineno-0-770" name="__codelineno-0-770"></a><span class="sd">    `record_every` argument of :func:`simulate_paths` is no way out, because the</span>
-<a id="__codelineno-0-771" name="__codelineno-0-771"></a><span class="sd">    rounding rule needs every sub-week sample. Split a larger cohort into</span>
-<a id="__codelineno-0-772" name="__codelineno-0-772"></a><span class="sd">    batches of patients and concatenate the frames.</span>
-<a id="__codelineno-0-773" name="__codelineno-0-773"></a>
-<a id="__codelineno-0-774" name="__codelineno-0-774"></a><span class="sd">    Examples</span>
-<a id="__codelineno-0-775" name="__codelineno-0-775"></a><span class="sd">    --------</span>
-<a id="__codelineno-0-776" name="__codelineno-0-776"></a><span class="sd">    &gt;&gt;&gt; frame = simulate_weekly(DoubleWell(1.0, 0.08), 0.36, 5, n_paths=2, rng=0)</span>
-<a id="__codelineno-0-777" name="__codelineno-0-777"></a><span class="sd">    &gt;&gt;&gt; frame["week"].tolist()</span>
-<a id="__codelineno-0-778" name="__codelineno-0-778"></a><span class="sd">    [0, 1, 2, 3, 4, 0, 1, 2, 3, 4]</span>
-<a id="__codelineno-0-779" name="__codelineno-0-779"></a><span class="sd">    """</span>
-<a id="__codelineno-0-780" name="__codelineno-0-780"></a>    <span class="k">if</span> <span class="n">n_weeks</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-<a id="__codelineno-0-781" name="__codelineno-0-781"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"n_weeks must be at least 1, got </span><span class="si">{</span><span class="n">n_weeks</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-0-782" name="__codelineno-0-782"></a>    <span class="n">paths</span> <span class="o">=</span> <span class="n">simulate_paths</span><span class="p">(</span>
-<a id="__codelineno-0-783" name="__codelineno-0-783"></a>        <span class="n">well</span><span class="p">,</span>
-<a id="__codelineno-0-784" name="__codelineno-0-784"></a>        <span class="n">sigma</span><span class="p">,</span>
-<a id="__codelineno-0-785" name="__codelineno-0-785"></a>        <span class="nb">float</span><span class="p">(</span><span class="n">n_weeks</span><span class="p">)</span> <span class="o">*</span> <span class="n">_WEEK</span><span class="p">,</span>
-<a id="__codelineno-0-786" name="__codelineno-0-786"></a>        <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span>
-<a id="__codelineno-0-787" name="__codelineno-0-787"></a>        <span class="n">n_paths</span><span class="o">=</span><span class="n">n_paths</span><span class="p">,</span>
-<a id="__codelineno-0-788" name="__codelineno-0-788"></a>        <span class="n">x0</span><span class="o">=</span><span class="n">x0</span><span class="p">,</span>
-<a id="__codelineno-0-789" name="__codelineno-0-789"></a>        <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
-<a id="__codelineno-0-790" name="__codelineno-0-790"></a>        <span class="n">use_numba</span><span class="o">=</span><span class="n">use_numba</span><span class="p">,</span>
-<a id="__codelineno-0-791" name="__codelineno-0-791"></a>    <span class="p">)</span>
-<a id="__codelineno-0-792" name="__codelineno-0-792"></a>    <span class="n">level_shift</span> <span class="o">=</span> <span class="n">BRIDGE_CONSTANT</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="k">if</span> <span class="n">bridge_correction</span> <span class="k">else</span> <span class="mf">0.0</span>
-<a id="__codelineno-0-793" name="__codelineno-0-793"></a>    <span class="c1"># The private mapping, because simulate_paths has just scanned these samples</span>
-<a id="__codelineno-0-794" name="__codelineno-0-794"></a>    <span class="c1"># for a value that is not finite and the public one would scan them again.</span>
-<a id="__codelineno-0-795" name="__codelineno-0-795"></a>    <span class="n">states</span> <span class="o">=</span> <span class="n">_to_states</span><span class="p">(</span><span class="n">_as_rows</span><span class="p">(</span><span class="n">paths</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">),</span> <span class="n">well</span><span class="p">,</span> <span class="n">band_fraction</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">level_shift</span><span class="p">)</span>
-<a id="__codelineno-0-796" name="__codelineno-0-796"></a>    <span class="k">return</span> <span class="n">_weekly_frame</span><span class="p">(</span><span class="n">to_weekly</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">dt</span><span class="p">),</span> <span class="n">patient_ids</span><span class="p">)</span>
+<a id="__codelineno-0-765" name="__codelineno-0-765"></a><span class="sd">    A third effect used to sit beside them and no longer does. Read on the</span>
+<a id="__codelineno-0-766" name="__codelineno-0-766"></a><span class="sd">    integration grid alone the two band thresholds are crossed a step late, and</span>
+<a id="__codelineno-0-767" name="__codelineno-0-767"></a><span class="sd">    at the default step of 0.02 weeks that put the mean episode of the path</span>
+<a id="__codelineno-0-768" name="__codelineno-0-768"></a><span class="sd">    about 13 percent above its target on the relapse side and about 11 percent</span>
+<a id="__codelineno-0-769" name="__codelineno-0-769"></a><span class="sd">    above it on the health side. `bridge_correction` removes it before the</span>
+<a id="__codelineno-0-770" name="__codelineno-0-770"></a><span class="sd">    rounding rule is applied. Turning it off restores the older behaviour, for</span>
+<a id="__codelineno-0-771" name="__codelineno-0-771"></a><span class="sd">    a caller comparing with a record made before the correction existed.</span>
+<a id="__codelineno-0-772" name="__codelineno-0-772"></a>
+<a id="__codelineno-0-773" name="__codelineno-0-773"></a><span class="sd">    The whole integration grid is held in memory for the whole cohort, twice</span>
+<a id="__codelineno-0-774" name="__codelineno-0-774"></a><span class="sd">    over: ``n_paths * n_weeks / dt`` samples as float64 and the same count again</span>
+<a id="__codelineno-0-775" name="__codelineno-0-775"></a><span class="sd">    as int64. A hundred patients over 1500 weeks at a step of 0.02 weeks peaked</span>
+<a id="__codelineno-0-776" name="__codelineno-0-776"></a><span class="sd">    at about 150 MB, and the cost grows linearly in every one of the three, so a</span>
+<a id="__codelineno-0-777" name="__codelineno-0-777"></a><span class="sd">    cohort of a thousand patients of that length needs about 1.5 GB. The</span>
+<a id="__codelineno-0-778" name="__codelineno-0-778"></a><span class="sd">    `record_every` argument of :func:`simulate_paths` is no way out, because the</span>
+<a id="__codelineno-0-779" name="__codelineno-0-779"></a><span class="sd">    rounding rule needs every sub-week sample. Split a larger cohort into</span>
+<a id="__codelineno-0-780" name="__codelineno-0-780"></a><span class="sd">    batches of patients and concatenate the frames.</span>
+<a id="__codelineno-0-781" name="__codelineno-0-781"></a>
+<a id="__codelineno-0-782" name="__codelineno-0-782"></a><span class="sd">    Examples</span>
+<a id="__codelineno-0-783" name="__codelineno-0-783"></a><span class="sd">    --------</span>
+<a id="__codelineno-0-784" name="__codelineno-0-784"></a><span class="sd">    &gt;&gt;&gt; frame = simulate_weekly(DoubleWell(1.0, 0.08), 0.36, 5, n_paths=2, rng=0)</span>
+<a id="__codelineno-0-785" name="__codelineno-0-785"></a><span class="sd">    &gt;&gt;&gt; frame["week"].tolist()</span>
+<a id="__codelineno-0-786" name="__codelineno-0-786"></a><span class="sd">    [0, 1, 2, 3, 4, 0, 1, 2, 3, 4]</span>
+<a id="__codelineno-0-787" name="__codelineno-0-787"></a><span class="sd">    """</span>
+<a id="__codelineno-0-788" name="__codelineno-0-788"></a>    <span class="k">if</span> <span class="n">n_weeks</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+<a id="__codelineno-0-789" name="__codelineno-0-789"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"n_weeks must be at least 1, got </span><span class="si">{</span><span class="n">n_weeks</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-790" name="__codelineno-0-790"></a>    <span class="n">paths</span> <span class="o">=</span> <span class="n">simulate_paths</span><span class="p">(</span>
+<a id="__codelineno-0-791" name="__codelineno-0-791"></a>        <span class="n">well</span><span class="p">,</span>
+<a id="__codelineno-0-792" name="__codelineno-0-792"></a>        <span class="n">sigma</span><span class="p">,</span>
+<a id="__codelineno-0-793" name="__codelineno-0-793"></a>        <span class="nb">float</span><span class="p">(</span><span class="n">n_weeks</span><span class="p">)</span> <span class="o">*</span> <span class="n">_WEEK</span><span class="p">,</span>
+<a id="__codelineno-0-794" name="__codelineno-0-794"></a>        <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span>
+<a id="__codelineno-0-795" name="__codelineno-0-795"></a>        <span class="n">n_paths</span><span class="o">=</span><span class="n">n_paths</span><span class="p">,</span>
+<a id="__codelineno-0-796" name="__codelineno-0-796"></a>        <span class="n">x0</span><span class="o">=</span><span class="n">x0</span><span class="p">,</span>
+<a id="__codelineno-0-797" name="__codelineno-0-797"></a>        <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+<a id="__codelineno-0-798" name="__codelineno-0-798"></a>        <span class="n">use_numba</span><span class="o">=</span><span class="n">use_numba</span><span class="p">,</span>
+<a id="__codelineno-0-799" name="__codelineno-0-799"></a>    <span class="p">)</span>
+<a id="__codelineno-0-800" name="__codelineno-0-800"></a>    <span class="n">level_shift</span> <span class="o">=</span> <span class="n">BRIDGE_CONSTANT</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="k">if</span> <span class="n">bridge_correction</span> <span class="k">else</span> <span class="mf">0.0</span>
+<a id="__codelineno-0-801" name="__codelineno-0-801"></a>    <span class="c1"># The private mapping, because simulate_paths has just scanned these samples</span>
+<a id="__codelineno-0-802" name="__codelineno-0-802"></a>    <span class="c1"># for a value that is not finite and the public one would scan them again.</span>
+<a id="__codelineno-0-803" name="__codelineno-0-803"></a>    <span class="n">states</span> <span class="o">=</span> <span class="n">_to_states</span><span class="p">(</span><span class="n">_as_rows</span><span class="p">(</span><span class="n">paths</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">),</span> <span class="n">well</span><span class="p">,</span> <span class="n">band_fraction</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">level_shift</span><span class="p">)</span>
+<a id="__codelineno-0-804" name="__codelineno-0-804"></a>    <span class="k">return</span> <span class="n">_weekly_frame</span><span class="p">(</span><span class="n">to_weekly</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">dt</span><span class="p">),</span> <span class="n">patient_ids</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

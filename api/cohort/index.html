@@ -1801,8 +1801,15 @@ on the way out, so there False only turns the rounding correction off.</p>
                 <p>Position of the two hysteresis thresholds that cut a simulated path into
 episodes, as a fraction of the distance from the saddle to each well
 bottom. Must lie strictly between 0 and 1. Used by the <code>sde</code> engine
-alone. The default of 0.4 is wider than the 0.3 of
-:mod:<code>msrelapse.simulate</code>, for the reason in the Notes.</p>
+alone. The default of 0.4 is wider than the 0.3 that every band taking
+function of :mod:<code>msrelapse.model</code> and :mod:<code>msrelapse.simulate</code>
+defaults to, for the reason in the Notes. The two defaults cut a path
+into episodes differently, so a path segmented by
+:func:<code>msrelapse.simulate.to_states</code> at its own default and a record
+generated from a spec here do not agree unless the same fraction is
+passed to both. A pair of target durations more extreme than the cohort
+of the paper can also calibrate at 0.3 and raise at 0.4; the Notes name
+a worked example.</p>
               </div>
             </td>
             <td>
@@ -4145,14 +4152,7 @@ continuous_targets : The rounding correction the <code>sde</code> engine is aime
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/msrelapse/cohort.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-848">848</a></span>
-<span class="normal"><a href="#__codelineno-0-849">849</a></span>
-<span class="normal"><a href="#__codelineno-0-850">850</a></span>
-<span class="normal"><a href="#__codelineno-0-851">851</a></span>
-<span class="normal"><a href="#__codelineno-0-852">852</a></span>
-<span class="normal"><a href="#__codelineno-0-853">853</a></span>
-<span class="normal"><a href="#__codelineno-0-854">854</a></span>
-<span class="normal"><a href="#__codelineno-0-855">855</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-855">855</a></span>
 <span class="normal"><a href="#__codelineno-0-856">856</a></span>
 <span class="normal"><a href="#__codelineno-0-857">857</a></span>
 <span class="normal"><a href="#__codelineno-0-858">858</a></span>
@@ -4210,72 +4210,79 @@ continuous_targets : The rounding correction the <code>sde</code> engine is aime
 <span class="normal"><a href="#__codelineno-0-910">910</a></span>
 <span class="normal"><a href="#__codelineno-0-911">911</a></span>
 <span class="normal"><a href="#__codelineno-0-912">912</a></span>
-<span class="normal"><a href="#__codelineno-0-913">913</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-848" name="__codelineno-0-848"></a><span class="k">def</span><span class="w"> </span><span class="nf">generate</span><span class="p">(</span><span class="n">spec</span><span class="p">:</span> <span class="n">CohortSpec</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">Seed</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Cohort</span><span class="p">:</span>
-<a id="__codelineno-0-849" name="__codelineno-0-849"></a><span class="w">    </span><span class="sd">"""Generate one cohort from its description.</span>
-<a id="__codelineno-0-850" name="__codelineno-0-850"></a>
-<a id="__codelineno-0-851" name="__codelineno-0-851"></a><span class="sd">    The per patient durations and the length of each record are drawn first,</span>
-<a id="__codelineno-0-852" name="__codelineno-0-852"></a><span class="sd">    then handed to the engine `spec` names. Every frame is validated against its</span>
-<a id="__codelineno-0-853" name="__codelineno-0-853"></a><span class="sd">    schema before it is returned.</span>
-<a id="__codelineno-0-854" name="__codelineno-0-854"></a>
-<a id="__codelineno-0-855" name="__codelineno-0-855"></a><span class="sd">    Parameters</span>
-<a id="__codelineno-0-856" name="__codelineno-0-856"></a><span class="sd">    ----------</span>
-<a id="__codelineno-0-857" name="__codelineno-0-857"></a><span class="sd">    spec : CohortSpec</span>
-<a id="__codelineno-0-858" name="__codelineno-0-858"></a><span class="sd">        The description to generate from.</span>
-<a id="__codelineno-0-859" name="__codelineno-0-859"></a><span class="sd">    rng : numpy.random.Generator or int or None, optional</span>
-<a id="__codelineno-0-860" name="__codelineno-0-860"></a><span class="sd">        Generator behind every draw of the call, or a seed for</span>
-<a id="__codelineno-0-861" name="__codelineno-0-861"></a><span class="sd">        :func:`numpy.random.default_rng`. A given seed reproduces the cohort</span>
-<a id="__codelineno-0-862" name="__codelineno-0-862"></a><span class="sd">        exactly.</span>
-<a id="__codelineno-0-863" name="__codelineno-0-863"></a>
-<a id="__codelineno-0-864" name="__codelineno-0-864"></a><span class="sd">    Returns</span>
-<a id="__codelineno-0-865" name="__codelineno-0-865"></a><span class="sd">    -------</span>
-<a id="__codelineno-0-866" name="__codelineno-0-866"></a><span class="sd">    Cohort</span>
-<a id="__codelineno-0-867" name="__codelineno-0-867"></a><span class="sd">        The records, the per patient parameters and the provenance sentence.</span>
-<a id="__codelineno-0-868" name="__codelineno-0-868"></a>
-<a id="__codelineno-0-869" name="__codelineno-0-869"></a><span class="sd">    Raises</span>
-<a id="__codelineno-0-870" name="__codelineno-0-870"></a><span class="sd">    ------</span>
-<a id="__codelineno-0-871" name="__codelineno-0-871"></a><span class="sd">    ValueError</span>
-<a id="__codelineno-0-872" name="__codelineno-0-872"></a><span class="sd">        If a sampler returns a duration that is not positive, if the ``sde``</span>
-<a id="__codelineno-0-873" name="__codelineno-0-873"></a><span class="sd">        engine is asked for a relapse the rounding correction would empty, if no</span>
-<a id="__codelineno-0-874" name="__codelineno-0-874"></a><span class="sd">        potential reproduces a patient's pair of targets, or if a generated</span>
-<a id="__codelineno-0-875" name="__codelineno-0-875"></a><span class="sd">        frame breaks its schema.</span>
-<a id="__codelineno-0-876" name="__codelineno-0-876"></a>
-<a id="__codelineno-0-877" name="__codelineno-0-877"></a><span class="sd">    See Also</span>
-<a id="__codelineno-0-878" name="__codelineno-0-878"></a><span class="sd">    --------</span>
-<a id="__codelineno-0-879" name="__codelineno-0-879"></a><span class="sd">    bordi2013_spec : The description of the cohort of the paper.</span>
-<a id="__codelineno-0-880" name="__codelineno-0-880"></a><span class="sd">    continuous_targets : The rounding correction the ``sde`` engine is aimed at.</span>
-<a id="__codelineno-0-881" name="__codelineno-0-881"></a>
-<a id="__codelineno-0-882" name="__codelineno-0-882"></a><span class="sd">    Examples</span>
-<a id="__codelineno-0-883" name="__codelineno-0-883"></a><span class="sd">    --------</span>
-<a id="__codelineno-0-884" name="__codelineno-0-884"></a><span class="sd">    &gt;&gt;&gt; spec = CohortSpec(n=2, tau_health=100.0, tau_relapse=4.3, followup_weeks=200.0)</span>
-<a id="__codelineno-0-885" name="__codelineno-0-885"></a><span class="sd">    &gt;&gt;&gt; sorted(set(generate(spec, rng=0).events["patient_id"]))</span>
-<a id="__codelineno-0-886" name="__codelineno-0-886"></a><span class="sd">    ['p0001', 'p0002']</span>
-<a id="__codelineno-0-887" name="__codelineno-0-887"></a><span class="sd">    """</span>
-<a id="__codelineno-0-888" name="__codelineno-0-888"></a>    <span class="n">generator</span> <span class="o">=</span> <span class="n">_generator</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
-<a id="__codelineno-0-889" name="__codelineno-0-889"></a>    <span class="n">tau_health</span> <span class="o">=</span> <span class="n">draw</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">tau_health</span><span class="p">,</span> <span class="n">generator</span><span class="p">,</span> <span class="n">spec</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
-<a id="__codelineno-0-890" name="__codelineno-0-890"></a>    <span class="n">tau_relapse</span> <span class="o">=</span> <span class="n">draw</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">tau_relapse</span><span class="p">,</span> <span class="n">generator</span><span class="p">,</span> <span class="n">spec</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
-<a id="__codelineno-0-891" name="__codelineno-0-891"></a>    <span class="n">followup</span> <span class="o">=</span> <span class="n">_whole_weeks</span><span class="p">(</span><span class="n">draw</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">followup_weeks</span><span class="p">,</span> <span class="n">generator</span><span class="p">,</span> <span class="n">spec</span><span class="o">.</span><span class="n">n</span><span class="p">))</span>
-<a id="__codelineno-0-892" name="__codelineno-0-892"></a>    <span class="n">identifiers</span> <span class="o">=</span> <span class="n">_patient_ids</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
-<a id="__codelineno-0-893" name="__codelineno-0-893"></a>    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">engine</span> <span class="o">==</span> <span class="s2">"renewal"</span><span class="p">:</span>
-<a id="__codelineno-0-894" name="__codelineno-0-894"></a>        <span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-<a id="__codelineno-0-895" name="__codelineno-0-895"></a>        <span class="n">sigma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-<a id="__codelineno-0-896" name="__codelineno-0-896"></a>        <span class="n">frames</span> <span class="o">=</span> <span class="n">_renewal_frames</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">tau_health</span><span class="p">,</span> <span class="n">tau_relapse</span><span class="p">,</span> <span class="n">followup</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">)</span>
-<a id="__codelineno-0-897" name="__codelineno-0-897"></a>    <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-898" name="__codelineno-0-898"></a>        <span class="n">beta</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="n">_calibrated_parameters</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">tau_health</span><span class="p">,</span> <span class="n">tau_relapse</span><span class="p">)</span>
-<a id="__codelineno-0-899" name="__codelineno-0-899"></a>        <span class="n">frames</span> <span class="o">=</span> <span class="n">_sde_frames</span><span class="p">(</span>
-<a id="__codelineno-0-900" name="__codelineno-0-900"></a>            <span class="n">spec</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">followup</span><span class="p">,</span> <span class="n">identifiers</span><span class="o">=</span><span class="n">identifiers</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="n">generator</span>
-<a id="__codelineno-0-901" name="__codelineno-0-901"></a>        <span class="p">)</span>
-<a id="__codelineno-0-902" name="__codelineno-0-902"></a>    <span class="n">weekly</span><span class="p">,</span> <span class="n">durations</span><span class="p">,</span> <span class="n">events</span> <span class="o">=</span> <span class="n">frames</span>
-<a id="__codelineno-0-903" name="__codelineno-0-903"></a>    <span class="n">_validate_frames</span><span class="p">(</span><span class="n">weekly</span><span class="p">,</span> <span class="n">durations</span><span class="p">,</span> <span class="n">events</span><span class="p">)</span>
-<a id="__codelineno-0-904" name="__codelineno-0-904"></a>    <span class="k">return</span> <span class="n">Cohort</span><span class="p">(</span>
-<a id="__codelineno-0-905" name="__codelineno-0-905"></a>        <span class="n">spec</span><span class="o">=</span><span class="n">spec</span><span class="p">,</span>
-<a id="__codelineno-0-906" name="__codelineno-0-906"></a>        <span class="n">weekly</span><span class="o">=</span><span class="n">weekly</span><span class="p">,</span>
-<a id="__codelineno-0-907" name="__codelineno-0-907"></a>        <span class="n">durations</span><span class="o">=</span><span class="n">durations</span><span class="p">,</span>
-<a id="__codelineno-0-908" name="__codelineno-0-908"></a>        <span class="n">events</span><span class="o">=</span><span class="n">events</span><span class="p">,</span>
-<a id="__codelineno-0-909" name="__codelineno-0-909"></a>        <span class="n">patients</span><span class="o">=</span><span class="n">_patients_frame</span><span class="p">(</span>
-<a id="__codelineno-0-910" name="__codelineno-0-910"></a>            <span class="n">identifiers</span><span class="p">,</span> <span class="n">tau_health</span><span class="p">,</span> <span class="n">tau_relapse</span><span class="p">,</span> <span class="n">followup</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">spec</span><span class="o">=</span><span class="n">spec</span>
-<a id="__codelineno-0-911" name="__codelineno-0-911"></a>        <span class="p">),</span>
-<a id="__codelineno-0-912" name="__codelineno-0-912"></a>        <span class="n">provenance</span><span class="o">=</span><span class="n">_provenance</span><span class="p">(</span><span class="n">spec</span><span class="p">),</span>
-<a id="__codelineno-0-913" name="__codelineno-0-913"></a>    <span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-913">913</a></span>
+<span class="normal"><a href="#__codelineno-0-914">914</a></span>
+<span class="normal"><a href="#__codelineno-0-915">915</a></span>
+<span class="normal"><a href="#__codelineno-0-916">916</a></span>
+<span class="normal"><a href="#__codelineno-0-917">917</a></span>
+<span class="normal"><a href="#__codelineno-0-918">918</a></span>
+<span class="normal"><a href="#__codelineno-0-919">919</a></span>
+<span class="normal"><a href="#__codelineno-0-920">920</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-855" name="__codelineno-0-855"></a><span class="k">def</span><span class="w"> </span><span class="nf">generate</span><span class="p">(</span><span class="n">spec</span><span class="p">:</span> <span class="n">CohortSpec</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">Seed</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Cohort</span><span class="p">:</span>
+<a id="__codelineno-0-856" name="__codelineno-0-856"></a><span class="w">    </span><span class="sd">"""Generate one cohort from its description.</span>
+<a id="__codelineno-0-857" name="__codelineno-0-857"></a>
+<a id="__codelineno-0-858" name="__codelineno-0-858"></a><span class="sd">    The per patient durations and the length of each record are drawn first,</span>
+<a id="__codelineno-0-859" name="__codelineno-0-859"></a><span class="sd">    then handed to the engine `spec` names. Every frame is validated against its</span>
+<a id="__codelineno-0-860" name="__codelineno-0-860"></a><span class="sd">    schema before it is returned.</span>
+<a id="__codelineno-0-861" name="__codelineno-0-861"></a>
+<a id="__codelineno-0-862" name="__codelineno-0-862"></a><span class="sd">    Parameters</span>
+<a id="__codelineno-0-863" name="__codelineno-0-863"></a><span class="sd">    ----------</span>
+<a id="__codelineno-0-864" name="__codelineno-0-864"></a><span class="sd">    spec : CohortSpec</span>
+<a id="__codelineno-0-865" name="__codelineno-0-865"></a><span class="sd">        The description to generate from.</span>
+<a id="__codelineno-0-866" name="__codelineno-0-866"></a><span class="sd">    rng : numpy.random.Generator or int or None, optional</span>
+<a id="__codelineno-0-867" name="__codelineno-0-867"></a><span class="sd">        Generator behind every draw of the call, or a seed for</span>
+<a id="__codelineno-0-868" name="__codelineno-0-868"></a><span class="sd">        :func:`numpy.random.default_rng`. A given seed reproduces the cohort</span>
+<a id="__codelineno-0-869" name="__codelineno-0-869"></a><span class="sd">        exactly.</span>
+<a id="__codelineno-0-870" name="__codelineno-0-870"></a>
+<a id="__codelineno-0-871" name="__codelineno-0-871"></a><span class="sd">    Returns</span>
+<a id="__codelineno-0-872" name="__codelineno-0-872"></a><span class="sd">    -------</span>
+<a id="__codelineno-0-873" name="__codelineno-0-873"></a><span class="sd">    Cohort</span>
+<a id="__codelineno-0-874" name="__codelineno-0-874"></a><span class="sd">        The records, the per patient parameters and the provenance sentence.</span>
+<a id="__codelineno-0-875" name="__codelineno-0-875"></a>
+<a id="__codelineno-0-876" name="__codelineno-0-876"></a><span class="sd">    Raises</span>
+<a id="__codelineno-0-877" name="__codelineno-0-877"></a><span class="sd">    ------</span>
+<a id="__codelineno-0-878" name="__codelineno-0-878"></a><span class="sd">    ValueError</span>
+<a id="__codelineno-0-879" name="__codelineno-0-879"></a><span class="sd">        If a sampler returns a duration that is not positive, if the ``sde``</span>
+<a id="__codelineno-0-880" name="__codelineno-0-880"></a><span class="sd">        engine is asked for a relapse the rounding correction would empty, if no</span>
+<a id="__codelineno-0-881" name="__codelineno-0-881"></a><span class="sd">        potential reproduces a patient's pair of targets, or if a generated</span>
+<a id="__codelineno-0-882" name="__codelineno-0-882"></a><span class="sd">        frame breaks its schema.</span>
+<a id="__codelineno-0-883" name="__codelineno-0-883"></a>
+<a id="__codelineno-0-884" name="__codelineno-0-884"></a><span class="sd">    See Also</span>
+<a id="__codelineno-0-885" name="__codelineno-0-885"></a><span class="sd">    --------</span>
+<a id="__codelineno-0-886" name="__codelineno-0-886"></a><span class="sd">    bordi2013_spec : The description of the cohort of the paper.</span>
+<a id="__codelineno-0-887" name="__codelineno-0-887"></a><span class="sd">    continuous_targets : The rounding correction the ``sde`` engine is aimed at.</span>
+<a id="__codelineno-0-888" name="__codelineno-0-888"></a>
+<a id="__codelineno-0-889" name="__codelineno-0-889"></a><span class="sd">    Examples</span>
+<a id="__codelineno-0-890" name="__codelineno-0-890"></a><span class="sd">    --------</span>
+<a id="__codelineno-0-891" name="__codelineno-0-891"></a><span class="sd">    &gt;&gt;&gt; spec = CohortSpec(n=2, tau_health=100.0, tau_relapse=4.3, followup_weeks=200.0)</span>
+<a id="__codelineno-0-892" name="__codelineno-0-892"></a><span class="sd">    &gt;&gt;&gt; sorted(set(generate(spec, rng=0).events["patient_id"]))</span>
+<a id="__codelineno-0-893" name="__codelineno-0-893"></a><span class="sd">    ['p0001', 'p0002']</span>
+<a id="__codelineno-0-894" name="__codelineno-0-894"></a><span class="sd">    """</span>
+<a id="__codelineno-0-895" name="__codelineno-0-895"></a>    <span class="n">generator</span> <span class="o">=</span> <span class="n">_generator</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
+<a id="__codelineno-0-896" name="__codelineno-0-896"></a>    <span class="n">tau_health</span> <span class="o">=</span> <span class="n">draw</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">tau_health</span><span class="p">,</span> <span class="n">generator</span><span class="p">,</span> <span class="n">spec</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
+<a id="__codelineno-0-897" name="__codelineno-0-897"></a>    <span class="n">tau_relapse</span> <span class="o">=</span> <span class="n">draw</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">tau_relapse</span><span class="p">,</span> <span class="n">generator</span><span class="p">,</span> <span class="n">spec</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
+<a id="__codelineno-0-898" name="__codelineno-0-898"></a>    <span class="n">followup</span> <span class="o">=</span> <span class="n">_whole_weeks</span><span class="p">(</span><span class="n">draw</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">followup_weeks</span><span class="p">,</span> <span class="n">generator</span><span class="p">,</span> <span class="n">spec</span><span class="o">.</span><span class="n">n</span><span class="p">))</span>
+<a id="__codelineno-0-899" name="__codelineno-0-899"></a>    <span class="n">identifiers</span> <span class="o">=</span> <span class="n">_patient_ids</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
+<a id="__codelineno-0-900" name="__codelineno-0-900"></a>    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">engine</span> <span class="o">==</span> <span class="s2">"renewal"</span><span class="p">:</span>
+<a id="__codelineno-0-901" name="__codelineno-0-901"></a>        <span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<a id="__codelineno-0-902" name="__codelineno-0-902"></a>        <span class="n">sigma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<a id="__codelineno-0-903" name="__codelineno-0-903"></a>        <span class="n">frames</span> <span class="o">=</span> <span class="n">_renewal_frames</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">tau_health</span><span class="p">,</span> <span class="n">tau_relapse</span><span class="p">,</span> <span class="n">followup</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">)</span>
+<a id="__codelineno-0-904" name="__codelineno-0-904"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-905" name="__codelineno-0-905"></a>        <span class="n">beta</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="n">_calibrated_parameters</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">tau_health</span><span class="p">,</span> <span class="n">tau_relapse</span><span class="p">)</span>
+<a id="__codelineno-0-906" name="__codelineno-0-906"></a>        <span class="n">frames</span> <span class="o">=</span> <span class="n">_sde_frames</span><span class="p">(</span>
+<a id="__codelineno-0-907" name="__codelineno-0-907"></a>            <span class="n">spec</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">followup</span><span class="p">,</span> <span class="n">identifiers</span><span class="o">=</span><span class="n">identifiers</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="n">generator</span>
+<a id="__codelineno-0-908" name="__codelineno-0-908"></a>        <span class="p">)</span>
+<a id="__codelineno-0-909" name="__codelineno-0-909"></a>    <span class="n">weekly</span><span class="p">,</span> <span class="n">durations</span><span class="p">,</span> <span class="n">events</span> <span class="o">=</span> <span class="n">frames</span>
+<a id="__codelineno-0-910" name="__codelineno-0-910"></a>    <span class="n">_validate_frames</span><span class="p">(</span><span class="n">weekly</span><span class="p">,</span> <span class="n">durations</span><span class="p">,</span> <span class="n">events</span><span class="p">)</span>
+<a id="__codelineno-0-911" name="__codelineno-0-911"></a>    <span class="k">return</span> <span class="n">Cohort</span><span class="p">(</span>
+<a id="__codelineno-0-912" name="__codelineno-0-912"></a>        <span class="n">spec</span><span class="o">=</span><span class="n">spec</span><span class="p">,</span>
+<a id="__codelineno-0-913" name="__codelineno-0-913"></a>        <span class="n">weekly</span><span class="o">=</span><span class="n">weekly</span><span class="p">,</span>
+<a id="__codelineno-0-914" name="__codelineno-0-914"></a>        <span class="n">durations</span><span class="o">=</span><span class="n">durations</span><span class="p">,</span>
+<a id="__codelineno-0-915" name="__codelineno-0-915"></a>        <span class="n">events</span><span class="o">=</span><span class="n">events</span><span class="p">,</span>
+<a id="__codelineno-0-916" name="__codelineno-0-916"></a>        <span class="n">patients</span><span class="o">=</span><span class="n">_patients_frame</span><span class="p">(</span>
+<a id="__codelineno-0-917" name="__codelineno-0-917"></a>            <span class="n">identifiers</span><span class="p">,</span> <span class="n">tau_health</span><span class="p">,</span> <span class="n">tau_relapse</span><span class="p">,</span> <span class="n">followup</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">spec</span><span class="o">=</span><span class="n">spec</span>
+<a id="__codelineno-0-918" name="__codelineno-0-918"></a>        <span class="p">),</span>
+<a id="__codelineno-0-919" name="__codelineno-0-919"></a>        <span class="n">provenance</span><span class="o">=</span><span class="n">_provenance</span><span class="p">(</span><span class="n">spec</span><span class="p">),</span>
+<a id="__codelineno-0-920" name="__codelineno-0-920"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4441,14 +4448,7 @@ stochastic spec calibrates its potential to 135.21 and 3.34415 weeks.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/msrelapse/cohort.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-916">916</a></span>
-<span class="normal"><a href="#__codelineno-0-917">917</a></span>
-<span class="normal"><a href="#__codelineno-0-918">918</a></span>
-<span class="normal"><a href="#__codelineno-0-919">919</a></span>
-<span class="normal"><a href="#__codelineno-0-920">920</a></span>
-<span class="normal"><a href="#__codelineno-0-921">921</a></span>
-<span class="normal"><a href="#__codelineno-0-922">922</a></span>
-<span class="normal"><a href="#__codelineno-0-923">923</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-923">923</a></span>
 <span class="normal"><a href="#__codelineno-0-924">924</a></span>
 <span class="normal"><a href="#__codelineno-0-925">925</a></span>
 <span class="normal"><a href="#__codelineno-0-926">926</a></span>
@@ -4512,78 +4512,85 @@ stochastic spec calibrates its potential to 135.21 and 3.34415 weeks.</p>
 <span class="normal"><a href="#__codelineno-0-984">984</a></span>
 <span class="normal"><a href="#__codelineno-0-985">985</a></span>
 <span class="normal"><a href="#__codelineno-0-986">986</a></span>
-<span class="normal"><a href="#__codelineno-0-987">987</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-916" name="__codelineno-0-916"></a><span class="k">def</span><span class="w"> </span><span class="nf">bordi2013_spec</span><span class="p">(</span><span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span> <span class="o">=</span> <span class="s2">"renewal"</span><span class="p">,</span> <span class="n">match_naive_means</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CohortSpec</span><span class="p">:</span>
-<a id="__codelineno-0-917" name="__codelineno-0-917"></a><span class="w">    </span><span class="sd">"""Return the description of the cohort the paper studied.</span>
-<a id="__codelineno-0-918" name="__codelineno-0-918"></a>
-<a id="__codelineno-0-919" name="__codelineno-0-919"></a><span class="sd">    Every number comes from :data:`msrelapse._params.PAPER`: the cohort size,</span>
-<a id="__codelineno-0-920" name="__codelineno-0-920"></a><span class="sd">    the two mean durations of Section 3.4, and the distribution of</span>
-<a id="__codelineno-0-921" name="__codelineno-0-921"></a><span class="sd">    relapsing-remitting phase lengths of Figure 3, which supplies the length of</span>
-<a id="__codelineno-0-922" name="__codelineno-0-922"></a><span class="sd">    each record.</span>
-<a id="__codelineno-0-923" name="__codelineno-0-923"></a>
-<a id="__codelineno-0-924" name="__codelineno-0-924"></a><span class="sd">    Parameters</span>
-<a id="__codelineno-0-925" name="__codelineno-0-925"></a><span class="sd">    ----------</span>
-<a id="__codelineno-0-926" name="__codelineno-0-926"></a><span class="sd">    engine : {'renewal', 'sde'}, optional</span>
-<a id="__codelineno-0-927" name="__codelineno-0-927"></a><span class="sd">        Which generator to describe the cohort for.</span>
-<a id="__codelineno-0-928" name="__codelineno-0-928"></a><span class="sd">    match_naive_means : bool, optional</span>
-<a id="__codelineno-0-929" name="__codelineno-0-929"></a><span class="sd">        With True, the default, the two mean durations of the spec are the</span>
-<a id="__codelineno-0-930" name="__codelineno-0-930"></a><span class="sd">        generative means :func:`naive_mean_targets` returns for the printed</span>
-<a id="__codelineno-0-931" name="__codelineno-0-931"></a><span class="sd">        means over these windows, and the printed means are recorded in the two</span>
-<a id="__codelineno-0-932" name="__codelineno-0-932"></a><span class="sd">        naive fields of the spec. With False the generative means are the</span>
-<a id="__codelineno-0-933" name="__codelineno-0-933"></a><span class="sd">        printed means themselves, which is the older behaviour and reproduces</span>
-<a id="__codelineno-0-934" name="__codelineno-0-934"></a><span class="sd">        the printed relapse but not the printed remission.</span>
-<a id="__codelineno-0-935" name="__codelineno-0-935"></a>
-<a id="__codelineno-0-936" name="__codelineno-0-936"></a><span class="sd">    Returns</span>
-<a id="__codelineno-0-937" name="__codelineno-0-937"></a><span class="sd">    -------</span>
-<a id="__codelineno-0-938" name="__codelineno-0-938"></a><span class="sd">    CohortSpec</span>
-<a id="__codelineno-0-939" name="__codelineno-0-939"></a><span class="sd">        The description, with weekly records as the study recorded them.</span>
-<a id="__codelineno-0-940" name="__codelineno-0-940"></a>
-<a id="__codelineno-0-941" name="__codelineno-0-941"></a><span class="sd">    Raises</span>
-<a id="__codelineno-0-942" name="__codelineno-0-942"></a><span class="sd">    ------</span>
-<a id="__codelineno-0-943" name="__codelineno-0-943"></a><span class="sd">    ValueError</span>
-<a id="__codelineno-0-944" name="__codelineno-0-944"></a><span class="sd">        If `engine` is not one of the two spellings.</span>
-<a id="__codelineno-0-945" name="__codelineno-0-945"></a>
-<a id="__codelineno-0-946" name="__codelineno-0-946"></a><span class="sd">    Notes</span>
-<a id="__codelineno-0-947" name="__codelineno-0-947"></a><span class="sd">    -----</span>
-<a id="__codelineno-0-948" name="__codelineno-0-948"></a><span class="sd">    The printed 100 weeks is a naive mean: the paper averaged every remission it</span>
-<a id="__codelineno-0-949" name="__codelineno-0-949"></a><span class="sd">    recorded, including the one the end of follow up cut short, over windows of</span>
-<a id="__codelineno-0-950" name="__codelineno-0-950"></a><span class="sd">    40 to 1311 weeks. A twin generated at 100 weeks is measured the same way and</span>
-<a id="__codelineno-0-951" name="__codelineno-0-951"></a><span class="sd">    comes back at about 80, so it does not reproduce the number it was built</span>
-<a id="__codelineno-0-952" name="__codelineno-0-952"></a><span class="sd">    from. Matching is therefore the default: the twin is generated at 134.21 and</span>
-<a id="__codelineno-0-953" name="__codelineno-0-953"></a><span class="sd">    4.34415 weeks, where the same measurement gives the printed 100 and 4.3. The</span>
-<a id="__codelineno-0-954" name="__codelineno-0-954"></a><span class="sd">    relapse moves by only one percent, because 4.3 weeks is short against every</span>
-<a id="__codelineno-0-955" name="__codelineno-0-955"></a><span class="sd">    one of those windows, and the remission by a third.</span>
-<a id="__codelineno-0-956" name="__codelineno-0-956"></a>
-<a id="__codelineno-0-957" name="__codelineno-0-957"></a><span class="sd">    The ``sde`` engine applies the rounding correction of</span>
-<a id="__codelineno-0-958" name="__codelineno-0-958"></a><span class="sd">    :func:`continuous_targets` on top of the matched means, so a matched</span>
-<a id="__codelineno-0-959" name="__codelineno-0-959"></a><span class="sd">    stochastic spec calibrates its potential to 135.21 and 3.34415 weeks.</span>
-<a id="__codelineno-0-960" name="__codelineno-0-960"></a>
-<a id="__codelineno-0-961" name="__codelineno-0-961"></a><span class="sd">    Examples</span>
-<a id="__codelineno-0-962" name="__codelineno-0-962"></a><span class="sd">    --------</span>
-<a id="__codelineno-0-963" name="__codelineno-0-963"></a><span class="sd">    &gt;&gt;&gt; bordi2013_spec().n == PAPER.n_patients.value</span>
-<a id="__codelineno-0-964" name="__codelineno-0-964"></a><span class="sd">    True</span>
-<a id="__codelineno-0-965" name="__codelineno-0-965"></a><span class="sd">    """</span>
-<a id="__codelineno-0-966" name="__codelineno-0-966"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">match_naive_means</span><span class="p">:</span>
-<a id="__codelineno-0-967" name="__codelineno-0-967"></a>        <span class="k">return</span> <span class="n">CohortSpec</span><span class="p">(</span>
-<a id="__codelineno-0-968" name="__codelineno-0-968"></a>            <span class="n">n</span><span class="o">=</span><span class="n">PAPER</span><span class="o">.</span><span class="n">n_patients</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-<a id="__codelineno-0-969" name="__codelineno-0-969"></a>            <span class="n">tau_health</span><span class="o">=</span><span class="n">PAPER</span><span class="o">.</span><span class="n">tau_health_cohort_weeks</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-<a id="__codelineno-0-970" name="__codelineno-0-970"></a>            <span class="n">tau_relapse</span><span class="o">=</span><span class="n">PAPER</span><span class="o">.</span><span class="n">tau_no_health_cohort_weeks</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-<a id="__codelineno-0-971" name="__codelineno-0-971"></a>            <span class="n">followup_weeks</span><span class="o">=</span><span class="n">from_histogram</span><span class="p">(</span>
-<a id="__codelineno-0-972" name="__codelineno-0-972"></a>                <span class="n">PAPER</span><span class="o">.</span><span class="n">fig3_bin_edges_weeks</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">PAPER</span><span class="o">.</span><span class="n">fig3_counts</span><span class="o">.</span><span class="n">value</span>
-<a id="__codelineno-0-973" name="__codelineno-0-973"></a>            <span class="p">),</span>
-<a id="__codelineno-0-974" name="__codelineno-0-974"></a>            <span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span>
-<a id="__codelineno-0-975" name="__codelineno-0-975"></a>            <span class="n">weekly</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-976" name="__codelineno-0-976"></a>        <span class="p">)</span>
-<a id="__codelineno-0-977" name="__codelineno-0-977"></a>    <span class="n">tau_health</span><span class="p">,</span> <span class="n">tau_relapse</span> <span class="o">=</span> <span class="n">_paper_naive_targets</span><span class="p">()</span>
-<a id="__codelineno-0-978" name="__codelineno-0-978"></a>    <span class="k">return</span> <span class="n">CohortSpec</span><span class="p">(</span>
-<a id="__codelineno-0-979" name="__codelineno-0-979"></a>        <span class="n">n</span><span class="o">=</span><span class="n">PAPER</span><span class="o">.</span><span class="n">n_patients</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-<a id="__codelineno-0-980" name="__codelineno-0-980"></a>        <span class="n">tau_health</span><span class="o">=</span><span class="n">tau_health</span><span class="p">,</span>
-<a id="__codelineno-0-981" name="__codelineno-0-981"></a>        <span class="n">tau_relapse</span><span class="o">=</span><span class="n">tau_relapse</span><span class="p">,</span>
-<a id="__codelineno-0-982" name="__codelineno-0-982"></a>        <span class="n">followup_weeks</span><span class="o">=</span><span class="n">from_histogram</span><span class="p">(</span><span class="n">PAPER</span><span class="o">.</span><span class="n">fig3_bin_edges_weeks</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">PAPER</span><span class="o">.</span><span class="n">fig3_counts</span><span class="o">.</span><span class="n">value</span><span class="p">),</span>
-<a id="__codelineno-0-983" name="__codelineno-0-983"></a>        <span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span>
-<a id="__codelineno-0-984" name="__codelineno-0-984"></a>        <span class="n">weekly</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-985" name="__codelineno-0-985"></a>        <span class="n">naive_tau_health</span><span class="o">=</span><span class="n">PAPER</span><span class="o">.</span><span class="n">tau_health_cohort_weeks</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-<a id="__codelineno-0-986" name="__codelineno-0-986"></a>        <span class="n">naive_tau_relapse</span><span class="o">=</span><span class="n">PAPER</span><span class="o">.</span><span class="n">tau_no_health_cohort_weeks</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-<a id="__codelineno-0-987" name="__codelineno-0-987"></a>    <span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-987">987</a></span>
+<span class="normal"><a href="#__codelineno-0-988">988</a></span>
+<span class="normal"><a href="#__codelineno-0-989">989</a></span>
+<span class="normal"><a href="#__codelineno-0-990">990</a></span>
+<span class="normal"><a href="#__codelineno-0-991">991</a></span>
+<span class="normal"><a href="#__codelineno-0-992">992</a></span>
+<span class="normal"><a href="#__codelineno-0-993">993</a></span>
+<span class="normal"><a href="#__codelineno-0-994">994</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-923" name="__codelineno-0-923"></a><span class="k">def</span><span class="w"> </span><span class="nf">bordi2013_spec</span><span class="p">(</span><span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span> <span class="o">=</span> <span class="s2">"renewal"</span><span class="p">,</span> <span class="n">match_naive_means</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CohortSpec</span><span class="p">:</span>
+<a id="__codelineno-0-924" name="__codelineno-0-924"></a><span class="w">    </span><span class="sd">"""Return the description of the cohort the paper studied.</span>
+<a id="__codelineno-0-925" name="__codelineno-0-925"></a>
+<a id="__codelineno-0-926" name="__codelineno-0-926"></a><span class="sd">    Every number comes from :data:`msrelapse._params.PAPER`: the cohort size,</span>
+<a id="__codelineno-0-927" name="__codelineno-0-927"></a><span class="sd">    the two mean durations of Section 3.4, and the distribution of</span>
+<a id="__codelineno-0-928" name="__codelineno-0-928"></a><span class="sd">    relapsing-remitting phase lengths of Figure 3, which supplies the length of</span>
+<a id="__codelineno-0-929" name="__codelineno-0-929"></a><span class="sd">    each record.</span>
+<a id="__codelineno-0-930" name="__codelineno-0-930"></a>
+<a id="__codelineno-0-931" name="__codelineno-0-931"></a><span class="sd">    Parameters</span>
+<a id="__codelineno-0-932" name="__codelineno-0-932"></a><span class="sd">    ----------</span>
+<a id="__codelineno-0-933" name="__codelineno-0-933"></a><span class="sd">    engine : {'renewal', 'sde'}, optional</span>
+<a id="__codelineno-0-934" name="__codelineno-0-934"></a><span class="sd">        Which generator to describe the cohort for.</span>
+<a id="__codelineno-0-935" name="__codelineno-0-935"></a><span class="sd">    match_naive_means : bool, optional</span>
+<a id="__codelineno-0-936" name="__codelineno-0-936"></a><span class="sd">        With True, the default, the two mean durations of the spec are the</span>
+<a id="__codelineno-0-937" name="__codelineno-0-937"></a><span class="sd">        generative means :func:`naive_mean_targets` returns for the printed</span>
+<a id="__codelineno-0-938" name="__codelineno-0-938"></a><span class="sd">        means over these windows, and the printed means are recorded in the two</span>
+<a id="__codelineno-0-939" name="__codelineno-0-939"></a><span class="sd">        naive fields of the spec. With False the generative means are the</span>
+<a id="__codelineno-0-940" name="__codelineno-0-940"></a><span class="sd">        printed means themselves, which is the older behaviour and reproduces</span>
+<a id="__codelineno-0-941" name="__codelineno-0-941"></a><span class="sd">        the printed relapse but not the printed remission.</span>
+<a id="__codelineno-0-942" name="__codelineno-0-942"></a>
+<a id="__codelineno-0-943" name="__codelineno-0-943"></a><span class="sd">    Returns</span>
+<a id="__codelineno-0-944" name="__codelineno-0-944"></a><span class="sd">    -------</span>
+<a id="__codelineno-0-945" name="__codelineno-0-945"></a><span class="sd">    CohortSpec</span>
+<a id="__codelineno-0-946" name="__codelineno-0-946"></a><span class="sd">        The description, with weekly records as the study recorded them.</span>
+<a id="__codelineno-0-947" name="__codelineno-0-947"></a>
+<a id="__codelineno-0-948" name="__codelineno-0-948"></a><span class="sd">    Raises</span>
+<a id="__codelineno-0-949" name="__codelineno-0-949"></a><span class="sd">    ------</span>
+<a id="__codelineno-0-950" name="__codelineno-0-950"></a><span class="sd">    ValueError</span>
+<a id="__codelineno-0-951" name="__codelineno-0-951"></a><span class="sd">        If `engine` is not one of the two spellings.</span>
+<a id="__codelineno-0-952" name="__codelineno-0-952"></a>
+<a id="__codelineno-0-953" name="__codelineno-0-953"></a><span class="sd">    Notes</span>
+<a id="__codelineno-0-954" name="__codelineno-0-954"></a><span class="sd">    -----</span>
+<a id="__codelineno-0-955" name="__codelineno-0-955"></a><span class="sd">    The printed 100 weeks is a naive mean: the paper averaged every remission it</span>
+<a id="__codelineno-0-956" name="__codelineno-0-956"></a><span class="sd">    recorded, including the one the end of follow up cut short, over windows of</span>
+<a id="__codelineno-0-957" name="__codelineno-0-957"></a><span class="sd">    40 to 1311 weeks. A twin generated at 100 weeks is measured the same way and</span>
+<a id="__codelineno-0-958" name="__codelineno-0-958"></a><span class="sd">    comes back at about 80, so it does not reproduce the number it was built</span>
+<a id="__codelineno-0-959" name="__codelineno-0-959"></a><span class="sd">    from. Matching is therefore the default: the twin is generated at 134.21 and</span>
+<a id="__codelineno-0-960" name="__codelineno-0-960"></a><span class="sd">    4.34415 weeks, where the same measurement gives the printed 100 and 4.3. The</span>
+<a id="__codelineno-0-961" name="__codelineno-0-961"></a><span class="sd">    relapse moves by only one percent, because 4.3 weeks is short against every</span>
+<a id="__codelineno-0-962" name="__codelineno-0-962"></a><span class="sd">    one of those windows, and the remission by a third.</span>
+<a id="__codelineno-0-963" name="__codelineno-0-963"></a>
+<a id="__codelineno-0-964" name="__codelineno-0-964"></a><span class="sd">    The ``sde`` engine applies the rounding correction of</span>
+<a id="__codelineno-0-965" name="__codelineno-0-965"></a><span class="sd">    :func:`continuous_targets` on top of the matched means, so a matched</span>
+<a id="__codelineno-0-966" name="__codelineno-0-966"></a><span class="sd">    stochastic spec calibrates its potential to 135.21 and 3.34415 weeks.</span>
+<a id="__codelineno-0-967" name="__codelineno-0-967"></a>
+<a id="__codelineno-0-968" name="__codelineno-0-968"></a><span class="sd">    Examples</span>
+<a id="__codelineno-0-969" name="__codelineno-0-969"></a><span class="sd">    --------</span>
+<a id="__codelineno-0-970" name="__codelineno-0-970"></a><span class="sd">    &gt;&gt;&gt; bordi2013_spec().n == PAPER.n_patients.value</span>
+<a id="__codelineno-0-971" name="__codelineno-0-971"></a><span class="sd">    True</span>
+<a id="__codelineno-0-972" name="__codelineno-0-972"></a><span class="sd">    """</span>
+<a id="__codelineno-0-973" name="__codelineno-0-973"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">match_naive_means</span><span class="p">:</span>
+<a id="__codelineno-0-974" name="__codelineno-0-974"></a>        <span class="k">return</span> <span class="n">CohortSpec</span><span class="p">(</span>
+<a id="__codelineno-0-975" name="__codelineno-0-975"></a>            <span class="n">n</span><span class="o">=</span><span class="n">PAPER</span><span class="o">.</span><span class="n">n_patients</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+<a id="__codelineno-0-976" name="__codelineno-0-976"></a>            <span class="n">tau_health</span><span class="o">=</span><span class="n">PAPER</span><span class="o">.</span><span class="n">tau_health_cohort_weeks</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+<a id="__codelineno-0-977" name="__codelineno-0-977"></a>            <span class="n">tau_relapse</span><span class="o">=</span><span class="n">PAPER</span><span class="o">.</span><span class="n">tau_no_health_cohort_weeks</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+<a id="__codelineno-0-978" name="__codelineno-0-978"></a>            <span class="n">followup_weeks</span><span class="o">=</span><span class="n">from_histogram</span><span class="p">(</span>
+<a id="__codelineno-0-979" name="__codelineno-0-979"></a>                <span class="n">PAPER</span><span class="o">.</span><span class="n">fig3_bin_edges_weeks</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">PAPER</span><span class="o">.</span><span class="n">fig3_counts</span><span class="o">.</span><span class="n">value</span>
+<a id="__codelineno-0-980" name="__codelineno-0-980"></a>            <span class="p">),</span>
+<a id="__codelineno-0-981" name="__codelineno-0-981"></a>            <span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span>
+<a id="__codelineno-0-982" name="__codelineno-0-982"></a>            <span class="n">weekly</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-0-983" name="__codelineno-0-983"></a>        <span class="p">)</span>
+<a id="__codelineno-0-984" name="__codelineno-0-984"></a>    <span class="n">tau_health</span><span class="p">,</span> <span class="n">tau_relapse</span> <span class="o">=</span> <span class="n">_paper_naive_targets</span><span class="p">()</span>
+<a id="__codelineno-0-985" name="__codelineno-0-985"></a>    <span class="k">return</span> <span class="n">CohortSpec</span><span class="p">(</span>
+<a id="__codelineno-0-986" name="__codelineno-0-986"></a>        <span class="n">n</span><span class="o">=</span><span class="n">PAPER</span><span class="o">.</span><span class="n">n_patients</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+<a id="__codelineno-0-987" name="__codelineno-0-987"></a>        <span class="n">tau_health</span><span class="o">=</span><span class="n">tau_health</span><span class="p">,</span>
+<a id="__codelineno-0-988" name="__codelineno-0-988"></a>        <span class="n">tau_relapse</span><span class="o">=</span><span class="n">tau_relapse</span><span class="p">,</span>
+<a id="__codelineno-0-989" name="__codelineno-0-989"></a>        <span class="n">followup_weeks</span><span class="o">=</span><span class="n">from_histogram</span><span class="p">(</span><span class="n">PAPER</span><span class="o">.</span><span class="n">fig3_bin_edges_weeks</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">PAPER</span><span class="o">.</span><span class="n">fig3_counts</span><span class="o">.</span><span class="n">value</span><span class="p">),</span>
+<a id="__codelineno-0-990" name="__codelineno-0-990"></a>        <span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span>
+<a id="__codelineno-0-991" name="__codelineno-0-991"></a>        <span class="n">weekly</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-0-992" name="__codelineno-0-992"></a>        <span class="n">naive_tau_health</span><span class="o">=</span><span class="n">PAPER</span><span class="o">.</span><span class="n">tau_health_cohort_weeks</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+<a id="__codelineno-0-993" name="__codelineno-0-993"></a>        <span class="n">naive_tau_relapse</span><span class="o">=</span><span class="n">PAPER</span><span class="o">.</span><span class="n">tau_no_health_cohort_weeks</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+<a id="__codelineno-0-994" name="__codelineno-0-994"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4704,14 +4711,7 @@ deliver.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/msrelapse/cohort.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-990"> 990</a></span>
-<span class="normal"><a href="#__codelineno-0-991"> 991</a></span>
-<span class="normal"><a href="#__codelineno-0-992"> 992</a></span>
-<span class="normal"><a href="#__codelineno-0-993"> 993</a></span>
-<span class="normal"><a href="#__codelineno-0-994"> 994</a></span>
-<span class="normal"><a href="#__codelineno-0-995"> 995</a></span>
-<span class="normal"><a href="#__codelineno-0-996"> 996</a></span>
-<span class="normal"><a href="#__codelineno-0-997"> 997</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-997"> 997</a></span>
 <span class="normal"><a href="#__codelineno-0-998"> 998</a></span>
 <span class="normal"><a href="#__codelineno-0-999"> 999</a></span>
 <span class="normal"><a href="#__codelineno-0-1000">1000</a></span>
@@ -4774,77 +4774,84 @@ deliver.</p>
 <span class="normal"><a href="#__codelineno-0-1057">1057</a></span>
 <span class="normal"><a href="#__codelineno-0-1058">1058</a></span>
 <span class="normal"><a href="#__codelineno-0-1059">1059</a></span>
-<span class="normal"><a href="#__codelineno-0-1060">1060</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-990" name="__codelineno-0-990"></a><span class="k">def</span><span class="w"> </span><span class="nf">per_patient_params</span><span class="p">(</span><span class="n">durations</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-<a id="__codelineno-0-991" name="__codelineno-0-991"></a><span class="w">    </span><span class="sd">"""Return the parameters equation (7) reads off each patient's record.</span>
-<a id="__codelineno-0-992" name="__codelineno-0-992"></a>
-<a id="__codelineno-0-993" name="__codelineno-0-993"></a><span class="sd">    The two mean durations are the naive ones, over every recorded run of a</span>
-<a id="__codelineno-0-994" name="__codelineno-0-994"></a><span class="sd">    state with no censoring correction, because those are the means the paper</span>
-<a id="__codelineno-0-995" name="__codelineno-0-995"></a><span class="sd">    used. The barrier ratio is then equation (7), and the asymmetry is the beta</span>
-<a id="__codelineno-0-996" name="__codelineno-0-996"></a><span class="sd">    that delivers that ratio at the reference alpha, which is the fitting rule</span>
-<a id="__codelineno-0-997" name="__codelineno-0-997"></a><span class="sd">    of page 6.</span>
-<a id="__codelineno-0-998" name="__codelineno-0-998"></a>
-<a id="__codelineno-0-999" name="__codelineno-0-999"></a><span class="sd">    Parameters</span>
-<a id="__codelineno-0-1000" name="__codelineno-0-1000"></a><span class="sd">    ----------</span>
-<a id="__codelineno-0-1001" name="__codelineno-0-1001"></a><span class="sd">    durations : pandas.DataFrame</span>
-<a id="__codelineno-0-1002" name="__codelineno-0-1002"></a><span class="sd">        A frame in the durations schema of :mod:`msrelapse.io`. It is validated</span>
-<a id="__codelineno-0-1003" name="__codelineno-0-1003"></a><span class="sd">        before use.</span>
-<a id="__codelineno-0-1004" name="__codelineno-0-1004"></a>
-<a id="__codelineno-0-1005" name="__codelineno-0-1005"></a><span class="sd">    Returns</span>
-<a id="__codelineno-0-1006" name="__codelineno-0-1006"></a><span class="sd">    -------</span>
-<a id="__codelineno-0-1007" name="__codelineno-0-1007"></a><span class="sd">    pandas.DataFrame</span>
-<a id="__codelineno-0-1008" name="__codelineno-0-1008"></a><span class="sd">        One row per patient, sorted by ``patient_id``, with the columns</span>
-<a id="__codelineno-0-1009" name="__codelineno-0-1009"></a><span class="sd">        ``patient_id``, ``n_relapses``, ``n_remissions``, ``tau_health``,</span>
-<a id="__codelineno-0-1010" name="__codelineno-0-1010"></a><span class="sd">        ``tau_relapse``, ``barrier_ratio`` and ``beta``. The last two are</span>
-<a id="__codelineno-0-1011" name="__codelineno-0-1011"></a><span class="sd">        missing for a patient with no run of one of the two states, or whose</span>
-<a id="__codelineno-0-1012" name="__codelineno-0-1012"></a><span class="sd">        mean duration in either state is one week or shorter, where the</span>
-<a id="__codelineno-0-1013" name="__codelineno-0-1013"></a><span class="sd">        logarithm of equation (7) is zero or negative and the estimator is</span>
-<a id="__codelineno-0-1014" name="__codelineno-0-1014"></a><span class="sd">        undefined.</span>
-<a id="__codelineno-0-1015" name="__codelineno-0-1015"></a>
-<a id="__codelineno-0-1016" name="__codelineno-0-1016"></a><span class="sd">    Raises</span>
-<a id="__codelineno-0-1017" name="__codelineno-0-1017"></a><span class="sd">    ------</span>
-<a id="__codelineno-0-1018" name="__codelineno-0-1018"></a><span class="sd">    ValueError</span>
-<a id="__codelineno-0-1019" name="__codelineno-0-1019"></a><span class="sd">        If `durations` does not obey the durations schema, or if a patient's</span>
-<a id="__codelineno-0-1020" name="__codelineno-0-1020"></a><span class="sd">        barrier ratio is larger than any potential at the reference alpha can</span>
-<a id="__codelineno-0-1021" name="__codelineno-0-1021"></a><span class="sd">        deliver.</span>
+<span class="normal"><a href="#__codelineno-0-1060">1060</a></span>
+<span class="normal"><a href="#__codelineno-0-1061">1061</a></span>
+<span class="normal"><a href="#__codelineno-0-1062">1062</a></span>
+<span class="normal"><a href="#__codelineno-0-1063">1063</a></span>
+<span class="normal"><a href="#__codelineno-0-1064">1064</a></span>
+<span class="normal"><a href="#__codelineno-0-1065">1065</a></span>
+<span class="normal"><a href="#__codelineno-0-1066">1066</a></span>
+<span class="normal"><a href="#__codelineno-0-1067">1067</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-997" name="__codelineno-0-997"></a><span class="k">def</span><span class="w"> </span><span class="nf">per_patient_params</span><span class="p">(</span><span class="n">durations</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<a id="__codelineno-0-998" name="__codelineno-0-998"></a><span class="w">    </span><span class="sd">"""Return the parameters equation (7) reads off each patient's record.</span>
+<a id="__codelineno-0-999" name="__codelineno-0-999"></a>
+<a id="__codelineno-0-1000" name="__codelineno-0-1000"></a><span class="sd">    The two mean durations are the naive ones, over every recorded run of a</span>
+<a id="__codelineno-0-1001" name="__codelineno-0-1001"></a><span class="sd">    state with no censoring correction, because those are the means the paper</span>
+<a id="__codelineno-0-1002" name="__codelineno-0-1002"></a><span class="sd">    used. The barrier ratio is then equation (7), and the asymmetry is the beta</span>
+<a id="__codelineno-0-1003" name="__codelineno-0-1003"></a><span class="sd">    that delivers that ratio at the reference alpha, which is the fitting rule</span>
+<a id="__codelineno-0-1004" name="__codelineno-0-1004"></a><span class="sd">    of page 6.</span>
+<a id="__codelineno-0-1005" name="__codelineno-0-1005"></a>
+<a id="__codelineno-0-1006" name="__codelineno-0-1006"></a><span class="sd">    Parameters</span>
+<a id="__codelineno-0-1007" name="__codelineno-0-1007"></a><span class="sd">    ----------</span>
+<a id="__codelineno-0-1008" name="__codelineno-0-1008"></a><span class="sd">    durations : pandas.DataFrame</span>
+<a id="__codelineno-0-1009" name="__codelineno-0-1009"></a><span class="sd">        A frame in the durations schema of :mod:`msrelapse.io`. It is validated</span>
+<a id="__codelineno-0-1010" name="__codelineno-0-1010"></a><span class="sd">        before use.</span>
+<a id="__codelineno-0-1011" name="__codelineno-0-1011"></a>
+<a id="__codelineno-0-1012" name="__codelineno-0-1012"></a><span class="sd">    Returns</span>
+<a id="__codelineno-0-1013" name="__codelineno-0-1013"></a><span class="sd">    -------</span>
+<a id="__codelineno-0-1014" name="__codelineno-0-1014"></a><span class="sd">    pandas.DataFrame</span>
+<a id="__codelineno-0-1015" name="__codelineno-0-1015"></a><span class="sd">        One row per patient, sorted by ``patient_id``, with the columns</span>
+<a id="__codelineno-0-1016" name="__codelineno-0-1016"></a><span class="sd">        ``patient_id``, ``n_relapses``, ``n_remissions``, ``tau_health``,</span>
+<a id="__codelineno-0-1017" name="__codelineno-0-1017"></a><span class="sd">        ``tau_relapse``, ``barrier_ratio`` and ``beta``. The last two are</span>
+<a id="__codelineno-0-1018" name="__codelineno-0-1018"></a><span class="sd">        missing for a patient with no run of one of the two states, or whose</span>
+<a id="__codelineno-0-1019" name="__codelineno-0-1019"></a><span class="sd">        mean duration in either state is one week or shorter, where the</span>
+<a id="__codelineno-0-1020" name="__codelineno-0-1020"></a><span class="sd">        logarithm of equation (7) is zero or negative and the estimator is</span>
+<a id="__codelineno-0-1021" name="__codelineno-0-1021"></a><span class="sd">        undefined.</span>
 <a id="__codelineno-0-1022" name="__codelineno-0-1022"></a>
-<a id="__codelineno-0-1023" name="__codelineno-0-1023"></a><span class="sd">    See Also</span>
-<a id="__codelineno-0-1024" name="__codelineno-0-1024"></a><span class="sd">    --------</span>
-<a id="__codelineno-0-1025" name="__codelineno-0-1025"></a><span class="sd">    msrelapse.fit.barrier_ratio : The same estimator over a whole cohort.</span>
-<a id="__codelineno-0-1026" name="__codelineno-0-1026"></a><span class="sd">    """</span>
-<a id="__codelineno-0-1027" name="__codelineno-0-1027"></a>    <span class="n">validate</span><span class="p">(</span><span class="n">durations</span><span class="p">,</span> <span class="s2">"durations"</span><span class="p">)</span>
-<a id="__codelineno-0-1028" name="__codelineno-0-1028"></a>    <span class="n">rows</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-1029" name="__codelineno-0-1029"></a>    <span class="k">for</span> <span class="n">patient</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">durations</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"patient_id"</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-<a id="__codelineno-0-1030" name="__codelineno-0-1030"></a>        <span class="n">relapses</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">group</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span> <span class="o">==</span> <span class="n">_NO_HEALTH</span><span class="p">,</span> <span class="s2">"duration_w"</span><span class="p">]</span>
-<a id="__codelineno-0-1031" name="__codelineno-0-1031"></a>        <span class="n">remissions</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">group</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span> <span class="o">==</span> <span class="n">_HEALTH</span><span class="p">,</span> <span class="s2">"duration_w"</span><span class="p">]</span>
-<a id="__codelineno-0-1032" name="__codelineno-0-1032"></a>        <span class="n">tau_health</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">remissions</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">remissions</span><span class="o">.</span><span class="n">empty</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
-<a id="__codelineno-0-1033" name="__codelineno-0-1033"></a>        <span class="n">tau_relapse</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">relapses</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">relapses</span><span class="o">.</span><span class="n">empty</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
-<a id="__codelineno-0-1034" name="__codelineno-0-1034"></a>        <span class="n">ratio</span> <span class="o">=</span> <span class="n">_barrier_ratio_or_missing</span><span class="p">(</span><span class="n">tau_health</span><span class="p">,</span> <span class="n">tau_relapse</span><span class="p">)</span>
-<a id="__codelineno-0-1035" name="__codelineno-0-1035"></a>        <span class="n">beta</span> <span class="o">=</span> <span class="n">beta_from_barrier_ratio</span><span class="p">(</span><span class="n">ratio</span><span class="p">)</span> <span class="k">if</span> <span class="n">ratio</span> <span class="o">&gt;=</span> <span class="mf">1.0</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
-<a id="__codelineno-0-1036" name="__codelineno-0-1036"></a>        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-<a id="__codelineno-0-1037" name="__codelineno-0-1037"></a>            <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">patient</span><span class="p">),</span> <span class="n">relapses</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">remissions</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">tau_health</span><span class="p">,</span> <span class="n">tau_relapse</span><span class="p">,</span> <span class="n">ratio</span><span class="p">,</span> <span class="n">beta</span><span class="p">)</span>
-<a id="__codelineno-0-1038" name="__codelineno-0-1038"></a>        <span class="p">)</span>
-<a id="__codelineno-0-1039" name="__codelineno-0-1039"></a>    <span class="n">frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-<a id="__codelineno-0-1040" name="__codelineno-0-1040"></a>        <span class="n">rows</span><span class="p">,</span>
-<a id="__codelineno-0-1041" name="__codelineno-0-1041"></a>        <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
-<a id="__codelineno-0-1042" name="__codelineno-0-1042"></a>            <span class="s2">"patient_id"</span><span class="p">,</span>
-<a id="__codelineno-0-1043" name="__codelineno-0-1043"></a>            <span class="s2">"n_relapses"</span><span class="p">,</span>
-<a id="__codelineno-0-1044" name="__codelineno-0-1044"></a>            <span class="s2">"n_remissions"</span><span class="p">,</span>
-<a id="__codelineno-0-1045" name="__codelineno-0-1045"></a>            <span class="s2">"tau_health"</span><span class="p">,</span>
-<a id="__codelineno-0-1046" name="__codelineno-0-1046"></a>            <span class="s2">"tau_relapse"</span><span class="p">,</span>
-<a id="__codelineno-0-1047" name="__codelineno-0-1047"></a>            <span class="s2">"barrier_ratio"</span><span class="p">,</span>
-<a id="__codelineno-0-1048" name="__codelineno-0-1048"></a>            <span class="s2">"beta"</span><span class="p">,</span>
-<a id="__codelineno-0-1049" name="__codelineno-0-1049"></a>        <span class="p">],</span>
-<a id="__codelineno-0-1050" name="__codelineno-0-1050"></a>    <span class="p">)</span>
-<a id="__codelineno-0-1051" name="__codelineno-0-1051"></a>    <span class="k">return</span> <span class="n">frame</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
-<a id="__codelineno-0-1052" name="__codelineno-0-1052"></a>        <span class="p">{</span>
-<a id="__codelineno-0-1053" name="__codelineno-0-1053"></a>            <span class="s2">"n_relapses"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
-<a id="__codelineno-0-1054" name="__codelineno-0-1054"></a>            <span class="s2">"n_remissions"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
-<a id="__codelineno-0-1055" name="__codelineno-0-1055"></a>            <span class="s2">"tau_health"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
-<a id="__codelineno-0-1056" name="__codelineno-0-1056"></a>            <span class="s2">"tau_relapse"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
-<a id="__codelineno-0-1057" name="__codelineno-0-1057"></a>            <span class="s2">"barrier_ratio"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
-<a id="__codelineno-0-1058" name="__codelineno-0-1058"></a>            <span class="s2">"beta"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
-<a id="__codelineno-0-1059" name="__codelineno-0-1059"></a>        <span class="p">}</span>
-<a id="__codelineno-0-1060" name="__codelineno-0-1060"></a>    <span class="p">)</span>
+<a id="__codelineno-0-1023" name="__codelineno-0-1023"></a><span class="sd">    Raises</span>
+<a id="__codelineno-0-1024" name="__codelineno-0-1024"></a><span class="sd">    ------</span>
+<a id="__codelineno-0-1025" name="__codelineno-0-1025"></a><span class="sd">    ValueError</span>
+<a id="__codelineno-0-1026" name="__codelineno-0-1026"></a><span class="sd">        If `durations` does not obey the durations schema, or if a patient's</span>
+<a id="__codelineno-0-1027" name="__codelineno-0-1027"></a><span class="sd">        barrier ratio is larger than any potential at the reference alpha can</span>
+<a id="__codelineno-0-1028" name="__codelineno-0-1028"></a><span class="sd">        deliver.</span>
+<a id="__codelineno-0-1029" name="__codelineno-0-1029"></a>
+<a id="__codelineno-0-1030" name="__codelineno-0-1030"></a><span class="sd">    See Also</span>
+<a id="__codelineno-0-1031" name="__codelineno-0-1031"></a><span class="sd">    --------</span>
+<a id="__codelineno-0-1032" name="__codelineno-0-1032"></a><span class="sd">    msrelapse.fit.barrier_ratio : The same estimator over a whole cohort.</span>
+<a id="__codelineno-0-1033" name="__codelineno-0-1033"></a><span class="sd">    """</span>
+<a id="__codelineno-0-1034" name="__codelineno-0-1034"></a>    <span class="n">validate</span><span class="p">(</span><span class="n">durations</span><span class="p">,</span> <span class="s2">"durations"</span><span class="p">)</span>
+<a id="__codelineno-0-1035" name="__codelineno-0-1035"></a>    <span class="n">rows</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-1036" name="__codelineno-0-1036"></a>    <span class="k">for</span> <span class="n">patient</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">durations</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"patient_id"</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<a id="__codelineno-0-1037" name="__codelineno-0-1037"></a>        <span class="n">relapses</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">group</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span> <span class="o">==</span> <span class="n">_NO_HEALTH</span><span class="p">,</span> <span class="s2">"duration_w"</span><span class="p">]</span>
+<a id="__codelineno-0-1038" name="__codelineno-0-1038"></a>        <span class="n">remissions</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">group</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span> <span class="o">==</span> <span class="n">_HEALTH</span><span class="p">,</span> <span class="s2">"duration_w"</span><span class="p">]</span>
+<a id="__codelineno-0-1039" name="__codelineno-0-1039"></a>        <span class="n">tau_health</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">remissions</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">remissions</span><span class="o">.</span><span class="n">empty</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
+<a id="__codelineno-0-1040" name="__codelineno-0-1040"></a>        <span class="n">tau_relapse</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">relapses</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">relapses</span><span class="o">.</span><span class="n">empty</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
+<a id="__codelineno-0-1041" name="__codelineno-0-1041"></a>        <span class="n">ratio</span> <span class="o">=</span> <span class="n">_barrier_ratio_or_missing</span><span class="p">(</span><span class="n">tau_health</span><span class="p">,</span> <span class="n">tau_relapse</span><span class="p">)</span>
+<a id="__codelineno-0-1042" name="__codelineno-0-1042"></a>        <span class="n">beta</span> <span class="o">=</span> <span class="n">beta_from_barrier_ratio</span><span class="p">(</span><span class="n">ratio</span><span class="p">)</span> <span class="k">if</span> <span class="n">ratio</span> <span class="o">&gt;=</span> <span class="mf">1.0</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
+<a id="__codelineno-0-1043" name="__codelineno-0-1043"></a>        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+<a id="__codelineno-0-1044" name="__codelineno-0-1044"></a>            <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">patient</span><span class="p">),</span> <span class="n">relapses</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">remissions</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">tau_health</span><span class="p">,</span> <span class="n">tau_relapse</span><span class="p">,</span> <span class="n">ratio</span><span class="p">,</span> <span class="n">beta</span><span class="p">)</span>
+<a id="__codelineno-0-1045" name="__codelineno-0-1045"></a>        <span class="p">)</span>
+<a id="__codelineno-0-1046" name="__codelineno-0-1046"></a>    <span class="n">frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<a id="__codelineno-0-1047" name="__codelineno-0-1047"></a>        <span class="n">rows</span><span class="p">,</span>
+<a id="__codelineno-0-1048" name="__codelineno-0-1048"></a>        <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
+<a id="__codelineno-0-1049" name="__codelineno-0-1049"></a>            <span class="s2">"patient_id"</span><span class="p">,</span>
+<a id="__codelineno-0-1050" name="__codelineno-0-1050"></a>            <span class="s2">"n_relapses"</span><span class="p">,</span>
+<a id="__codelineno-0-1051" name="__codelineno-0-1051"></a>            <span class="s2">"n_remissions"</span><span class="p">,</span>
+<a id="__codelineno-0-1052" name="__codelineno-0-1052"></a>            <span class="s2">"tau_health"</span><span class="p">,</span>
+<a id="__codelineno-0-1053" name="__codelineno-0-1053"></a>            <span class="s2">"tau_relapse"</span><span class="p">,</span>
+<a id="__codelineno-0-1054" name="__codelineno-0-1054"></a>            <span class="s2">"barrier_ratio"</span><span class="p">,</span>
+<a id="__codelineno-0-1055" name="__codelineno-0-1055"></a>            <span class="s2">"beta"</span><span class="p">,</span>
+<a id="__codelineno-0-1056" name="__codelineno-0-1056"></a>        <span class="p">],</span>
+<a id="__codelineno-0-1057" name="__codelineno-0-1057"></a>    <span class="p">)</span>
+<a id="__codelineno-0-1058" name="__codelineno-0-1058"></a>    <span class="k">return</span> <span class="n">frame</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
+<a id="__codelineno-0-1059" name="__codelineno-0-1059"></a>        <span class="p">{</span>
+<a id="__codelineno-0-1060" name="__codelineno-0-1060"></a>            <span class="s2">"n_relapses"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+<a id="__codelineno-0-1061" name="__codelineno-0-1061"></a>            <span class="s2">"n_remissions"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+<a id="__codelineno-0-1062" name="__codelineno-0-1062"></a>            <span class="s2">"tau_health"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+<a id="__codelineno-0-1063" name="__codelineno-0-1063"></a>            <span class="s2">"tau_relapse"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+<a id="__codelineno-0-1064" name="__codelineno-0-1064"></a>            <span class="s2">"barrier_ratio"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+<a id="__codelineno-0-1065" name="__codelineno-0-1065"></a>            <span class="s2">"beta"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+<a id="__codelineno-0-1066" name="__codelineno-0-1066"></a>        <span class="p">}</span>
+<a id="__codelineno-0-1067" name="__codelineno-0-1067"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4911,14 +4918,7 @@ delivers).</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/msrelapse/cohort.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1063">1063</a></span>
-<span class="normal"><a href="#__codelineno-0-1064">1064</a></span>
-<span class="normal"><a href="#__codelineno-0-1065">1065</a></span>
-<span class="normal"><a href="#__codelineno-0-1066">1066</a></span>
-<span class="normal"><a href="#__codelineno-0-1067">1067</a></span>
-<span class="normal"><a href="#__codelineno-0-1068">1068</a></span>
-<span class="normal"><a href="#__codelineno-0-1069">1069</a></span>
-<span class="normal"><a href="#__codelineno-0-1070">1070</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1070">1070</a></span>
 <span class="normal"><a href="#__codelineno-0-1071">1071</a></span>
 <span class="normal"><a href="#__codelineno-0-1072">1072</a></span>
 <span class="normal"><a href="#__codelineno-0-1073">1073</a></span>
@@ -4970,66 +4970,73 @@ delivers).</p>
 <span class="normal"><a href="#__codelineno-0-1119">1119</a></span>
 <span class="normal"><a href="#__codelineno-0-1120">1120</a></span>
 <span class="normal"><a href="#__codelineno-0-1121">1121</a></span>
-<span class="normal"><a href="#__codelineno-0-1122">1122</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1063" name="__codelineno-0-1063"></a><span class="k">def</span><span class="w"> </span><span class="nf">paper_patients</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-<a id="__codelineno-0-1064" name="__codelineno-0-1064"></a><span class="w">    </span><span class="sd">"""Return the three worked examples of Section 3.4, recomputed beside the print.</span>
-<a id="__codelineno-0-1065" name="__codelineno-0-1065"></a>
-<a id="__codelineno-0-1066" name="__codelineno-0-1066"></a><span class="sd">    The paper prints, for patients 23, 32 and 53, a pair of mean durations, a</span>
-<a id="__codelineno-0-1067" name="__codelineno-0-1067"></a><span class="sd">    barrier ratio and a fitted asymmetry. The table puts each printed value next</span>
-<a id="__codelineno-0-1068" name="__codelineno-0-1068"></a><span class="sd">    to the value this package computes from its neighbours, so that the</span>
-<a id="__codelineno-0-1069" name="__codelineno-0-1069"></a><span class="sd">    documented inconsistency of patient 23 can be read off a row: the ratio its</span>
-<a id="__codelineno-0-1070" name="__codelineno-0-1070"></a><span class="sd">    two printed durations imply asks for an asymmetry of about 0.256, while the</span>
-<a id="__codelineno-0-1071" name="__codelineno-0-1071"></a><span class="sd">    asymmetry printed beside it delivers a ratio of about 10.8 rather than the</span>
-<a id="__codelineno-0-1072" name="__codelineno-0-1072"></a><span class="sd">    11.8 printed with it. The two rows below it agree to two decimals.</span>
-<a id="__codelineno-0-1073" name="__codelineno-0-1073"></a>
-<a id="__codelineno-0-1074" name="__codelineno-0-1074"></a><span class="sd">    Returns</span>
-<a id="__codelineno-0-1075" name="__codelineno-0-1075"></a><span class="sd">    -------</span>
-<a id="__codelineno-0-1076" name="__codelineno-0-1076"></a><span class="sd">    pandas.DataFrame</span>
-<a id="__codelineno-0-1077" name="__codelineno-0-1077"></a><span class="sd">        One row per patient, with the columns ``patient_id`` (the number printed</span>
-<a id="__codelineno-0-1078" name="__codelineno-0-1078"></a><span class="sd">        in the paper), ``tau_health``, ``tau_relapse``,</span>
-<a id="__codelineno-0-1079" name="__codelineno-0-1079"></a><span class="sd">        ``barrier_ratio_printed``, ``beta_printed``, ``barrier_ratio_from_taus``</span>
-<a id="__codelineno-0-1080" name="__codelineno-0-1080"></a><span class="sd">        (equation (7) applied to the two printed durations), ``beta_from_ratio``</span>
-<a id="__codelineno-0-1081" name="__codelineno-0-1081"></a><span class="sd">        (the asymmetry that delivers that recomputed ratio) and</span>
-<a id="__codelineno-0-1082" name="__codelineno-0-1082"></a><span class="sd">        ``barrier_ratio_from_beta_printed`` (the ratio the printed beta actually</span>
-<a id="__codelineno-0-1083" name="__codelineno-0-1083"></a><span class="sd">        delivers).</span>
-<a id="__codelineno-0-1084" name="__codelineno-0-1084"></a>
-<a id="__codelineno-0-1085" name="__codelineno-0-1085"></a><span class="sd">    Examples</span>
-<a id="__codelineno-0-1086" name="__codelineno-0-1086"></a><span class="sd">    --------</span>
-<a id="__codelineno-0-1087" name="__codelineno-0-1087"></a><span class="sd">    &gt;&gt;&gt; paper_patients()["patient_id"].tolist()</span>
-<a id="__codelineno-0-1088" name="__codelineno-0-1088"></a><span class="sd">    [23, 32, 53]</span>
-<a id="__codelineno-0-1089" name="__codelineno-0-1089"></a><span class="sd">    """</span>
-<a id="__codelineno-0-1090" name="__codelineno-0-1090"></a>    <span class="n">alpha</span> <span class="o">=</span> <span class="n">PAPER</span><span class="o">.</span><span class="n">alpha_reference</span><span class="o">.</span><span class="n">value</span>
-<a id="__codelineno-0-1091" name="__codelineno-0-1091"></a>    <span class="n">rows</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-1092" name="__codelineno-0-1092"></a>    <span class="k">for</span> <span class="n">number</span><span class="p">,</span> <span class="n">health</span><span class="p">,</span> <span class="n">relapse</span><span class="p">,</span> <span class="n">printed_ratio</span><span class="p">,</span> <span class="n">printed_beta</span> <span class="ow">in</span> <span class="n">_PAPER_PATIENTS</span><span class="p">:</span>
-<a id="__codelineno-0-1093" name="__codelineno-0-1093"></a>        <span class="n">tau_health</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">health</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
-<a id="__codelineno-0-1094" name="__codelineno-0-1094"></a>        <span class="n">tau_relapse</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">relapse</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
-<a id="__codelineno-0-1095" name="__codelineno-0-1095"></a>        <span class="n">beta</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">printed_beta</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
-<a id="__codelineno-0-1096" name="__codelineno-0-1096"></a>        <span class="n">from_taus</span> <span class="o">=</span> <span class="n">barrier_ratio_from_durations</span><span class="p">(</span><span class="n">tau_health</span><span class="p">,</span> <span class="n">tau_relapse</span><span class="p">)</span>
-<a id="__codelineno-0-1097" name="__codelineno-0-1097"></a>        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-<a id="__codelineno-0-1098" name="__codelineno-0-1098"></a>            <span class="p">(</span>
-<a id="__codelineno-0-1099" name="__codelineno-0-1099"></a>                <span class="n">number</span><span class="p">,</span>
-<a id="__codelineno-0-1100" name="__codelineno-0-1100"></a>                <span class="n">tau_health</span><span class="p">,</span>
-<a id="__codelineno-0-1101" name="__codelineno-0-1101"></a>                <span class="n">tau_relapse</span><span class="p">,</span>
-<a id="__codelineno-0-1102" name="__codelineno-0-1102"></a>                <span class="nb">float</span><span class="p">(</span><span class="n">printed_ratio</span><span class="o">.</span><span class="n">value</span><span class="p">),</span>
-<a id="__codelineno-0-1103" name="__codelineno-0-1103"></a>                <span class="n">beta</span><span class="p">,</span>
-<a id="__codelineno-0-1104" name="__codelineno-0-1104"></a>                <span class="n">from_taus</span><span class="p">,</span>
-<a id="__codelineno-0-1105" name="__codelineno-0-1105"></a>                <span class="n">beta_from_barrier_ratio</span><span class="p">(</span><span class="n">from_taus</span><span class="p">,</span> <span class="n">alpha</span><span class="p">),</span>
-<a id="__codelineno-0-1106" name="__codelineno-0-1106"></a>                <span class="n">DoubleWell</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">)</span><span class="o">.</span><span class="n">barrier_ratio</span><span class="p">(),</span>
-<a id="__codelineno-0-1107" name="__codelineno-0-1107"></a>            <span class="p">)</span>
-<a id="__codelineno-0-1108" name="__codelineno-0-1108"></a>        <span class="p">)</span>
-<a id="__codelineno-0-1109" name="__codelineno-0-1109"></a>    <span class="n">frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-<a id="__codelineno-0-1110" name="__codelineno-0-1110"></a>        <span class="n">rows</span><span class="p">,</span>
-<a id="__codelineno-0-1111" name="__codelineno-0-1111"></a>        <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
-<a id="__codelineno-0-1112" name="__codelineno-0-1112"></a>            <span class="s2">"patient_id"</span><span class="p">,</span>
-<a id="__codelineno-0-1113" name="__codelineno-0-1113"></a>            <span class="s2">"tau_health"</span><span class="p">,</span>
-<a id="__codelineno-0-1114" name="__codelineno-0-1114"></a>            <span class="s2">"tau_relapse"</span><span class="p">,</span>
-<a id="__codelineno-0-1115" name="__codelineno-0-1115"></a>            <span class="s2">"barrier_ratio_printed"</span><span class="p">,</span>
-<a id="__codelineno-0-1116" name="__codelineno-0-1116"></a>            <span class="s2">"beta_printed"</span><span class="p">,</span>
-<a id="__codelineno-0-1117" name="__codelineno-0-1117"></a>            <span class="s2">"barrier_ratio_from_taus"</span><span class="p">,</span>
-<a id="__codelineno-0-1118" name="__codelineno-0-1118"></a>            <span class="s2">"beta_from_ratio"</span><span class="p">,</span>
-<a id="__codelineno-0-1119" name="__codelineno-0-1119"></a>            <span class="s2">"barrier_ratio_from_beta_printed"</span><span class="p">,</span>
-<a id="__codelineno-0-1120" name="__codelineno-0-1120"></a>        <span class="p">],</span>
-<a id="__codelineno-0-1121" name="__codelineno-0-1121"></a>    <span class="p">)</span>
-<a id="__codelineno-0-1122" name="__codelineno-0-1122"></a>    <span class="k">return</span> <span class="n">frame</span><span class="o">.</span><span class="n">astype</span><span class="p">({</span><span class="s2">"patient_id"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">})</span>
+<span class="normal"><a href="#__codelineno-0-1122">1122</a></span>
+<span class="normal"><a href="#__codelineno-0-1123">1123</a></span>
+<span class="normal"><a href="#__codelineno-0-1124">1124</a></span>
+<span class="normal"><a href="#__codelineno-0-1125">1125</a></span>
+<span class="normal"><a href="#__codelineno-0-1126">1126</a></span>
+<span class="normal"><a href="#__codelineno-0-1127">1127</a></span>
+<span class="normal"><a href="#__codelineno-0-1128">1128</a></span>
+<span class="normal"><a href="#__codelineno-0-1129">1129</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1070" name="__codelineno-0-1070"></a><span class="k">def</span><span class="w"> </span><span class="nf">paper_patients</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<a id="__codelineno-0-1071" name="__codelineno-0-1071"></a><span class="w">    </span><span class="sd">"""Return the three worked examples of Section 3.4, recomputed beside the print.</span>
+<a id="__codelineno-0-1072" name="__codelineno-0-1072"></a>
+<a id="__codelineno-0-1073" name="__codelineno-0-1073"></a><span class="sd">    The paper prints, for patients 23, 32 and 53, a pair of mean durations, a</span>
+<a id="__codelineno-0-1074" name="__codelineno-0-1074"></a><span class="sd">    barrier ratio and a fitted asymmetry. The table puts each printed value next</span>
+<a id="__codelineno-0-1075" name="__codelineno-0-1075"></a><span class="sd">    to the value this package computes from its neighbours, so that the</span>
+<a id="__codelineno-0-1076" name="__codelineno-0-1076"></a><span class="sd">    documented inconsistency of patient 23 can be read off a row: the ratio its</span>
+<a id="__codelineno-0-1077" name="__codelineno-0-1077"></a><span class="sd">    two printed durations imply asks for an asymmetry of about 0.256, while the</span>
+<a id="__codelineno-0-1078" name="__codelineno-0-1078"></a><span class="sd">    asymmetry printed beside it delivers a ratio of about 10.8 rather than the</span>
+<a id="__codelineno-0-1079" name="__codelineno-0-1079"></a><span class="sd">    11.8 printed with it. The two rows below it agree to two decimals.</span>
+<a id="__codelineno-0-1080" name="__codelineno-0-1080"></a>
+<a id="__codelineno-0-1081" name="__codelineno-0-1081"></a><span class="sd">    Returns</span>
+<a id="__codelineno-0-1082" name="__codelineno-0-1082"></a><span class="sd">    -------</span>
+<a id="__codelineno-0-1083" name="__codelineno-0-1083"></a><span class="sd">    pandas.DataFrame</span>
+<a id="__codelineno-0-1084" name="__codelineno-0-1084"></a><span class="sd">        One row per patient, with the columns ``patient_id`` (the number printed</span>
+<a id="__codelineno-0-1085" name="__codelineno-0-1085"></a><span class="sd">        in the paper), ``tau_health``, ``tau_relapse``,</span>
+<a id="__codelineno-0-1086" name="__codelineno-0-1086"></a><span class="sd">        ``barrier_ratio_printed``, ``beta_printed``, ``barrier_ratio_from_taus``</span>
+<a id="__codelineno-0-1087" name="__codelineno-0-1087"></a><span class="sd">        (equation (7) applied to the two printed durations), ``beta_from_ratio``</span>
+<a id="__codelineno-0-1088" name="__codelineno-0-1088"></a><span class="sd">        (the asymmetry that delivers that recomputed ratio) and</span>
+<a id="__codelineno-0-1089" name="__codelineno-0-1089"></a><span class="sd">        ``barrier_ratio_from_beta_printed`` (the ratio the printed beta actually</span>
+<a id="__codelineno-0-1090" name="__codelineno-0-1090"></a><span class="sd">        delivers).</span>
+<a id="__codelineno-0-1091" name="__codelineno-0-1091"></a>
+<a id="__codelineno-0-1092" name="__codelineno-0-1092"></a><span class="sd">    Examples</span>
+<a id="__codelineno-0-1093" name="__codelineno-0-1093"></a><span class="sd">    --------</span>
+<a id="__codelineno-0-1094" name="__codelineno-0-1094"></a><span class="sd">    &gt;&gt;&gt; paper_patients()["patient_id"].tolist()</span>
+<a id="__codelineno-0-1095" name="__codelineno-0-1095"></a><span class="sd">    [23, 32, 53]</span>
+<a id="__codelineno-0-1096" name="__codelineno-0-1096"></a><span class="sd">    """</span>
+<a id="__codelineno-0-1097" name="__codelineno-0-1097"></a>    <span class="n">alpha</span> <span class="o">=</span> <span class="n">PAPER</span><span class="o">.</span><span class="n">alpha_reference</span><span class="o">.</span><span class="n">value</span>
+<a id="__codelineno-0-1098" name="__codelineno-0-1098"></a>    <span class="n">rows</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-1099" name="__codelineno-0-1099"></a>    <span class="k">for</span> <span class="n">number</span><span class="p">,</span> <span class="n">health</span><span class="p">,</span> <span class="n">relapse</span><span class="p">,</span> <span class="n">printed_ratio</span><span class="p">,</span> <span class="n">printed_beta</span> <span class="ow">in</span> <span class="n">_PAPER_PATIENTS</span><span class="p">:</span>
+<a id="__codelineno-0-1100" name="__codelineno-0-1100"></a>        <span class="n">tau_health</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">health</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<a id="__codelineno-0-1101" name="__codelineno-0-1101"></a>        <span class="n">tau_relapse</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">relapse</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<a id="__codelineno-0-1102" name="__codelineno-0-1102"></a>        <span class="n">beta</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">printed_beta</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<a id="__codelineno-0-1103" name="__codelineno-0-1103"></a>        <span class="n">from_taus</span> <span class="o">=</span> <span class="n">barrier_ratio_from_durations</span><span class="p">(</span><span class="n">tau_health</span><span class="p">,</span> <span class="n">tau_relapse</span><span class="p">)</span>
+<a id="__codelineno-0-1104" name="__codelineno-0-1104"></a>        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+<a id="__codelineno-0-1105" name="__codelineno-0-1105"></a>            <span class="p">(</span>
+<a id="__codelineno-0-1106" name="__codelineno-0-1106"></a>                <span class="n">number</span><span class="p">,</span>
+<a id="__codelineno-0-1107" name="__codelineno-0-1107"></a>                <span class="n">tau_health</span><span class="p">,</span>
+<a id="__codelineno-0-1108" name="__codelineno-0-1108"></a>                <span class="n">tau_relapse</span><span class="p">,</span>
+<a id="__codelineno-0-1109" name="__codelineno-0-1109"></a>                <span class="nb">float</span><span class="p">(</span><span class="n">printed_ratio</span><span class="o">.</span><span class="n">value</span><span class="p">),</span>
+<a id="__codelineno-0-1110" name="__codelineno-0-1110"></a>                <span class="n">beta</span><span class="p">,</span>
+<a id="__codelineno-0-1111" name="__codelineno-0-1111"></a>                <span class="n">from_taus</span><span class="p">,</span>
+<a id="__codelineno-0-1112" name="__codelineno-0-1112"></a>                <span class="n">beta_from_barrier_ratio</span><span class="p">(</span><span class="n">from_taus</span><span class="p">,</span> <span class="n">alpha</span><span class="p">),</span>
+<a id="__codelineno-0-1113" name="__codelineno-0-1113"></a>                <span class="n">DoubleWell</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">)</span><span class="o">.</span><span class="n">barrier_ratio</span><span class="p">(),</span>
+<a id="__codelineno-0-1114" name="__codelineno-0-1114"></a>            <span class="p">)</span>
+<a id="__codelineno-0-1115" name="__codelineno-0-1115"></a>        <span class="p">)</span>
+<a id="__codelineno-0-1116" name="__codelineno-0-1116"></a>    <span class="n">frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<a id="__codelineno-0-1117" name="__codelineno-0-1117"></a>        <span class="n">rows</span><span class="p">,</span>
+<a id="__codelineno-0-1118" name="__codelineno-0-1118"></a>        <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
+<a id="__codelineno-0-1119" name="__codelineno-0-1119"></a>            <span class="s2">"patient_id"</span><span class="p">,</span>
+<a id="__codelineno-0-1120" name="__codelineno-0-1120"></a>            <span class="s2">"tau_health"</span><span class="p">,</span>
+<a id="__codelineno-0-1121" name="__codelineno-0-1121"></a>            <span class="s2">"tau_relapse"</span><span class="p">,</span>
+<a id="__codelineno-0-1122" name="__codelineno-0-1122"></a>            <span class="s2">"barrier_ratio_printed"</span><span class="p">,</span>
+<a id="__codelineno-0-1123" name="__codelineno-0-1123"></a>            <span class="s2">"beta_printed"</span><span class="p">,</span>
+<a id="__codelineno-0-1124" name="__codelineno-0-1124"></a>            <span class="s2">"barrier_ratio_from_taus"</span><span class="p">,</span>
+<a id="__codelineno-0-1125" name="__codelineno-0-1125"></a>            <span class="s2">"beta_from_ratio"</span><span class="p">,</span>
+<a id="__codelineno-0-1126" name="__codelineno-0-1126"></a>            <span class="s2">"barrier_ratio_from_beta_printed"</span><span class="p">,</span>
+<a id="__codelineno-0-1127" name="__codelineno-0-1127"></a>        <span class="p">],</span>
+<a id="__codelineno-0-1128" name="__codelineno-0-1128"></a>    <span class="p">)</span>
+<a id="__codelineno-0-1129" name="__codelineno-0-1129"></a>    <span class="k">return</span> <span class="n">frame</span><span class="o">.</span><span class="n">astype</span><span class="p">({</span><span class="s2">"patient_id"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">})</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

@@ -1098,23 +1098,25 @@ result object carries its citation, so that a number copied out of a session
 can be traced back to the source. <a href="citing/">Citing</a> has the reference and the
 BibTeX entries.</p>
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uv<span class="w"> </span>add<span class="w"> </span>msrelapse<span class="w">          </span><span class="c1"># in a uv project</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>pip<span class="w"> </span>install<span class="w"> </span>msrelapse<span class="w">     </span><span class="c1"># anywhere else</span>
+<p>There has been no release yet, so until the first one the package installs from
+a clone of the repository:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>multiple-sclerosiss-modeling-bordi
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>uv<span class="w"> </span>sync<span class="w"> </span>--all-extras
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>uv<span class="w"> </span>run<span class="w"> </span>--all-extras<span class="w"> </span>pytest
+</code></pre></div>
+<p>From the first release on it will install from PyPI as well:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>add<span class="w"> </span>msrelapse<span class="w">          </span><span class="c1"># in a uv project</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pip<span class="w"> </span>install<span class="w"> </span>msrelapse<span class="w">     </span><span class="c1"># anywhere else</span>
 </code></pre></div>
 <p>The core install needs numpy, scipy and pandas only. Two extras are available:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"msrelapse[plot]"</span><span class="w">   </span><span class="c1"># matplotlib, for msrelapse.plots</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"msrelapse[fast]"</span><span class="w">   </span><span class="c1"># numba, for the compiled integration kernels</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"msrelapse[all]"</span><span class="w">    </span><span class="c1"># both</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"msrelapse[plot]"</span><span class="w">   </span><span class="c1"># matplotlib, for msrelapse.plots</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"msrelapse[fast]"</span><span class="w">   </span><span class="c1"># numba, for the compiled integration kernels</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"msrelapse[all]"</span><span class="w">    </span><span class="c1"># both</span>
 </code></pre></div>
 <p>Neither extra changes a result. Without <code>plot</code> every function that draws raises
 with the name of the extra to install; without <code>fast</code> the same integration runs
 in numpy.</p>
-<p>From a clone of the repository:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/renato-umeton/multiple-sclerosiss-modeling-bordi
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nb">cd</span><span class="w"> </span>multiple-sclerosiss-modeling-bordi
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>uv<span class="w"> </span>sync<span class="w"> </span>--all-extras
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>uv<span class="w"> </span>run<span class="w"> </span>--all-extras<span class="w"> </span>pytest
-</code></pre></div>
 <h2 id="quick-start">Quick start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">msrelapse</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ms</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
