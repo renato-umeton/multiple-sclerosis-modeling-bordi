@@ -17,6 +17,8 @@ from scipy import stats
 from msrelapse import _citation, fit, io
 from msrelapse._params import PAPER
 from msrelapse.renewal import alternating_renewal, gamma_rates, rates_from_means
+from msrelapse.stats import _DISPERSION_COLLAPSE as STATS_DISPERSION_COLLAPSE
+from msrelapse.stats import _LOGLIK_GAIN as STATS_LOGLIK_GAIN
 
 RELAPSE = PAPER.state_no_health.value
 REMISSION = PAPER.state_health.value
@@ -97,6 +99,23 @@ EDGE_COUNTS = (
     (13, 17, 11, 8, 9, 7, 7, 9, 6, 7, 8, 6, 11, 12, 9, 7, 5),
     (12, 14, 11, 14, 9, 3, 9, 6, 11, 7, 8, 12, 10, 7, 12, 5, 9),
 )
+
+# Twenty nine counts drawn from a Poisson of mean 3, written as a tally: the
+# relapse counts and how many patients carry each of them, two with none, six
+# with one, eight with two and so on. Their population variance exceeds their
+# mean by four parts in ten thousand, so they clear the screen and the search
+# runs, and it settles here on a dispersion of about 1.8e-4, far above the one a
+# fitted dispersion is read as a collapse at. What no dispersion above that
+# threshold buys them is a likelihood: the best any of them can do is 1.6e-6 of
+# log likelihood over the Poisson fit, against the 2.9e-5 that twenty nine
+# patients ask for, so the fit is the Poisson one wherever the search stops.
+POISSON_COHORT_COUNTS = (0, 1, 2, 3, 4, 5, 6)
+POISSON_COHORT_PATIENTS = (2, 6, 8, 5, 4, 2, 2)
+
+# Dispersion a search walking to nothing has been seen to stall at. It is above
+# the numerical floor of the arithmetic and below the threshold that reads such
+# a stall as the collapse it is.
+STALLED_DISPERSION = 2e-8
 
 # The injected cycle of the periodicity fixtures: a four week relapse once a
 # year over ten years of weekly follow up, with a phase of its own per patient
@@ -1326,6 +1345,11 @@ def test_negative_binomial_counts_recover_the_dispersion() -> None:
     assert result.p_value < 0.001
     assert result.dispersion_ci[0] < result.dispersion < result.dispersion_ci[1]
     assert result.p_value == pytest.approx(0.5 * float(stats.chi2.sf(result.lrt_statistic, 1)))
+    # The statistic is twice the gain in log likelihood, the factor every
+    # likelihood ratio test carries, and the two log likelihoods it is built from
+    # are both reported. A statistic out by that factor would reach callers
+    # through the p value alone, where nothing above can see it.
+    assert result.lrt_statistic == pytest.approx(2.0 * (result.loglik_nb - result.loglik_poisson))
 
 
 def test_negative_binomial_poisson_loglikelihood_is_the_one_of_the_sample_mean() -> None:
@@ -1385,13 +1409,11 @@ def test_no_poisson_cohort_of_the_size_of_the_study_fails_to_fit() -> None:
 
 def test_a_barely_identified_dispersion_does_not_break_the_fit() -> None:
     # The population variance of these seventeen counts exceeds their mean by so
-    # little that the maximiser sits just inside the boundary. The log scale then
-    # leaves the dispersion with a Wald half width of several hundred, which has
-    # no exponential in float64, and the interval saturates at (0, inf) rather
-    # than taking a fit that succeeded down with an OverflowError. Whether such a
-    # cohort settles just inside the boundary or on it is the optimiser's
-    # business; what it may not do is raise, and the likelihood ratio statistic
-    # reports the same absence of overdispersion either way.
+    # little that the maximiser sits just inside the boundary, where the whole
+    # likelihood surface is worth a few parts in a million over the Poisson fit.
+    # Whether such a cohort settles just inside the boundary or on it is the
+    # optimiser's business; what it may not do is raise, and the likelihood ratio
+    # statistic reports the same absence of overdispersion either way.
     counts = np.array([2, 3, 6, 6, 7, 8, 9, 9, 9, 9, 10, 10, 10, 11, 12, 12, 13], dtype=np.int64)
     assert float(counts.var()) > float(counts.mean())
     result = fit.fit_nb_counts(counts)
@@ -1401,13 +1423,13 @@ def test_a_barely_identified_dispersion_does_not_break_the_fit() -> None:
     assert result.mean == pytest.approx(float(counts.mean()), rel=1e-6)
 
 
-def test_overdispersion_below_the_floor_is_fitted_as_poisson() -> None:
+def test_overdispersion_below_the_collapse_threshold_is_fitted_as_poisson() -> None:
     # The dispersion of a cohort of whole counts is the population variance less
     # the mean, over the square of the mean, and for two counts that works out as
     # ((a - b)**2 - 2 (a + b)) / (a + b)**2. At a - b = 300 and a + b = 44998 the
     # numerator is 4 and the dispersion is about 2e-9, which clears the variance
-    # screen and is still below the floor no model can see past. The maximiser
-    # stays there, so the fit is the Poisson one.
+    # screen and is still far below the dispersion a fitted search is read as a
+    # collapse at. The maximiser stays there, so the fit is the Poisson one.
     counts = np.array([22649, 22349], dtype=np.int64)
     assert float(counts.var()) > float(counts.mean())
     result = fit.fit_nb_counts(counts)
@@ -1444,6 +1466,79 @@ def test_a_dispersion_the_information_cannot_pin_down_is_fitted_as_poisson(
     assert result.loglik_nb == result.loglik_poisson
     assert result.mean == float(counts.mean())
     assert result.n == counts.size
+
+
+def test_a_poisson_cohort_whose_fit_buys_no_likelihood_is_fitted_as_poisson() -> None:
+    # The second reading of a collapsed search, and the one a cohort reaches on
+    # its own: the counts clear the variance screen, the search settles well
+    # above the dispersion a fit is read as collapsed at, and what it settled on
+    # buys less log likelihood over the Poisson fit than the patients paid for
+    # it. Reading the dispersion alone would report a fitted dispersion here, and
+    # would report a different one on a platform whose search stopped elsewhere.
+    counts = np.repeat(POISSON_COHORT_COUNTS, POISSON_COHORT_PATIENTS)
+    values = counts.astype(np.float64)
+    assert float(values.var()) > float(values.mean())
+
+    result = fit.fit_nb_counts(counts)
+    assert result.dispersion == 0.0
+    assert result.dispersion_ci == (0.0, 0.0)
+    assert result.p_value == 1.0
+    assert result.lrt_statistic == 0.0
+    assert result.loglik_nb == result.loglik_poisson
+    assert result.mean == float(values.mean())
+
+
+def test_a_search_that_stalls_just_above_the_numerical_floor_is_read_as_a_collapse(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The dispersion reading of a collapsed search, on its own. Where a search on
+    # a cohort whose dispersion is walking to nothing stops is not the same place
+    # on every platform, and a stall a hair above the floor of the arithmetic is
+    # the same collapse as an arrival a hair below it. Which of the two a
+    # platform produces is not something a test can arrange, so the stall is
+    # monkeypatched in.
+    #
+    # The stalled fit is made to buy twice the log likelihood the patients ask
+    # for, so that the likelihood reading cannot collapse it and the dispersion
+    # is the only reading left. A gain that size is not an artificial one: at a
+    # dispersion this small the difference of the two log likelihoods is rounding
+    # rather than signal, and on the twenty nine counts of the Poisson cohort
+    # above it reads five times the bound near a dispersion of 3e-10.
+    counts = np.array([0, 0, 5, 5, 1, 9], dtype=np.int64)
+    values = counts.astype(np.float64)
+    stalled = np.array([math.log(float(values.mean())), math.log(STALLED_DISPERSION)])
+    loglik_poisson = fit._poisson_loglik(values, float(values.mean()))
+
+    def stalled_minimize(
+        fun: object,
+        x0: npt.NDArray[np.float64],
+        *,
+        args: tuple[npt.NDArray[np.float64]],
+        jac: object,
+        method: str,
+    ) -> types.SimpleNamespace:
+        return types.SimpleNamespace(
+            x=stalled, fun=-(loglik_poisson + 2.0 * fit._LOGLIK_GAIN * values.size)
+        )
+
+    assert fit.fit_nb_counts(counts).dispersion > STALLED_DISPERSION
+    monkeypatch.setattr(fit, "optimize", types.SimpleNamespace(minimize=stalled_minimize))
+
+    result = fit.fit_nb_counts(counts)
+    assert result.dispersion == 0.0
+    assert result.dispersion_ci == (0.0, 0.0)
+    assert result.p_value == 1.0
+    assert result.lrt_statistic == 0.0
+    assert result.loglik_nb == result.loglik_poisson
+
+
+def test_the_collapse_rule_is_the_one_msrelapse_stats_applies() -> None:
+    # Both modules fit the same NB2 likelihood and both have to decide when a
+    # search has collapsed onto the Poisson fit. They read that off the same two
+    # thresholds, so that a cohort does not come back overdispersed from one and
+    # Poisson from the other.
+    assert fit._DISPERSION_COLLAPSE == STATS_DISPERSION_COLLAPSE
+    assert fit._LOGLIK_GAIN == STATS_LOGLIK_GAIN
 
 
 def test_a_cohort_with_no_relapse_is_not_overdispersed() -> None:

@@ -59,6 +59,11 @@ import pandas as pd
 from scipy import optimize, special, stats
 
 from msrelapse import _citation
+
+# ``stats`` is scipy's throughout this module, so the trial statistics of the
+# package are reached under a name of their own. Nothing in that module imports
+# this one, so the dependency runs one way only and no import cycle arises.
+from msrelapse import stats as trial_stats
 from msrelapse._params import PAPER
 from msrelapse.io import validate
 from msrelapse.model import barrier_ratio_from_durations
@@ -160,9 +165,14 @@ _LOG_DISPERSION: Final = 1
 # error stays at the square of the step.
 _HESSIAN_STEP: Final = 1e-5
 
-# Below this a negative binomial is a Poisson and its dispersion reads 0, as in
-# ``msrelapse.stats``.
-_DISPERSION_FLOOR: Final = 1e-8
+# The two readings of a collapsed negative binomial search: the dispersion at or
+# below which a fitted one is read as a Poisson, and the log likelihood per
+# patient a fitted dispersion has to buy over the Poisson fit to be kept. Both
+# are taken from ``msrelapse.stats``, which applies them to the same likelihood
+# and documents what each is set at and why, rather than written down again here
+# where the two could drift apart.
+_DISPERSION_COLLAPSE: Final = trial_stats._DISPERSION_COLLAPSE
+_LOGLIK_GAIN: Final = trial_stats._LOGLIK_GAIN
 
 # Bound on the log dispersion the count likelihood is read at, again as in
 # ``msrelapse.stats``. The likelihood divides by the dispersion, which
@@ -396,8 +406,12 @@ class NBFit:
     dispersion_ci : tuple of float
         95 percent Wald interval for `dispersion`, built on the log scale.
         ``(0.0, 0.0)`` when the counts are not overdispersed, and ``(0.0, inf)``
-        when they are overdispersed by so little that the interval is wider than
-        float64 can exponentiate.
+        when the half width of the interval is too large for float64 to
+        exponentiate. The second is what a half width of several hundred on the
+        log scale reads as; few cohorts reach it, because a fit that flat buys
+        too little likelihood over the Poisson one to pass the collapse rule of
+        [`fit_nb_counts`][msrelapse.fit.fit_nb_counts] and is reported as a
+        Poisson instead.
     loglik_nb : float
         Log likelihood of the negative binomial fit.
     loglik_poisson : float
@@ -1136,12 +1150,27 @@ def fit_nb_counts(counts: pd.Series[int] | npt.ArrayLike) -> NBFit:
     quantities part company by that much. It then asks its own quantity to
     clear its dispersion floor rather than merely to be positive, because it
     starts its search from it and a start below the floor has nowhere to go.
+    Once the search has run, the two modules read a collapse off the same two
+    thresholds, the ones the paragraph below describes, which are imported from
+    that module rather than written down again here.
 
-    A cohort screened out that way, or one whose search settles on a dispersion
-    no model can tell from zero, or one whose observed information leaves the log
-    dispersion without positive curvature, gets a dispersion of exactly zero, a p
-    value of 1 and the degenerate interval ``(0.0, 0.0)``. A cohort in which
-    nobody relapsed is the extreme of that case and a legitimate one, of a short
+    A cohort the variance screen above turns away gets a dispersion of exactly
+    zero, a p value of 1 and the degenerate interval ``(0.0, 0.0)``, and so does
+    a search that runs and then arrives at nothing, on any of three readings: a
+    dispersion at or below the ``_DISPERSION_COLLAPSE`` of that module, where the
+    spread a dispersion adds to a count is far below the sampling noise of any
+    cohort; an observed information that leaves the log dispersion without the
+    positive curvature a Wald interval needs; or a likelihood no better than the
+    Poisson one by more than its ``_LOGLIK_GAIN`` for each patient. What each of
+    the two is set at, and why, is written down there. Three readings rather than
+    one because the search stops where the likelihood stops moving, and that is
+    not the same place on every platform, while a dispersion no model can tell
+    from zero is a collapse wherever the search stopped. The last is counted per
+    patient because the difference of the two log likelihoods carries a rounding
+    error that grows with the cohort, and what it discards is a dispersion a few
+    hundredths of a standard error from zero, which no cohort below a few
+    hundred thousand patients can resolve. A cohort in which nobody relapsed is
+    the extreme of the screened out case, and a legitimate one, of a short
     counting window or a mild cohort: its mean, dispersion and both log
     likelihoods are all zero.
 
@@ -1190,21 +1219,29 @@ def fit_nb_counts(counts: pd.Series[int] | npt.ArrayLike) -> NBFit:
     fitted = np.asarray(best.x, dtype=np.float64)
     # The screen above settles the question for data the likelihood agrees with,
     # since the maximum likelihood dispersion is zero exactly when the moment one
-    # is. These two checks catch the search rather than the data: a cohort whose
-    # two variances straddle its mean by a rounding bit passes the screen and is
-    # then walked to the boundary, where the dispersion is no longer distinct
-    # from zero and its curvature no longer distinct from noise. Both outcomes
-    # are the Poisson fit, as in msrelapse.stats.
+    # is. The three checks that follow catch the search rather than the data: a
+    # cohort whose two variances straddle its mean by a rounding bit passes the
+    # screen and is then walked to the boundary, where the dispersion is no
+    # longer distinct from zero and its curvature no longer distinct from noise.
+    # Each of them is the Poisson fit, and the two thresholds behind them are the
+    # ones msrelapse.stats reads the same collapse off.
     dispersion = math.exp(
         _bounded_log_parameter(float(fitted[_LOG_DISPERSION]), _LOG_DISPERSION_LIMIT)
     )
-    if dispersion <= _DISPERSION_FLOOR:
+    if dispersion <= _DISPERSION_COLLAPSE:
         return poisson
     standard_error = _log_dispersion_standard_error(fitted, values)
     if standard_error is None:
         return poisson
     loglik_nb = -float(best.fun)
-    statistic = max(2.0 * (loglik_nb - loglik_poisson), 0.0)
+    # What the dispersion bought, in log likelihood units, against the Poisson
+    # fit at its own maximum. The gain is weighed per patient, because the
+    # difference of two log likelihoods carries a rounding error that grows with
+    # the cohort; msrelapse.stats._LOGLIK_GAIN says how far the bound reaches.
+    gain = loglik_nb - loglik_poisson
+    if gain <= _LOGLIK_GAIN * values.size:
+        return poisson
+    statistic = 2.0 * gain
     return NBFit(
         mean=mean,
         dispersion=dispersion,
