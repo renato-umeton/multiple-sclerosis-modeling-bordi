@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/reproducing/">
       
       
-        <link rel="prev" href="../theory/">
+        <link rel="prev" href="../disability/">
       
       
         <link rel="next" href="../data/">
@@ -315,6 +315,33 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../disability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Disability trajectory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -563,10 +590,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
             
   
   
@@ -584,8 +611,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -834,6 +861,34 @@
     
   
     datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/edss/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    edss
   
 
     
@@ -1447,9 +1502,17 @@ record. The command writes <code>docs/assets/double_well.gif</code>, 260 frames 
 1.4 MB in all, and the contact sheet beside it, which is four evenly spaced
 frames of the finished file as a static PNG for a reader who would rather not
 play it. <code>--weeks</code>, <code>--fps</code> and <code>--dpi</code> change how long the animation runs and
-how large the file is. The bottom panel of the animation is an illustrative
-disability proxy, the running count of weeks spent in relapse, and no clinical
-disability score is modelled anywhere in this package.</p>
+how large the file is.</p>
+<p>The bottom panel is the EDSS trace of <code>msrelapse.edss_trajectory</code>, an
+illustrative trajectory driven by the same weekly series and built from the
+literature that followed the article rather than from the article, which
+reports no disability score of any kind. The seed is unchanged: 4 is still the
+seed the committed file is written under, and it still gives the same path, the
+same weekly series and the same two upper panels as it did when the bottom
+panel was the running count of weeks spent in relapse. What the trace is, what
+each of its parameters rests on and what it cannot be used for are on
+<a href="../disability/">Disability trajectory</a>. Nothing in that panel is a clinical
+score.</p>
 <h2 id="the-four-notebooks">The four notebooks<a class="headerlink" href="#the-four-notebooks" title="Permanent link">&para;</a></h2>
 <p>They live in <code>notebooks/</code> and are committed executed, with their outputs in
 place, so that a reader who opens one on GitHub sees the figures and the tables

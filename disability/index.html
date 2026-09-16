@@ -1,0 +1,2103 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Stochastic double-well model of relapsing-remitting multiple sclerosis (Bordi et al. 2013)">
+      
+      
+      
+        <link rel="canonical" href="https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/disability/">
+      
+      
+        <link rel="prev" href="../theory/">
+      
+      
+        <link rel="next" href="../reproducing/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Disability trajectory - msrelapse</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#disability-trajectory-illustrative-extension" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="msrelapse" class="md-header__button md-logo" aria-label="msrelapse" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            msrelapse
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Disability trajectory
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    renato-umeton/multiple-sclerosis-modeling-bordi
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="msrelapse" class="md-nav__button md-logo" aria-label="msrelapse" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    msrelapse
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    renato-umeton/multiple-sclerosis-modeling-bordi
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../theory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Theory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Disability trajectory
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Disability trajectory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#drawing-the-peak-and-the-residual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Drawing the peak and the residual
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-defaults" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The defaults
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-parameters-and-their-sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The parameters and their sources
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-rests-on-evidence-and-what-is-a-judgement-call" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What rests on evidence and what is a judgement call
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-first-relapse-looks-like-in-the-trace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the first relapse looks like in the trace
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-long-run-anchors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The long run anchors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caveats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caveats
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-the-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using the function
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reproducing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reproducing the paper
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paper_facts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paper facts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design decisions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/simulate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    simulate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/renewal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    renewal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/cohort/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cohort
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/fit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    fit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/stats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    stats
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/io/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    io
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/plots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    plots
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/datasets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/edss/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    edss
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cli
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/params/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    params
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../citing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Citing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CHANGELOG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#drawing-the-peak-and-the-residual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Drawing the peak and the residual
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-defaults" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The defaults
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-parameters-and-their-sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The parameters and their sources
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-rests-on-evidence-and-what-is-a-judgement-call" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What rests on evidence and what is a judgement call
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-first-relapse-looks-like-in-the-trace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the first relapse looks like in the trace
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-long-run-anchors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The long run anchors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#caveats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caveats
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-the-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using the function
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="disability-trajectory-illustrative-extension">Disability trajectory (illustrative extension)<a class="headerlink" href="#disability-trajectory-illustrative-extension" title="Permanent link">&para;</a></h1>
+<div class="admonition warning">
+<p class="admonition-title">This is an extension, not the article</p>
+<p>The 2013 article models one real number crossing a barrier and the weekly
+sequence of health and no health weeks that the crossings produce, and
+nothing else. It reports no EDSS, no disability score and no clinical
+outcome for any of its 70 patients. This page describes an extension built
+on top of that weekly series so that the bottom panel of the animation and
+one documented function, <code>msrelapse.edss_trajectory</code>, can be read. Every
+number below comes from other papers, and every distribution below was
+fitted here rather than there. Nothing here is fit for individual
+prognosis, for trial design, or for any clinical or regulatory use.</p>
+</div>
+<h2 id="the-model">The model<a class="headerlink" href="#the-model" title="Permanent link">&para;</a></h2>
+<p>The weekly series is a sequence <span class="arithmatex">\(s(w)\)</span> of health and no health weeks for
+<span class="arithmatex">\(w = 1, \dots, W\)</span>. The maximal runs of no health weeks are the relapse
+episodes, episode <span class="arithmatex">\(i\)</span> occupying weeks <span class="arithmatex">\([u_i, v_i]\)</span>, and time <span class="arithmatex">\(t\)</span> is counted in
+weeks from clinical onset. Each episode contributes one kernel, which rises to
+its peak <span class="arithmatex">\(A_i\)</span> over the time to nadir <span class="arithmatex">\(T_n\)</span> and then decays exponentially
+towards its own residual <span class="arithmatex">\(r_i\)</span>:</p>
+<div class="arithmatex">\[
+g_i(t) =
+\begin{cases}
+0, &amp; t &lt; u_i \\[4pt]
+A_i \min\!\left(1, \dfrac{t - u_i + 1}{T_n}\right), &amp; u_i \le t &lt; u_i + T_n \\[8pt]
+r_i + (A_i - r_i)\, e^{-(t - u_i - T_n)/\tau}, &amp; t \ge u_i + T_n
+\end{cases}
+\]</div>
+<p>The trajectory is the baseline <span class="arithmatex">\(E_0\)</span>, plus an optional linear progression term
+at <span class="arithmatex">\(k\)</span> points a year, plus the sum of the kernels, held inside the scale:</p>
+<div class="arithmatex">\[
+\mathrm{EDSS}(t) = \mathrm{clip}\!\left(E_0 + \frac{k\,t}{365.25/7}
++ \sum_i g_i(t),\; 0,\; 10\right) ,
+\]</div>
+<p>the denominator being the number of weeks in a year, 365.25 over 7, which is
+what a year means everywhere else in the package and is why ten years is week
+522 rather than week 520. What a figure shows is that value on the half point
+grid the scale is scored on,</p>
+<div class="arithmatex">\[
+\mathrm{EDSS}_{\text{display}}(t)
+= \frac{\operatorname{round}\!\left(2\,\mathrm{EDSS}(t)\right)}{2} ,
+\]</div>
+<p>rounding a score that falls exactly between two steps upwards, so 2.25 is
+displayed as 2.5 and 2.24 as 2.0.</p>
+<p>As <span class="arithmatex">\(t\)</span> grows past a relapse, <span class="arithmatex">\(g_i(t)\)</span> tends to <span class="arithmatex">\(r_i\)</span>, so the expression reduces
+to the intended form: a baseline, plus the residuals of every past relapse,
+plus the transient bump of the current one, plus the progression term. Note
+that <span class="arithmatex">\(\tau\)</span> is far longer than the mean relapse episode of 4.3 weeks the
+article reports, so the trace does not step back down in the week the weekly
+series flips to remission.</p>
+<h3 id="drawing-the-peak-and-the-residual">Drawing the peak and the residual<a class="headerlink" href="#drawing-the-peak-and-the-residual" title="Permanent link">&para;</a></h3>
+<p>For each episode the peak <span class="arithmatex">\(A_i\)</span> is drawn from the peak law, then the residual
+<span class="arithmatex">\(r_i\)</span> from the residual law of the severity class <span class="arithmatex">\(A_i\)</span> falls in, then <span class="arithmatex">\(A_i\)</span> is
+raised to <span class="arithmatex">\(\max(A_i, r_i)\)</span> so that the kernel is monotone after the nadir. That
+last step raises about 9 percent of peaks.</p>
+<table>
+<thead>
+<tr>
+<th>Peak <span class="arithmatex">\(A\)</span></th>
+<th>0.0</th>
+<th>0.5</th>
+<th>1.0</th>
+<th>1.5</th>
+<th>2.0</th>
+<th>2.5</th>
+<th>3.0</th>
+<th>3.5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>probability</td>
+<td>0.16</td>
+<td>0.23</td>
+<td>0.26</td>
+<td>0.18</td>
+<td>0.09</td>
+<td>0.04</td>
+<td>0.025</td>
+<td>0.015</td>
+</tr>
+</tbody>
+</table>
+<p>The peak law has a mean of 1.05 and a median of 1.0, and by construction
+<span class="arithmatex">\(P(A \ge 0.5) = 0.84\)</span>, <span class="arithmatex">\(P(A \ge 1.0) = 0.61\)</span> and <span class="arithmatex">\(P(A \ge 2.0) = 0.17\)</span>, which
+are the three verified marginals. Those three describe the law the peak is
+drawn from, not the peaks a trace ends up showing: the raise to the residual
+lifts the realised figures to 0.88, 0.63 and 0.19, a little above each
+published marginal.</p>
+<table>
+<thead>
+<tr>
+<th>Residual <span class="arithmatex">\(r\)</span></th>
+<th>-1.0</th>
+<th>-0.5</th>
+<th>0.0</th>
+<th>+0.5</th>
+<th>+1.0</th>
+<th>+1.5</th>
+<th>+2.0</th>
+<th>+2.5</th>
+<th>+3.0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mild peak, <span class="arithmatex">\(A \le 0.5\)</span></td>
+<td>0.03</td>
+<td>0.15</td>
+<td>0.57</td>
+<td>0.21</td>
+<td>0.04</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>moderate or severe peak, <span class="arithmatex">\(A \ge 1.0\)</span></td>
+<td>0.03</td>
+<td>0.15</td>
+<td>0.29</td>
+<td>0.265</td>
+<td>0.15</td>
+<td>0.06</td>
+<td>0.032</td>
+<td>0.013</td>
+<td>0.010</td>
+</tr>
+</tbody>
+</table>
+<p>Marginally, over the 39 percent of relapses that are mild and the 61 percent
+that are not, this gives <span class="arithmatex">\(P(r \ge 0.5) = 0.42\)</span>, <span class="arithmatex">\(P(r \ge 1.0) = 0.18\)</span>,
+<span class="arithmatex">\(P(r \ge 2.0) = 0.034\)</span>, a median of 0, a mean of 0.256 and an odds ratio of 3.4
+for incomplete recovery in severe against mild relapses. The mass below zero,
+18 percent of relapses ending at least half a point below the pre-relapse
+score, is what lets the distribution satisfy both the published thresholds and
+the published mean of 0.27 with a median of 0 at the same time.</p>
+<h3 id="the-defaults">The defaults<a class="headerlink" href="#the-defaults" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>E0   = 2.0 EDSS points       baseline after the first attack
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>T_n  = 1 week                time to nadir
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>tau  = 10 weeks              recovery decay constant
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>k    = 0.0 EDSS per year     independent progression, off by default
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>clip = 0 to 10, displayed on the half point grid
+</code></pre></div>
+<h2 id="the-parameters-and-their-sources">The parameters and their sources<a class="headerlink" href="#the-parameters-and-their-sources" title="Permanent link">&para;</a></h2>
+<p>Every row is a published quantity, apart from the four marked as derived, which
+this model constructs from the rows above them. The citation in the last column
+is the short form of an entry of the <a href="#references">references</a> at the foot of
+the page.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Central value</th>
+<th>Range</th>
+<th>Unit</th>
+<th>Sources</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Baseline EDSS after the first attack</td>
+<td>2.0</td>
+<td>1.0 to 2.5 (interquartile range)</td>
+<td>EDSS points</td>
+<td>Tur 2025</td>
+</tr>
+<tr>
+<td>Mean EDSS increase at relapse nadir, untreated</td>
+<td>1.10</td>
+<td>0.77 actively treated to 1.45 in a high disability clinic cohort</td>
+<td>EDSS points</td>
+<td>Lublin 2014; Hirst 2008</td>
+</tr>
+<tr>
+<td>Nadir increase of at least 0.5, 1.0 and 2.0</td>
+<td>84, 61 and 17 percent</td>
+<td>0.5 threshold, 71 percent treated to 84 percent untreated; severe share 14 to 39 percent by grading scheme</td>
+<td>proportion of relapses</td>
+<td>Lublin 2014; Achiron 2019; Koch 2023; Naldi 2011</td>
+</tr>
+<tr>
+<td>Peak deficit law of the model (derived)</td>
+<td>the half point grid above, mean 1.05, median 1.0</td>
+<td>pinned at the three verified marginals, free between them</td>
+<td>EDSS points</td>
+<td>from Lublin 2014 and Achiron 2019</td>
+</tr>
+<tr>
+<td>Time from relapse onset to nadir</td>
+<td>1 to 2 days</td>
+<td>same day to about 3 days, longer for severe relapses, with a tail to about 2 weeks</td>
+<td>days</td>
+<td>Hosny 2023; Naldi 2011</td>
+</tr>
+<tr>
+<td>Relapse episode duration, the run of no health weeks</td>
+<td>4.3 weeks</td>
+<td>1 to about 24 weeks, exponentially distributed</td>
+<td>weeks</td>
+<td>Bordi 2013; Hosny 2023; Naldi 2011</td>
+</tr>
+<tr>
+<td>Median time to EDSS recovery after a relapse</td>
+<td>71 to 111 days</td>
+<td>71 (95 percent CI 66 to 75) to 111 (95 percent CI 99 to 138)</td>
+<td>days</td>
+<td>Koch 2023; Mostert 2025</td>
+</tr>
+<tr>
+<td>Relapses recovered by 1, 3, 6 and 12 months</td>
+<td>4, 38, 67 and 79 percent, 84 percent at any time</td>
+<td>52 and 55 percent if 12 or 24 weeks of confirmed recovery are required</td>
+<td>proportion of relapses</td>
+<td>Koch 2023; Iuliano 2008</td>
+</tr>
+<tr>
+<td>Recovery decay constant tau of the model (derived)</td>
+<td>10 weeks</td>
+<td>7 to 14</td>
+<td>weeks</td>
+<td>from Koch 2023 and Mostert 2025</td>
+</tr>
+<tr>
+<td>Residual of at least 0.5 at 6 to 12 months</td>
+<td>0.42</td>
+<td>0.31 to 0.54 (95 percent CI of the pooled estimate)</td>
+<td>proportion of relapses</td>
+<td>Ladeira 2025; Lublin 2003; Lublin 2014</td>
+</tr>
+<tr>
+<td>Residual of at least 1.0 at 6 to 12 months</td>
+<td>0.18</td>
+<td>0.16 to 0.28</td>
+<td>proportion of relapses</td>
+<td>Lublin 2003; Achiron 2019</td>
+</tr>
+<tr>
+<td>Mean net residual per relapse</td>
+<td>0.25</td>
+<td>0.20 to 0.30, rising to 0.50 in a high disability cohort</td>
+<td>EDSS points</td>
+<td>Lublin 2003; Confavreux 2006 (Clinical Neurology and Neurosurgery); Lublin 2014; Hirst 2008; Stewart 2017</td>
+</tr>
+<tr>
+<td>Residual step law of the model (derived)</td>
+<td>the two severity classes above, mean 0.256, median 0</td>
+<td>implies at least 0.5 in 0.42, at least 1.0 in 0.18 and at least 2.0 in 0.034 of relapses</td>
+<td>EDSS points</td>
+<td>from Ladeira 2025, Lublin 2003 and Achiron 2019</td>
+</tr>
+<tr>
+<td>Dependence of the residual on relapse severity</td>
+<td>odds ratio about 3.4 for incomplete recovery, severe against mild</td>
+<td>2.4 to 17.2 across studies</td>
+<td>odds ratio</td>
+<td>Ladeira 2025; Koch 2023; Leone 2008</td>
+</tr>
+<tr>
+<td>Dependence of the residual on prior EDSS and on age</td>
+<td>direction well supported, magnitude poorly quantified; odds ratio 2.9 for age 30 or more at relapse onset</td>
+<td>95 percent CI 1.5 to 5.7 for the age effect; no usable coefficient published for the EDSS effect</td>
+<td>odds ratio</td>
+<td>Lublin 2022; Kalincik 2014; Conway 2019; Leone 2008; Sotiropoulos 2021; Hirst 2008</td>
+</tr>
+<tr>
+<td>Dependence of the residual on relapse duration</td>
+<td>odds ratio 3.2 for sequelae, long or intermediate against short</td>
+<td>95 percent CI 1.5 to 6.9</td>
+<td>odds ratio</td>
+<td>Leone 2008; Hosny 2023; Naldi 2011</td>
+</tr>
+<tr>
+<td>Annualised relapse rate, untreated relapsing onset</td>
+<td>0.65 over the whole relapsing phase</td>
+<td>0.93 in the first 2 years, 0.41 from year 3 to progression onset, 0.015 at very long follow up</td>
+<td>relapses per year</td>
+<td>Scalfari 2010; Leray 2010; Skoog 2012; Bordi 2013</td>
+</tr>
+<tr>
+<td>Onset to an irreversible EDSS or DSS 3</td>
+<td>10 years</td>
+<td>10.0 (95 percent CI 9.4 to 10.6) in Rennes, 10 in London Ontario</td>
+<td>years</td>
+<td>Leray 2010; Scalfari 2010</td>
+</tr>
+<tr>
+<td>Onset to an irreversible DSS 4</td>
+<td>11.4 years</td>
+<td>relapsing onset only; 0.0 for progressive onset</td>
+<td>years</td>
+<td>Confavreux 2000</td>
+</tr>
+<tr>
+<td>Onset to an EDSS or DSS 6</td>
+<td>about 20 years</td>
+<td>15 to 28</td>
+<td>years</td>
+<td>Weinshenker 1989; Scalfari 2010; Leray 2010; Confavreux 2000; Tedeholm 2015; Tremlett 2006</td>
+</tr>
+<tr>
+<td>Age at an irreversible DSS 4, 6 and 7</td>
+<td>44.3, 54.7 and 63.1 years</td>
+<td>95 percent CI 43.3 to 45.2, 53.5 to 55.8, 61.0 to 65.1</td>
+<td>years of age</td>
+<td>Confavreux 2006 (Brain)</td>
+</tr>
+<tr>
+<td>EDSS at 10 years from onset</td>
+<td>about 3</td>
+<td>mean change of 1 point per 10 years; 20 percent worsen by 2 or more points</td>
+<td>EDSS points</td>
+<td>Pittock 2004 (10-year follow-up)</td>
+</tr>
+<tr>
+<td>EDSS at 20 years from onset</td>
+<td>58 percent still relapsing remitting, of whom 39 percent at EDSS 3 or below; median about 3.25 at 14 years</td>
+<td>EDSS 0 to 10; 31 percent at EDSS 6 or more at 14 years</td>
+<td>EDSS points</td>
+<td>Brex 2002; Fisniku 2008; Pittock 2004 (prevalence cohort)</td>
+</tr>
+<tr>
+<td>Onset to secondary progression</td>
+<td>15 years</td>
+<td>15 to 16</td>
+<td>years</td>
+<td>Scalfari 2010; Tedeholm 2015; Leray 2010; Bordi 2013</td>
+</tr>
+<tr>
+<td>Duration of the DSS 3 to DSS 6 phase</td>
+<td>7.4 years for relapsing onset, 7.0 for the whole cohort</td>
+<td>95 percent CI 6.8 to 8.0; 6.5 to 9.2 across every stratum of the first phase</td>
+<td>years</td>
+<td>Leray 2010; Confavreux 2000; Confavreux 2003</td>
+</tr>
+<tr>
+<td>Prognostic weight of relapses by time since onset</td>
+<td>confined to roughly the first 2 years</td>
+<td>the hazard contribution of a relapse to reaching EDSS 6 falls from 48 percent within 5 years of onset to 10 percent beyond 10</td>
+<td>hazard increase</td>
+<td>Scalfari 2010; Tremlett 2009; Leray 2010; Confavreux 2000</td>
+</tr>
+<tr>
+<td>Relapse associated share of confirmed worsening</td>
+<td>27 percent</td>
+<td>18 to 33 percent measured; 35 to 50 percent untreated, which is an extrapolation</td>
+<td>proportion of events</td>
+<td>Lublin 2022; Kappos 2020; Muller 2023; Portaccio 2022</td>
+</tr>
+<tr>
+<td>Independent progression rate, the PIRA term of the model (derived)</td>
+<td>0.0 EDSS points per year by default</td>
+<td>0 to 0.05</td>
+<td>EDSS points per year</td>
+<td>from Pittock 2004 (10-year follow-up), Leray 2010, Confavreux 2000 and Muller 2023</td>
+</tr>
+<tr>
+<td>Frequency of a catastrophic non-recovering relapse</td>
+<td>7 of 1078 patients, 0.6 percent, and about 0.3 percent of relapses</td>
+<td>no clinical factor identified the patients at risk</td>
+<td>proportion</td>
+<td>Bejaoui 2010</td>
+</tr>
+<tr>
+<td>Annual probability of confirmed worsening in a placebo arm</td>
+<td>16.9 percent in year 1, 13.1 percent in year 2</td>
+<td>16.0 and 11.2 percent in trials published after 2000; the odds fell 31 percent per decade of publication year</td>
+<td>proportion per year</td>
+<td>Rover 2015</td>
+</tr>
+<tr>
+<td>Long run cost of one incompletely recovered relapse</td>
+<td>plus 0.6 EDSS at 10 years</td>
+<td>also plus 0.5 seconds on the timed 25 foot walk</td>
+<td>EDSS points</td>
+<td>Sotiropoulos 2021</td>
+</tr>
+<tr>
+<td>Effect of poor early relapse recovery</td>
+<td>the progressive phase begins at 8.3 years against 30.2 for good recoverers</td>
+<td>p=0.001; 80.1 percent of a population based cohort were good recoverers and 15.7 percent poor</td>
+<td>years from onset</td>
+<td>Novotna 2015</td>
+</tr>
+<tr>
+<td>Effect of corticosteroids on the recovery curve</td>
+<td>the curve moves left, not down</td>
+<td>disability significantly lower at 1 and 4 weeks; no difference in visual acuity at 6 months</td>
+<td>qualitative</td>
+<td>Beck 1992; Beck 1994; Milligan 1987; Koch 2023</td>
+</tr>
+</tbody>
+</table>
+<p>Four cautions on reading the table. The recovery times are the weakest
+transport in it, because both cohorts are fully treated and no untreated
+equivalent exists. The recovery proportions are re-denominated over all 240
+CombiRx relapses rather than over the 202 patients who ever recovered, which is
+the denominator the paper's own headline figures of 4, 45, 80 and 94 percent
+use. The odds ratio of 17.2 at the top of the severity range should never be
+used as a point estimate, since its reference stratum is small and its interval
+spans two orders of magnitude. And the registry regression coefficient of about
+0.16 to 0.42 EDSS points per relapse is a slope on relapse incidence rather
+than a per-event step, so it must not be read as one.</p>
+<h2 id="what-rests-on-evidence-and-what-is-a-judgement-call">What rests on evidence and what is a judgement call<a class="headerlink" href="#what-rests-on-evidence-and-what-is-a-judgement-call" title="Permanent link">&para;</a></h2>
+<p>Well supported: the baseline of 2.0, the median first recorded EDSS in an
+inception cohort of 1074 patients; the peak law, which reproduces three
+verified marginals from the AFFIRM placebo arm and from 1672 graded relapses;
+the residual probability of 0.42, the only meta-analytic estimate available and
+drawn from 27,672 relapses; the half point grid itself; the dependence of the
+residual on relapse severity; and a time to nadir of one week, since the
+published median is 1 to 2 days and the series is weekly.</p>
+<p>Judgement calls: <span class="arithmatex">\(\tau = 10\)</span> weeks, obtained by requiring that a typical
+1.0 point excess falls below the 0.25 point display threshold at the published
+median recovery time, which gives 7.3 weeks against the DECIDE median of 71
+days and 11.4 weeks against the CombiRx median of 111 days, both from treated
+cohorts; the split of the residual mass above 1.0, which is pinned only at the
+2.0 threshold; the 18 percent of mass below zero, whose size is inferred from
+the arithmetic rather than measured anywhere; two severity classes rather than
+three; and <span class="arithmatex">\(k = 0\)</span>, chosen so that the trace is driven by relapses alone, which
+is the point of the exercise, and because adding a progression term on top of a
+residual law already calibrated to the whole observed slope would count the
+same accrual twice.</p>
+<h2 id="what-the-first-relapse-looks-like-in-the-trace">What the first relapse looks like in the trace<a class="headerlink" href="#what-the-first-relapse-looks-like-in-the-trace" title="Permanent link">&para;</a></h2>
+<p>The patient starts at EDSS 2.0. The first relapse draws a peak with a mean of
+1.12 and a median of 1.0, so the modal trace rises from 2.0 to 3.0 inside the
+first week of the episode, holds near the nadir only briefly, and then decays
+with a ten week constant, losing about 86 percent of the recoverable excess by
+week 20 and about 92 percent by week 26. The residual decides where it settles:
+40 percent of first relapses leave nothing at all and the trace returns exactly
+to 2.0, 18 percent end at 1.5 or lower, 42 percent leave 0.5 or more and 18
+percent leave 1.0 or more. The expected sustained level after the first relapse
+is 2.25.</p>
+<p>The honest picture of a first attack is therefore a spike of about one EDSS
+point that is visually gone within six months, with a slightly better than even
+chance of leaving no permanent mark. A trace whose first relapse leaves a
+visible permanent step every time is wrong.</p>
+<h2 id="the-long-run-anchors">The long run anchors<a class="headerlink" href="#the-long-run-anchors" title="Permanent link">&para;</a></h2>
+<p>Simulating 20,000 patients over 30 years by alternating renewal at the printed
+means of 100 and 4.3 weeks, on a four week grid with <span class="arithmatex">\(k = 0\)</span>, and reading the
+sustained level with every transient bump decayed, which is the analogue of the
+irreversible score the natural history cohorts measure:</p>
+<table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th>This model</th>
+<th>Published anchor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Median sustained EDSS at 10 years</td>
+<td>3.0</td>
+<td>about 3, from a mean change of 1 point per decade</td>
+</tr>
+<tr>
+<td>Median sustained EDSS at 14 years</td>
+<td>3.5</td>
+<td>3.25</td>
+</tr>
+<tr>
+<td>Median sustained EDSS at 20 years</td>
+<td>4.5</td>
+<td>wide; 39 percent at EDSS 3 or below</td>
+</tr>
+<tr>
+<td>Median years to a sustained EDSS 3</td>
+<td>about 7</td>
+<td>10.0</td>
+</tr>
+<tr>
+<td>Median years to a sustained EDSS 4</td>
+<td>about 14</td>
+<td>11.4</td>
+</tr>
+<tr>
+<td>Median years to a sustained EDSS 6</td>
+<td>about 29</td>
+<td>15 to 28</td>
+</tr>
+<tr>
+<td>Relapses per year</td>
+<td>0.50</td>
+<td>0.65 to 0.93</td>
+</tr>
+</tbody>
+</table>
+<p>With <span class="arithmatex">\(k = 0.05\)</span> the picture inverts: a median sustained EDSS 4 at about 11
+years against a published 11.4 and EDSS 6 at about 22.5 years against a
+published 21.7 to 23.1, but the 10 year level rises to 3.5 and overshoots the
+mean change data. The two families of anchors cannot both be matched, because
+the real curve accelerates, at about 0.1 EDSS points per year over the first
+stage and about 0.4 over the DSS 3 to DSS 6 stage, while a model in which every
+relapse contributes an independent residual is linear. The acceleration comes
+from the secondary progressive transition, which begins at a median of 15 years
+and is not in the weekly series at all.</p>
+<h2 id="caveats">Caveats<a class="headerlink" href="#caveats" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>This is an illustrative extension and is not part of the 2013 article.</strong>
+  That article models one real number crossing a barrier and the weekly
+  sequence of health and no health weeks the crossings produce, and nothing
+  else. It reports no EDSS, no disability score and no clinical outcome for any
+  of its 70 patients. Every number here comes from other papers and every
+  distribution here is fitted by this page rather than by the article, which is
+  why the extension is labelled that way on this page, in the docstring of
+  <code>msrelapse.edss</code> and in the caption of the animation.</li>
+<li><strong>The model is valid only over the relapsing phase</strong>, which is roughly the
+  first 15 years from onset. The article's own period of interest runs from the
+  first relapse at onset to the last relapse before the shift to secondary
+  progressive MS, and secondary progression begins at a median of 15 years in
+  both London Ontario and Gothenburg. Run past that window the trace undershoots
+  the natural history medians for EDSS 6, by design, because the mechanism that
+  takes patients there is not in the weekly series.</li>
+<li><strong>The model cannot reproduce the accelerating shape of the real curve.</strong>
+  Observed accrual is about 0.1 EDSS points per year over the first stage and
+  about 0.4 over the DSS 3 to DSS 6 stage, and the second stage lasts a near
+  constant 7.0 to 7.4 years however fast the first stage was, confirmed
+  separately in 900 untreated patients. A sum of independent per relapse
+  residuals is linear and has no mechanism for that amnesia.</li>
+<li><strong>The model contradicts the untreated cohorts on when relapses matter.</strong> Its
+  residual law is per event and does not decay with disease duration, whereas
+  London Ontario found that neither the total number of relapsing phase attacks
+  nor attacks after year 2 had any deleterious effect on time to DSS 6, 8 or
+  10, and British Columbia found the hazard contribution of a relapse falling
+  from 48 percent within 5 years of onset to 10 percent beyond 10 years.
+  Pulling the other way, the largest trial pool and the largest registry both
+  find the residual left by a single relapse rising with age and with
+  pre-existing EDSS. The two findings are reconcilable only by arguing that
+  late relapses land on a trajectory already dominated by progression, and this
+  model implements neither adjustment.</li>
+<li><strong>Almost every recovery and residual number comes from the treatment era.</strong>
+  The two untreated anchors are the pooled placebo arms of pre-DMT trials and
+  the AFFIRM placebo arm, and AFFIRM placebo patients are of the 2000s, not of
+  the years before 1993. Placebo arms have themselves become milder: the odds
+  of confirmed progression in a placebo arm fell 31 percent per decade of trial
+  publication year across 39 trials. The recovery time course, the only source
+  for the decay constant, has no untreated equivalent at all and comes from two
+  fully treated trial cohorts.</li>
+<li><strong>The cohort behind the article is free of disease modifying therapy rather
+  than wholly untreated.</strong> Its patients received short corticosteroid courses
+  during relapses when deemed necessary. The randomised evidence says steroids
+  move the recovery curve left without lowering its asymptote, which is why the
+  residual law is left unchanged, but that is an assumption carried over from
+  an optic neuritis trial with a non-EDSS endpoint and from two underpowered
+  within-trial comparisons confounded by indication.</li>
+<li><strong>A single trace is one draw, never a median and never a prognosis.</strong> The
+  published spread at a fixed duration is enormous: EDSS 0 to 10 at 14 years in
+  the London clinically isolated syndrome cohort, 39 percent still at EDSS 3 or
+  below at 20 years, only 25 percent of Olmsted County relapsing remitting
+  patients at EDSS 3 or more at 20 years, and 14 percent of the Gothenburg
+  untreated relapsing onset cohort never entering a progressive phase at 50
+  years. The model reproduces a wide spread, which is a feature, and any figure
+  showing one patient has to say so.</li>
+<li><strong>EDSS is ordinal, not interval.</strong> Adding residuals as though the scale were
+  linear is an approximation, and the scale has a well known plateau around 4
+  to 5.5 where the same nominal increment means something different. The
+  inter-rater variability of the EDSS is of the order of the half point steps
+  being modelled, which is part of why the published standard deviation of the
+  residual, 1.04, is far larger than any distribution here.</li>
+<li><strong>The published mean residual of about 0.27 and the published thresholds of
+  42 and 28 percent cannot both be satisfied by a non-negative residual.</strong> The
+  reconciliation used here, giving 18 percent of relapses a residual below
+  zero, matches the reported median of 0, but its size is inferred from
+  arithmetic rather than measured anywhere.</li>
+<li><strong>The model carries no relapse phenotype, no MRI, no sex, no functional
+  systems and no treatment effect</strong>, and it cannot separate relapse associated
+  worsening from progression independent of relapse activity in a way any
+  cohort has measured. With the default progression rate of zero its relapse
+  associated share is 100 percent, against a measured 18 to 33 percent in the
+  treatment era and a plausible but unmeasured 35 to 50 percent untreated.</li>
+<li><strong>Several citation limitations are worth recording.</strong> The sample size of 224
+  for the pooled placebo arms is not stated in that paper's own abstract and is
+  taken from the CombiRx authors' description of it. The published abstract of
+  the severe relapse residual paper is internally inconsistent, saying 1, 4 and
+  12 months in its methods and 1, 2 and 12 months in its results, and the full
+  text could not be opened, so its middle time point should be read as 2 to 4
+  months. The day cut-offs for short, intermediate and long relapses are not
+  readable in the paywalled paper that reports the odds ratio of 3.2 and come
+  from the same group's companion paper. The widely quoted Lyon whole cohort
+  milestones of 8.4, 20.1 and 29.9 years could not be verified from any
+  reachable full text and are deliberately not used, the relapsing onset values
+  of 11.4, 23.1 and 33.1 years being used instead; the MSBase EDSS by duration
+  figures come from a conference abstract in a journal that assigns no DOI and
+  are not used either; and the DECIDE analysis is cited at its verified online
+  publication of October 2025.</li>
+<li><strong>Nothing here is fit for individual prognosis, for trial design, or for any
+  clinical or regulatory use.</strong> It is a teaching illustration, built to make one
+  animation and one documented function legible.</li>
+</ul>
+<h2 id="using-the-function">Using the function<a class="headerlink" href="#using-the-function" title="Permanent link">&para;</a></h2>
+<p><code>msrelapse.edss_trajectory</code> takes a weekly record of one patient, in the weekly
+schema of <a href="../api/io/"><code>msrelapse.io</code></a> or as a plain array of states, and
+returns the week, the continuous EDSS, the displayed half point EDSS and the
+index of the episode in progress. It draws a peak and a residual for every
+episode, so it takes a seed or a generator like every other random operation in
+the package, and the same seed gives the same trace.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">msrelapse</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ms</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">weekly</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">load_synthetic_bordi2013</span><span class="p">()</span>               <span class="c1"># 70 synthetic records</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">ten_years</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="mi">10</span> <span class="o">*</span> <span class="n">ms</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">WEEKS_PER_YEAR</span><span class="p">)</span>      <span class="c1"># 522 weeks, as summarise reads it</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">weeks</span> <span class="o">=</span> <span class="n">weekly</span><span class="p">[</span><span class="s2">"patient_id"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">chosen</span> <span class="o">=</span> <span class="n">weeks</span><span class="p">[</span><span class="n">weeks</span> <span class="o">&gt;=</span> <span class="n">ten_years</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>       <span class="c1"># one record past ten years</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">one</span> <span class="o">=</span> <span class="n">weekly</span><span class="p">[</span><span class="n">weekly</span><span class="p">[</span><span class="s2">"patient_id"</span><span class="p">]</span> <span class="o">==</span> <span class="n">chosen</span><span class="p">]</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">trajectory</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">edss_trajectory</span><span class="p">(</span><span class="n">one</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>          <span class="c1"># illustrative, not clinical</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">draws</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">episode_draws</span><span class="p">(</span><span class="n">one</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>                 <span class="c1"># the same draws, same seed</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">draws</span><span class="p">)</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="nb">print</span><span class="p">(</span><span class="n">ms</span><span class="o">.</span><span class="n">summarise</span><span class="p">(</span><span class="n">trajectory</span><span class="p">,</span> <span class="n">draws</span><span class="p">))</span>
+</code></pre></div>
+<p>That record holds six relapses over about fifteen years. The draws say what the
+trace does: a spike at every attack, a return towards the level it started
+from, and a step left behind only where a residual was drawn. Another seed
+gives another patient's story out of the same record, because a trace is one
+draw from the laws above, never a median and never a prognosis.</p>
+<p>The rest of the module is small. <code>msrelapse.episode_draws</code> gives one row per
+episode, with its start, its end, its peak and its residual, which is how a
+reader checks a trace against the laws above, and <code>msrelapse.summarise</code> reads a
+finished trace and those draws together. <code>msrelapse.EDSSSpec</code> holds the
+parameters, so a reader who wants a different decay constant or a non-zero
+progression term changes one field and passes it in.
+<code>msrelapse.expected_peak</code> and <code>msrelapse.expected_residual</code> return the means of
+the two laws of such a specification, and <code>msrelapse.EVIDENCE</code> carries the
+published quantities the defaults rest on, each with its unit, its source and
+its DOI, so that the numbers in the code and the rows of the table above are
+the same numbers. <a href="../api/edss/">The API page</a> documents every one of them.</p>
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<p>Every DOI below was resolved against Crossref, and the load bearing counts
+were read from the open access full texts where they exist.</p>
+<p>Achiron A, Sarova-Pinhas I, Magalashvili D, Stern Y, Gal A, Dolev M, Menascu
+S, Harari G, Gurevich M. Residual disability after severe relapse in people
+with multiple sclerosis treated with disease-modifying therapy. Multiple
+Sclerosis Journal 2019;25(13):1746-1753. doi:10.1177/1352458518809903</p>
+<p>Beck RW, Cleary PA, Anderson MM Jr, et al. A randomized, controlled trial of
+corticosteroids in the treatment of acute optic neuritis. New England Journal
+of Medicine 1992;326(9):581-588. doi:10.1056/NEJM199202273260901</p>
+<p>Beck RW, Cleary PA, Backlund JC. The course of visual recovery after optic
+neuritis. Experience of the Optic Neuritis Treatment Trial. Ophthalmology
+1994;101(11):1771-1778. doi:10.1016/s0161-6420(94)31103-1</p>
+<p>Bejaoui K, Rolak LA. What is the risk of permanent disability from a multiple
+sclerosis relapse? Neurology 2010;74(11):900-902.
+doi:10.1212/wnl.0b013e3181d55ee9</p>
+<p>Bordi I, Umeton R, Ricigliano VAG, Annibali V, Mechelli R, Ristori G, Grassi
+F, Salvetti M, Sutera A. A mechanistic, stochastic model helps understand
+multiple sclerosis course and pathogenesis. International Journal of Genomics
+2013;2013:910321. doi:10.1155/2013/910321</p>
+<p>Brex PA, Ciccarelli O, O'Riordan JI, Sailer M, Thompson AJ, Miller DH. A
+longitudinal study of abnormalities on MRI and disability from multiple
+sclerosis. New England Journal of Medicine 2002;346(3):158-164.
+doi:10.1056/NEJMoa011341</p>
+<p>Confavreux C, Vukusic S, Moreau T, Adeleine P. Relapses and progression of
+disability in multiple sclerosis. New England Journal of Medicine
+2000;343(20):1430-1438. doi:10.1056/NEJM200011163432001</p>
+<p>Confavreux C, Vukusic S, Adeleine P. Early clinical predictors and progression
+of irreversible disability in multiple sclerosis: an amnesic process. Brain
+2003;126(4):770-782. doi:10.1093/brain/awg081</p>
+<p>Confavreux C, Vukusic S. Age at disability milestones in multiple sclerosis.
+Brain 2006;129(3):595-605. doi:10.1093/brain/awh714</p>
+<p>Confavreux C, Vukusic S. Accumulation of irreversible disability in multiple
+sclerosis: from epidemiology to treatment. Clinical Neurology and Neurosurgery
+2006;108(3):327-332. doi:10.1016/j.clineuro.2005.11.018</p>
+<p>Conway BL, Zeydan B, Uygunoglu U, Novotna M, Siva A, Pittock SJ, Atkinson EJ,
+Rodriguez M, Kantarci OH. Age is a critical determinant in recovery from
+multiple sclerosis relapses. Multiple Sclerosis Journal 2019;25(13):1754-1763.
+doi:10.1177/1352458518800815</p>
+<p>Cree BAC, Hollenbach JA, Bove R, et al (University of California San Francisco
+MS-EPIC Team). Silent progression in disease activity-free relapsing multiple
+sclerosis. Annals of Neurology 2019;85(5):653-666. doi:10.1002/ana.25463</p>
+<p>Fisniku LK, Brex PA, Altmann DR, Miszkiel KA, Benton CE, Lanyon R, Thompson
+AJ, Miller DH. Disability and T2 MRI lesions: a 20-year follow-up of patients
+with relapse onset of multiple sclerosis. Brain 2008;131(3):808-817.
+doi:10.1093/brain/awm329</p>
+<p>Hauser SL, Bar-Or A, Comi G, et al. Ocrelizumab versus interferon beta-1a in
+relapsing multiple sclerosis. New England Journal of Medicine
+2017;376(3):221-234. doi:10.1056/NEJMoa1601277</p>
+<p>Hirst C, Ingram G, Pearson O, Pickersgill T, Scolding N, Robertson N.
+Contribution of relapses to disability in multiple sclerosis. Journal of
+Neurology 2008;255(2):280-287. doi:10.1007/s00415-008-0743-8</p>
+<p>Hosny HS, Shehata HS, Ahmed S, Ramadan I, Abdo SS, Fouad AM. Predictors of
+severity and outcome of multiple sclerosis relapses. BMC Neurology
+2023;23(1):67. doi:10.1186/s12883-023-03109-6</p>
+<p>Iuliano G, Napoletano R, Esposito A. Multiple sclerosis: relapses and timing
+of remissions. European Neurology 2008;59(1-2):44-48. doi:10.1159/000109260</p>
+<p>Jokubaitis VG, Spelman T, Kalincik T, et al. Predictors of long-term
+disability accrual in relapse-onset multiple sclerosis. Annals of Neurology
+2016;80(1):89-100. doi:10.1002/ana.24682</p>
+<p>Kalincik T, Buzzard K, Jokubaitis V, et al (MSBase Study Group). Risk of
+relapse phenotype recurrence in multiple sclerosis. Multiple Sclerosis Journal
+2014;20(11):1511-1522. doi:10.1177/1352458514528762</p>
+<p>Kalincik T. Multiple sclerosis relapses: epidemiology, outcomes and
+management. A systematic review. Neuroepidemiology 2015;44(4):199-214.
+doi:10.1159/000382130</p>
+<p>Kappos L, Wolinsky JS, Giovannoni G, et al. Contribution of relapse-
+independent progression vs relapse-associated worsening to overall confirmed
+disability accumulation in typical relapsing multiple sclerosis in a pooled
+analysis of 2 randomized clinical trials. JAMA Neurology 2020;77(9):1132-1140.
+doi:10.1001/jamaneurol.2020.1568</p>
+<p>Koch MW, Moral E, Brieva L, et al. Relapse recovery in relapsing-remitting
+multiple sclerosis: an analysis of the CombiRx dataset. Multiple Sclerosis
+Journal 2023;29(14):1776-1785. doi:10.1177/13524585231202320</p>
+<p>Ladeira F, Soares M, Faustino P, Leal Rato M, Gomes I, Caetano A, Taipa R, Sa
+MJ. Multiple sclerosis relapse incomplete recovery and associated factors: a
+systematic review and meta-analysis. Multiple Sclerosis and Related Disorders
+2025;100:106507. doi:10.1016/j.msard.2025.106507</p>
+<p>Leone MA, Bonissoni S, Collimedaglia L, Tesser F, Calzoni S, Stecco A, Naldi
+P, Monaco F. Factors predicting incomplete recovery from relapses in multiple
+sclerosis: a prospective study. Multiple Sclerosis Journal 2008;14(4):485-493.
+doi:10.1177/1352458507084650</p>
+<p>Leray E, Yaouanq J, Le Page E, Coustans M, Laplaud D, Oger J, Edan G. Evidence
+for a two-stage disability progression in multiple sclerosis. Brain
+2010;133(7):1900-1913. doi:10.1093/brain/awq076</p>
+<p>Lublin FD, Baier M, Cutter G. Effect of relapses on development of residual
+deficit in multiple sclerosis. Neurology 2003;61(11):1528-1532.
+doi:10.1212/01.wnl.0000096175.39831.21</p>
+<p>Lublin FD, Cutter G, Giovannoni G, Pace A, Campbell NR, Belachew S.
+Natalizumab reduces relapse clinical severity and improves relapse recovery in
+MS. Multiple Sclerosis and Related Disorders 2014;3(6):705-711.
+doi:10.1016/j.msard.2014.08.005</p>
+<p>Lublin FD, Haring DA, Ganjgahi H, et al. How patients with multiple sclerosis
+acquire disability. Brain 2022;145(9):3147-3161. doi:10.1093/brain/awac016</p>
+<p>Milligan NM, Newcombe R, Compston DA. A double-blind controlled trial of high
+dose methylprednisolone in patients with multiple sclerosis: 1. Clinical
+effects. Journal of Neurology, Neurosurgery and Psychiatry 1987;50(5):511-516.
+doi:10.1136/jnnp.50.5.511</p>
+<p>Mostert J, Strijbis EMM, D'Haeseleer M, Moral E, Brieva L, Comtois J, Repovic
+P, Bowen JD, Cutter G, Koch MW. Extended window of relapse recovery in RRMS:
+an analysis of the DECIDE dataset. Journal of Neurology, Neurosurgery and
+Psychiatry, published online 9 October 2025. doi:10.1136/jnnp-2025-336660</p>
+<p>Muller J, Cagol A, Lorscheider J, et al. Harmonizing definitions for
+progression independent of relapse activity in multiple sclerosis: a
+systematic review. JAMA Neurology 2023;80(11):1232-1245.
+doi:10.1001/jamaneurol.2023.3331</p>
+<p>Naldi P, Collimedaglia L, Vecchio D, Rosso MG, Perl F, Stecco A, Monaco F,
+Leone MA. Predictors of attack severity and duration in multiple sclerosis: a
+prospective study. The Open Neurology Journal 2011;5:75-82.
+doi:10.2174/1874205X01105010075</p>
+<p>Novotna M, Paz Soldan MM, Abou Zeid N, et al. Poor early relapse recovery
+affects onset of progressive disease course in multiple sclerosis. Neurology
+2015;85(8):722-729. doi:10.1212/WNL.0000000000001856</p>
+<p>Pittock SJ, Mayr WT, McClelland RL, Jorgensen NW, Weigand SD, Noseworthy JH,
+Weinshenker BG, Rodriguez M. Change in MS-related disability in a population-
+based cohort: a 10-year follow-up study. Neurology 2004;62(1):51-59.
+doi:10.1212/01.wnl.0000101724.93433.00</p>
+<p>Pittock SJ, Mayr WT, McClelland RL, Jorgensen NW, Weigand SD, Noseworthy JH,
+Rodriguez M. Disability profile of MS did not change over 10 years in a
+population-based prevalence cohort. Neurology 2004;62(4):601-606.
+doi:10.1212/wnl.62.4.601</p>
+<p>Portaccio E, Bellinvia A, Fonderico M, et al. Progression is independent of
+relapse activity in early multiple sclerosis: a real-life cohort study. Brain
+2022;145(8):2796-2805. doi:10.1093/brain/awac111</p>
+<p>Rover C, Nicholas R, Straube S, Friede T. Changing EDSS progression in placebo
+cohorts in relapsing MS: a systematic review and meta-regression. PLoS One
+2015;10(9):e0137052. doi:10.1371/journal.pone.0137052</p>
+<p>Scalfari A, Neuhaus A, Degenhardt A, Rice GP, Muraro PA, Daumer M, Ebers GC.
+The natural history of multiple sclerosis, a geographically based study 10:
+relapses and long-term disability. Brain 2010;133(7):1914-1929.
+doi:10.1093/brain/awq118</p>
+<p>Skoog B, Runmarker B, Winblad S, Ekholm S, Andersen O. A representative cohort
+of patients with non-progressive multiple sclerosis at the age of normal life
+expectancy. Brain 2012;135(3):900-911. doi:10.1093/brain/awr336</p>
+<p>Sotiropoulos MG, Lokhande H, Healy BC, Polgar-Turcsanyi M, Glanz BI, Bakshi R,
+Weiner HL, Chitnis T. Relapse recovery in multiple sclerosis: effect of
+treatment and contribution to long-term disability. Multiple Sclerosis Journal
+Experimental Translational and Clinical 2021;7(2):20552173211015503.
+doi:10.1177/20552173211015503</p>
+<p>Stewart T, Spelman T, Havrdova E, et al (MSBase Study Group). Contribution of
+different relapse phenotypes to disability in multiple sclerosis. Multiple
+Sclerosis Journal 2017;23(2):266-276. doi:10.1177/1352458516643392</p>
+<p>Tedeholm H, Skoog B, Lisovskaja V, Runmarker B, Nerman O, Andersen O. The
+outcome spectrum of multiple sclerosis: disability, mortality, and a cluster
+of predictors from onset. Journal of Neurology 2015;262(5):1148-1163.
+doi:10.1007/s00415-015-7674-y</p>
+<p>Tintore M, Rovira A, Rio J, et al. Baseline MRI predicts future attacks and
+disability in clinically isolated syndromes. Neurology 2006;67(6):968-972.
+doi:10.1212/01.wnl.0000237354.10144.ec</p>
+<p>Tremlett H, Paty D, Devonshire V. Disability progression in multiple sclerosis
+is slower than previously reported. Neurology 2006;66(2):172-177.
+doi:10.1212/01.wnl.0000194259.90286.fe</p>
+<p>Tremlett H, Yousefi M, Devonshire V, Rieckmann P, Zhao Y (UBC Neurologists).
+Impact of multiple sclerosis relapses on progression diminishes with time.
+Neurology 2009;73(20):1616-1623. doi:10.1212/WNL.0b013e3181c1e44f</p>
+<p>Tur C, et al. The Barcelona baseline risk score to predict long-term prognosis
+after a first demyelinating event: a prospective observational study. Lancet
+Regional Health Europe 2025;53:101302. doi:10.1016/j.lanepe.2025.101302</p>
+<p>Weinshenker BG, Bass B, Rice GP, Noseworthy J, Carriere W, Baskerville J,
+Ebers GC. The natural history of multiple sclerosis: a geographically based
+study. I. Clinical course and disability. Brain 1989;112(1):133-146.
+doi:10.1093/brain/112.1.133</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.sections", "navigation.top", "search.suggest", "content.code.copy", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../javascripts/mathjax.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

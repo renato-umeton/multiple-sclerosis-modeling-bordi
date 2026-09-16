@@ -318,6 +318,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../disability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Disability trajectory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../reproducing/" class="md-nav__link">
         
   
@@ -624,10 +651,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
             
   
   
@@ -645,8 +672,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -895,6 +922,34 @@
     
   
     datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/edss/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    edss
   
 
     
@@ -1252,6 +1307,20 @@ over 20000 windows, so the shipped twin is generated from generative means
 chosen so that its naive means reproduce the printed 100 and 4.3 weeks.
 <code>msrelapse.cohort.naive_mean_targets</code> inverts the measurement, and
 <code>msrelapse.cohort.bordi2013_spec</code> applies it when <code>match_naive_means</code> is true.</p>
+<p><strong>The disability panel of the animation is an EDSS trajectory built from the
+later literature, and it replaces the running count of weeks spent in
+relapse.</strong> That count was the package's only disability proxy, and it read
+badly: its first step equalled the length of the first relapse, so a long first
+attack drew a large permanent jump and a short one drew almost nothing, which
+is a claim the literature does not support. A relapse leaves a residual in
+about 42 percent of cases, the residual is driven by the severity of the attack
+rather than by its length, and the mean net residual is about a quarter of an
+EDSS point, so the honest picture of a first attack is a spike of about one
+point that is mostly gone within six months. <code>msrelapse.edss</code> draws that
+picture and <a href="../disability/">Disability trajectory</a> sets out its parameters,
+their sources and its caveats. It is an illustrative extension and not part of
+the 2013 article, which reports no disability score, and it is labelled that
+way on the page, in the module and in the caption of the animation.</p>
 <p><strong>Time varying parameters are out of scope for version 0.1</strong> and are recorded
 as future work. The asymmetry and the noise of the article are constants of a
 patient. A slowly varying asymmetry or noise, which would let a barrier drift
