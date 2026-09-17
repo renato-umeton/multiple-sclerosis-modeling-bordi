@@ -1265,7 +1265,7 @@ Python 3.13.</p>
   above does; a measured run fails below 90 percent. Two markers exist: <code>slow</code>
   for long running tests and <code>notebook</code> for the notebook execution tests.</li>
 <li><strong>cffconvert and twine</strong> cover the metadata. The lint job validates
-  <code>CITATION.cff</code>, which Zenodo and the reference managers read, and the build
+  <code>CITATION.cff</code>, which the reference managers read, and the build
   job builds the wheel and the sdist, checks them with <code>twine check --strict</code>,
   runs the packaged suite from the unpacked sdist and installs the wheel on its
   own to run the command line. A change to the version, the classifiers, the
@@ -1405,12 +1405,6 @@ failure naming what is missing:</p>
    PyPI through trusted publishing, so no API token exists anywhere in the
    repository. The publishing environment requires the maintainer's approval,
    so an accidental tag cannot publish unattended.</li>
-<li>Zenodo archives the GitHub release and mints the archive DOI. Put that DOI
-   into <code>CITATION.cff</code>, <code>codemeta.json</code> and the software BibTeX entry in
-   <code>src/msrelapse/_citation.py</code>, replacing the placeholder. The same
-   placeholder sits in the BibTeX block of <code>docs/citing.md</code>, which the suite
-   checks against the entry the package prints, and in the badge at the top of
-   <code>README.md</code>, which nothing checks. Then release the patch that carries them.</li>
 <li>Before submitting <code>docs/paper/paper.md</code> to the Journal of Open Source
    Software, fill in the affiliation and the ORCID the header leaves as
    placeholders, and turn the fenced <code>yaml</code> block at the top of that file into

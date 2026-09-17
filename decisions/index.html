@@ -1427,22 +1427,25 @@ throughout.</strong> The package is a first public reference implementation with
 interface still open to change, which is what the
 <code>Development Status :: 3 - Alpha</code> classifier says, and semantic versioning
 reserves 1.0.0 for an interface the project undertakes to keep.</p>
-<p><strong>Publishing is left to the maintainer</strong>, because PyPI and Zenodo need account
+<p><strong>Publishing is left to the maintainer</strong>, because PyPI needs account
 credentials. The repository prepares the release workflow and the steps in
 <a href="../CONTRIBUTING/">Contributing</a> and stops there.</p>
-<p><strong>The ORCID and the archive DOI are left out of <code>CITATION.cff</code> and
-<code>codemeta.json</code></strong> rather than filled with a placeholder, because an invalid
-ORCID fails citation file validation and an empty identifier misleads a
-harvester; each file carries a comment saying where the value goes. The one
-literal placeholder that ships is the Zenodo DOI in the software BibTeX entry
-of <code>src/msrelapse/_citation.py</code>, with a matching commented out badge in
-<code>README.md</code>, both named by the release steps of
-<a href="../CONTRIBUTING/">Contributing</a>.</p>
+<p><strong>The software carries no archive DOI</strong>, by the maintainer's decision: the code
+is deposited in no archive, so there is no identifier to mint and none to keep
+in step. Every citation this repository carries points at the article instead,
+doi 10.1155/2013/910321. The software BibTeX entry of
+<code>src/msrelapse/_citation.py</code> is identified by the repository URL and carries a
+note naming the article as the reference to cite, <code>CITATION.cff</code> and
+<code>codemeta.json</code> carry no identifier of their own, and <code>README.md</code> shows no DOI
+badge.</p>
+<p><strong>The ORCID is left out of <code>CITATION.cff</code> and <code>codemeta.json</code></strong> rather than
+filled with a placeholder, because an invalid ORCID fails citation file
+validation; each file carries a comment saying where the value goes.</p>
 <p><strong><code>date-released</code> in <code>CITATION.cff</code> is the planned first release date</strong> rather
 than a date anything was released on, and it moves with the release if that
 date moves. The <code>comment</code> key of <code>codemeta.json</code> is kept as the maintainer note
-it is, saying which identifier fields Zenodo fills in at that release and where
-the ORCID belongs.</p>
+it is, saying why the software carries no identifier, where the ORCID belongs
+and how the two dates are set.</p>
 <h2 id="documentation-and-repository-rules">Documentation and repository rules<a class="headerlink" href="#documentation-and-repository-rules" title="Permanent link">&para;</a></h2>
 <p><strong>Markdown lives under <code>docs/</code></strong>, with <code>README.md</code> at the repository root the
 one exception, so the changelog, the contributing guide, the data provenance
@@ -1454,7 +1457,7 @@ would be lost to a fresh checkout.</p>
 <p><strong>Two items of the closing checklist are deferred to the maintainer</strong>, because
 they need people rather than code: a read of <a href="../theory/">Theory</a> by one
 co-author before the tag, and sending the repository link to the co-authors and
-the three outreach targets once the archive DOI resolves.</p>
+the three outreach targets once the first release is published.</p>
 <h2 id="stage-outcomes">Stage outcomes<a class="headerlink" href="#stage-outcomes" title="Permanent link">&para;</a></h2>
 <p>The work ran in five stages. What each of them settled is below.</p>
 <h3 id="stage-1-the-article-and-the-ecosystem">Stage 1: the article and the ecosystem<a class="headerlink" href="#stage-1-the-article-and-the-ecosystem" title="Permanent link">&para;</a></h3>

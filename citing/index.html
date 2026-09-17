@@ -1158,11 +1158,11 @@ sclerosis course and pathogenesis. International Journal of Genomics.
 contributed equally and are co-first authors, which the article states in a
 section of its own.</p>
 <h2 id="the-software">The software<a class="headerlink" href="#the-software" title="Permanent link">&para;</a></h2>
-<p>This package is a reference implementation of that article and is versioned and
-archived separately. Cite it when the analysis used the code, in addition to
-the article and never instead of it. The archive DOI is minted at the first
-release, so until then the software entry carries a placeholder in place of the
-DOI and the repository URL is the stable reference.</p>
+<p>This package is a reference implementation of that article and is versioned
+separately. Cite it when the analysis used the code, in addition to the article
+and never instead of it. The software is deposited in no archive and carries no
+DOI of its own, so the repository URL is its stable reference and its BibTeX
+entry carries a note naming the article as the reference to cite.</p>
 <h2 id="from-inside-a-session">From inside a session<a class="headerlink" href="#from-inside-a-session" title="Permanent link">&para;</a></h2>
 <p>Every result the package hands back names where its numbers come from, which is
 the point: a number copied out of a session carries its source with it.
@@ -1196,12 +1196,10 @@ which offers both APA and BibTeX with no further work. The file lists the
 software as the thing being cited and the article as the reference the software
 implements, so a reader who follows the button reaches both.</p>
 <p>Tools that read the file directly include <code>cffconvert</code>, which converts it to
-BibTeX, APA, RIS, Zenodo and CodeMeta:</p>
+BibTeX, APA, RIS and CodeMeta:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uvx<span class="w"> </span>cffconvert<span class="w"> </span>--validate
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>uvx<span class="w"> </span>cffconvert<span class="w"> </span>-f<span class="w"> </span>bibtex
 </code></pre></div>
-<p>Zenodo also reads <code>CITATION.cff</code> when it archives a release, so the metadata of
-the archive comes from the same file rather than being typed again.</p>
 <h2 id="bibtex">BibTeX<a class="headerlink" href="#bibtex" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nc">@article</span><span class="p">{</span><span class="nl">bordi2013mechanistic</span><span class="p">,</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="na">author</span><span class="w">    </span><span class="p">=</span><span class="w"> </span><span class="s">{Bordi, Isabella and Umeton, Renato and Ricigliano, Vito A. G. and</span>
@@ -1217,20 +1215,20 @@ the archive comes from the same file rather than being typed again.</p>
 <a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">  </span><span class="na">publisher</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Wiley}</span>
 <a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="p">}</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c">% The DOI below is a placeholder: the archive DOI is minted at the first release.</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nc">@software</span><span class="p">{</span><span class="nl">msrelapse</span><span class="p">,</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="na">author</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="s">{Umeton, Renato}</span><span class="p">,</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="na">title</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="s">{msrelapse: a reference implementation of the Bordi et al. 2013 double</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="s">             well model of multiple sclerosis}</span><span class="p">,</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="na">year</span><span class="w">    </span><span class="p">=</span><span class="w"> </span><span class="s">{2026}</span><span class="p">,</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="na">version</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{0.1.0}</span><span class="p">,</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span><span class="na">url</span><span class="w">     </span><span class="p">=</span><span class="w"> </span><span class="s">{https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi}</span><span class="p">,</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span><span class="na">doi</span><span class="w">     </span><span class="p">=</span><span class="w"> </span><span class="s">{10.5281/zenodo.XXXXXXX}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nc">@software</span><span class="p">{</span><span class="nl">msrelapse</span><span class="p">,</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="na">author</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="s">{Umeton, Renato}</span><span class="p">,</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="na">title</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="s">{msrelapse: a reference implementation of the Bordi et al. 2013 double</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="s">             well model of multiple sclerosis}</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="na">year</span><span class="w">    </span><span class="p">=</span><span class="w"> </span><span class="s">{2026}</span><span class="p">,</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="na">version</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{0.1.0}</span><span class="p">,</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="na">url</span><span class="w">     </span><span class="p">=</span><span class="w"> </span><span class="s">{https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi}</span><span class="p">,</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span><span class="na">note</span><span class="w">    </span><span class="p">=</span><span class="w"> </span><span class="s">{This software reproduces the article, doi 10.1155/2013/910321, which</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="s">             is the reference to cite.}</span>
 <a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="p">}</span>
 </code></pre></div>
-<p>The comment line above the software entry is outside the entry on purpose. A
-per cent sign opens a comment in LaTeX but not in BibTeX, which reads the body
-of an entry as field names and would refuse one there.</p>
+<p>The software entry carries no <code>doi</code> field, because the software is deposited in
+no archive. Its <code>note</code> is what sends a reader who meets that entry on its own
+back to the article.</p>
 <h2 id="citing-a-result-not-just-the-code">Citing a result, not just the code<a class="headerlink" href="#citing-a-result-not-just-the-code" title="Permanent link">&para;</a></h2>
 <p>If you report a number this package produced, say which record it came from.
 A default run reads the synthetic twin, and a figure or a rate from it is a

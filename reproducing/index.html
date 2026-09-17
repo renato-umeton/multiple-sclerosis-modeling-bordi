@@ -1494,33 +1494,42 @@ statement about that generator, and a reproduction of the article as a
 <p>The animation on the <a href="../">home page</a> comes from the same command line. It
 is one simulated record on the potential calibrated to the two mean durations
 of the article, written as a GIF:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>msrelapse<span class="w"> </span>animate<span class="w"> </span>--seed<span class="w"> </span><span class="m">6</span><span class="w"> </span>--contact-sheet<span class="w"> </span>docs/assets/double_well_frames.png
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>msrelapse<span class="w"> </span>animate<span class="w"> </span>--seed<span class="w"> </span><span class="m">2</span><span class="w"> </span>--contact-sheet<span class="w"> </span>docs/assets/double_well_frames.png
 </code></pre></div>
-<p>The seed is what makes it repeatable, and 6 is the one the committed file was
-written under: it gives 520 weeks holding five flares spread over the whole
-record, a first flare whose deficit peaks a point and a half above the baseline
-and leaves nothing behind, so the spike and the slow decay after it are both
-there to see, and a trace that settles at a new level only where a flare left a
-residual behind and ends the 520 weeks at 3.0, on the anchor of about 3 that
-<a href="../disability/">Disability trajectory</a> records. The command writes
+<p>The run observes one patient for ten years. That window is 522 weeks, ten years
+at the 365.25 over 7 weeks of a year the whole package converts with, which is
+the week <code>msrelapse.edss</code> reads ten years off a trace at. Everything behind the
+figure stays weekly, and the two time panels show those weeks as the years they
+come to, ticked from 0 to 10, with the weekly panel titled with the year the
+record has reached.</p>
+<p>The seed is what makes it repeatable, and 2 is the one the committed file was
+written under: it gives four flares, the first of them in year 2.5 and the last
+in year 7.7, a first flare whose deficit peaks a point and a half above the
+baseline and leaves nothing behind, so the spike and the slow decay after it are
+both there to see, and a trace that settles at a new level only where a flare
+left a residual behind and ends the ten years at 3.0, on the anchor of about 3
+that <a href="../disability/">Disability trajectory</a> records. The command writes
 <code>docs/assets/double_well.gif</code>, 260 frames of about 0.9 MB in all, and the
 contact sheet beside it, which is four evenly spaced frames of the finished
-file as a static PNG for a reader who would rather not play it. <code>--weeks</code>,
-<code>--fps</code> and <code>--dpi</code> change how long the animation runs and how large the file
-is.</p>
+file as a static PNG for a reader who would rather not play it. <code>--weeks</code> and
+<code>--years</code> change how long the animation runs, the second of them in the years
+above and rounded to whole weeks, and <code>--fps</code> and <code>--dpi</code> change how large the
+file is.</p>
 <p>The bottom panel is the EDSS trace of <code>msrelapse.edss_trajectory</code>, an
 illustrative trajectory driven by the same weekly series and built from the
 literature that followed the article rather than from the article, which
-reports no disability score of any kind. The seed was chosen for that panel.
-The earlier 4 drew a residual equal to the peak at each of its first three
-flares, so the trace was a plain staircase for the first 380 weeks and stood at
-4.5 after ten years, well above the anchor; 6 is the smallest seed from 1 to
-300 whose record holds between four and seven flares, whose first flare is over
-within twelve weeks and peaks at least half a point above the residual it
-leaves, so that the recovery after it is visible, and whose trace ends the 520
-weeks between 2.5 and 3.5. The rule was applied again when the residual law was
-corrected to carry no improvements, and it still returns 6. What the trace is,
-what each of its parameters rests on and what it cannot be used for are on
+reports no disability score of any kind. The seed was chosen for that panel. It
+is the smallest seed from 1 to 300 whose record holds between four and seven
+flares, whose first flare is over within twelve weeks and peaks at least half a
+point above the residual it leaves, so that the recovery after it is visible,
+and whose trace ends the ten years between 2.5 and 3.5. The first six seeds that
+pass that rule over this window are 2, 17, 31, 42, 58 and 59; 1 is refused for
+holding two flares in ten years, and 3 for a trace that ends at 4.5. The rule
+was run again when the window moved from the 520 weeks of ten flat 52 week years
+to the 522 of the package year, because the two extra weeks of path change every
+draw the disability panel makes afterwards: 6, the seed the earlier file was
+written under, now ends at 4.0, above the band. What the trace is, what each of
+its parameters rests on and what it cannot be used for are on
 <a href="../disability/">Disability trajectory</a>. Nothing in that panel is a clinical
 score.</p>
 <h2 id="the-four-notebooks">The four notebooks<a class="headerlink" href="#the-four-notebooks" title="Permanent link">&para;</a></h2>
