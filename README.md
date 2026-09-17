@@ -5,11 +5,8 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi/blob/main/LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%20to%203.14-blue.svg)](https://www.python.org/downloads/)
 
-<!-- Enable these two badges at the first release, once the project exists on
-     PyPI and Zenodo has minted the archive DOI. Replace the placeholder digits
-     with the real Zenodo record.
+<!-- Enable this badge at the first release, once the project exists on PyPI.
 [![PyPI](https://img.shields.io/pypi/v/msrelapse.svg)](https://pypi.org/project/msrelapse/)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX)
 -->
 
 In 70 untreated relapsing-remitting MS patients, relapse and remission
@@ -255,12 +252,29 @@ push, and builds locally with `uv run --group docs mkdocs serve`.
 
 ## Citing
 
-Please cite both the article and the software.
+Cite the article. Cite the software as well if the code did work for you, and
+never instead of the article.
 
 > Bordi I, Umeton R, Ricigliano VAG, Annibali V, Mechelli R, Ristori G, Grassi
 > F, Salvetti M, Sutera A. A mechanistic, stochastic model helps understand
 > multiple sclerosis course and pathogenesis. International Journal of
 > Genomics. 2013;2013:910321. doi:10.1155/2013/910321.
+
+```bibtex
+@article{bordi2013mechanistic,
+  author    = {Bordi, Isabella and Umeton, Renato and Ricigliano, Vito A. G. and
+               Annibali, Viviana and Mechelli, Rosella and Ristori, Giovanni and
+               Grassi, Francesca and Salvetti, Marco and Sutera, Alfonso},
+  title     = {A mechanistic, stochastic model helps understand multiple sclerosis
+               course and pathogenesis},
+  journal   = {International Journal of Genomics},
+  volume    = {2013},
+  pages     = {910321},
+  year      = {2013},
+  doi       = {10.1155/2013/910321},
+  publisher = {Wiley}
+}
+```
 
 > Umeton R. msrelapse: a reference implementation of the Bordi et al. 2013
 > double well model of multiple sclerosis. Version 0.1.0. 2026.
@@ -269,8 +283,11 @@ Please cite both the article and the software.
 `msrelapse.cite()` prints the article reference followed by a BibTeX entry for
 each of the two, and `msrelapse.citation()` returns the same text as a string.
 `CITATION.cff` and `codemeta.json` carry the same information for reference
-managers and for software indexes. The archive DOI of the software is minted by
-Zenodo at the first release and added to both files then.
+managers and for software indexes. The software is deposited in no archive and
+carries no DOI of its own: the repository URL is its stable address, and the
+article is the reference to cite. The
+[citing page](https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/citing/)
+has both BibTeX entries in full.
 
 ## License
 

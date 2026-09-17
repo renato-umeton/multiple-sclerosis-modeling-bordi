@@ -22,6 +22,7 @@ import yaml  # type: ignore[import-untyped]
 
 import msrelapse
 from _helpers import ROOT, WORKFLOWS, flatten, load_json, load_workflow, load_yaml, read, text_files
+from msrelapse._citation import PAPER_BIBTEX
 from msrelapse._params import PAPER
 
 REPOSITORY = "https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi"
@@ -292,13 +293,12 @@ def test_readme_shows_the_ci_license_and_python_badges() -> None:
     assert "3.14" in readme
 
 
-def test_readme_keeps_the_pypi_and_zenodo_badges_commented_out() -> None:
+def test_readme_keeps_the_pypi_badge_commented_out() -> None:
     readme = read("README.md")
     comments = re.findall(r"<!--(.*?)-->", readme, re.DOTALL)
     commented = "\n".join(comments)
     assert "img.shields.io/pypi/v/msrelapse" in commented
-    assert "zenodo.org/badge" in commented
-    # Neither badge may be live before the first release mints them.
+    # The badge may not be live before the first release puts the project there.
     assert "img.shields.io/pypi/v/msrelapse" not in re.sub(
         r"<!--.*?-->", "", readme, flags=re.DOTALL
     )
@@ -505,6 +505,18 @@ def test_readme_explains_how_to_cite() -> None:
     assert "CITATION.cff" in readme
 
 
+def test_readme_shows_the_article_bibtex_the_package_prints() -> None:
+    """The block on the page and the entry the package builds are the same entry.
+
+    The README writes the entry out in full, so nothing but this check stops the
+    page from drifting away from the code, as the check in tests/test_docs.py
+    does for docs/citing.md.
+    """
+    readme = flatten(read("README.md"))
+    missing = [line for line in PAPER_BIBTEX.splitlines() if flatten(line) not in readme]
+    assert missing == [], "README.md has drifted from the article entry the package builds"
+
+
 @pytest.mark.parametrize(
     ("name", "prints"),
     [
@@ -625,7 +637,8 @@ def test_citation_cff_lists_all_nine_authors_in_order() -> None:
     assert names == list(PAPER_AUTHORS)
 
 
-def test_citation_cff_defers_the_orcid_and_the_archive_doi_to_comments() -> None:
+def test_citation_cff_defers_the_orcid_to_a_comment_and_carries_no_doi_of_its_own() -> None:
+    """The software is archived under no DOI, and the ORCID is still to hand in."""
     text = read("CITATION.cff")
     cff = load_yaml("CITATION.cff")
     assert "doi" not in cff
@@ -633,7 +646,6 @@ def test_citation_cff_defers_the_orcid_and_the_archive_doi_to_comments() -> None
     comments = [line.strip() for line in text.splitlines() if line.strip().startswith("#")]
     joined = " ".join(comments).lower()
     assert "orcid" in joined
-    assert "zenodo" in joined
 
 
 def test_codemeta_describes_the_package() -> None:
@@ -670,10 +682,16 @@ def test_codemeta_references_the_article() -> None:
     assert reference["identifier"] == f"https://doi.org/{PAPER.paper_doi.value}"
 
 
-def test_codemeta_defers_the_archive_doi_to_a_comment() -> None:
+def test_codemeta_records_that_the_software_carries_no_identifier() -> None:
+    """A harvester reads the absent field, and the comment says why it is absent."""
     meta = load_json("codemeta.json")
     assert "identifier" not in meta
-    assert "zenodo" in meta["comment"].lower()
+    comment = meta["comment"].lower()
+    assert "no identifier" in comment
+    assert "article" in comment
+    # The other two notes the key carries, which the dates test below relies on.
+    assert "orcid" in comment
+    assert "datepublished" in comment
 
 
 def test_codemeta_dates_are_iso_and_the_last_change_is_not_before_the_release() -> None:
@@ -690,6 +708,24 @@ def test_codemeta_dates_are_iso_and_the_last_change_is_not_before_the_release() 
     modified = date.fromisoformat(meta["dateModified"])
     assert modified >= published
     assert meta["datePublished"] == str(load_yaml("CITATION.cff")["date-released"])
+
+
+def test_no_file_of_the_repository_names_the_archive_service() -> None:
+    """Every citation points at the article, and nothing promises an archive DOI.
+
+    The maintainer decided against depositing the software, so the name of the
+    service belongs in no file of the repository: not in a badge, not in a
+    comment of a metadata file, not in a release step and not in a page. This
+    module is the one exception, because the rule has to be written down
+    somewhere to be checked, and the sweep therefore leaves its own file out.
+    """
+    here = Path(__file__).resolve()
+    named = sorted(
+        path.relative_to(ROOT).as_posix()
+        for path, text in text_files().items()
+        if "zenodo" in text.lower() and path != here
+    )
+    assert named == [], f"these files still name the archive service: {named}"
 
 
 @pytest.mark.skipif(
@@ -858,7 +894,9 @@ def test_release_workflow_opens_with_the_one_time_setup() -> None:
     assert header.startswith("#")
     assert "trusted publisher" in header
     assert "environment" in header
-    assert "zenodo" in header
+    # The two repository features the published metadata already points at.
+    assert "pages" in header
+    assert "discussions" in header
 
 
 def test_paper_header_is_a_fenced_yaml_block() -> None:

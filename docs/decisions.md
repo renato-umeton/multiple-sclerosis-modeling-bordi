@@ -158,24 +158,28 @@ interface still open to change, which is what the
 `Development Status :: 3 - Alpha` classifier says, and semantic versioning
 reserves 1.0.0 for an interface the project undertakes to keep.
 
-**Publishing is left to the maintainer**, because PyPI and Zenodo need account
+**Publishing is left to the maintainer**, because PyPI needs account
 credentials. The repository prepares the release workflow and the steps in
 [Contributing](CONTRIBUTING.md) and stops there.
 
-**The ORCID and the archive DOI are left out of `CITATION.cff` and
-`codemeta.json`** rather than filled with a placeholder, because an invalid
-ORCID fails citation file validation and an empty identifier misleads a
-harvester; each file carries a comment saying where the value goes. The one
-literal placeholder that ships is the Zenodo DOI in the software BibTeX entry
-of `src/msrelapse/_citation.py`, with a matching commented out badge in
-`README.md`, both named by the release steps of
-[Contributing](CONTRIBUTING.md).
+**The software carries no archive DOI**, by the maintainer's decision: the code
+is deposited in no archive, so there is no identifier to mint and none to keep
+in step. Every citation this repository carries points at the article instead,
+doi 10.1155/2013/910321. The software BibTeX entry of
+`src/msrelapse/_citation.py` is identified by the repository URL and carries a
+note naming the article as the reference to cite, `CITATION.cff` and
+`codemeta.json` carry no identifier of their own, and `README.md` shows no DOI
+badge.
+
+**The ORCID is left out of `CITATION.cff` and `codemeta.json`** rather than
+filled with a placeholder, because an invalid ORCID fails citation file
+validation; each file carries a comment saying where the value goes.
 
 **`date-released` in `CITATION.cff` is the planned first release date** rather
 than a date anything was released on, and it moves with the release if that
 date moves. The `comment` key of `codemeta.json` is kept as the maintainer note
-it is, saying which identifier fields Zenodo fills in at that release and where
-the ORCID belongs.
+it is, saying why the software carries no identifier, where the ORCID belongs
+and how the two dates are set.
 
 ## Documentation and repository rules
 
@@ -191,7 +195,7 @@ would be lost to a fresh checkout.
 **Two items of the closing checklist are deferred to the maintainer**, because
 they need people rather than code: a read of [Theory](theory.md) by one
 co-author before the tag, and sending the repository link to the co-authors and
-the three outreach targets once the archive DOI resolves.
+the three outreach targets once the first release is published.
 
 ## Stage outcomes
 

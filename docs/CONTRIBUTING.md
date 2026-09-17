@@ -50,7 +50,7 @@ uv build && uvx twine check --strict dist/*    # the distribution
   above does; a measured run fails below 90 percent. Two markers exist: `slow`
   for long running tests and `notebook` for the notebook execution tests.
 - **cffconvert and twine** cover the metadata. The lint job validates
-  `CITATION.cff`, which Zenodo and the reference managers read, and the build
+  `CITATION.cff`, which the reference managers read, and the build
   job builds the wheel and the sdist, checks them with `twine check --strict`,
   runs the packaged suite from the unpacked sdist and installs the wheel on its
   own to run the command line. A change to the version, the classifiers, the
@@ -218,13 +218,7 @@ Releases are the maintainer's, and the steps are:
    PyPI through trusted publishing, so no API token exists anywhere in the
    repository. The publishing environment requires the maintainer's approval,
    so an accidental tag cannot publish unattended.
-6. Zenodo archives the GitHub release and mints the archive DOI. Put that DOI
-   into `CITATION.cff`, `codemeta.json` and the software BibTeX entry in
-   `src/msrelapse/_citation.py`, replacing the placeholder. The same
-   placeholder sits in the BibTeX block of `docs/citing.md`, which the suite
-   checks against the entry the package prints, and in the badge at the top of
-   `README.md`, which nothing checks. Then release the patch that carries them.
-7. Before submitting `docs/paper/paper.md` to the Journal of Open Source
+6. Before submitting `docs/paper/paper.md` to the Journal of Open Source
    Software, fill in the affiliation and the ORCID the header leaves as
    placeholders, and turn the fenced `yaml` block at the top of that file into
    the front matter JOSS asks for. It is fenced in the repository because the

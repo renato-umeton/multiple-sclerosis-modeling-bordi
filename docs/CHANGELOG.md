@@ -79,6 +79,10 @@ follows [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Notes
 
+- The software is deposited in no archive and carries no DOI of its own, so
+  every citation the package prints, and every citation file it ships, points
+  at the article. The software BibTeX entry is identified by the repository URL
+  and carries a note naming the article as the reference to cite.
 - The clinical series of the article was never released, so the package ships a
   synthetic twin and says so on every frame, every run and every page.
 - Nothing in the package is a clinical recommendation.

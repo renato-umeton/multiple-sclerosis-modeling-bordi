@@ -14,6 +14,10 @@ package where a number or an identifier of the article may be recorded. The
 reference block below quotes the DOI as prose, as the docstring of every other
 module of the package does.
 
+The article DOI is the only one here. The software is deposited in no archive
+and carries no DOI of its own, so its entry is identified by the repository URL
+and carries a note naming the article as the reference to cite.
+
 References
 ----------
 I. Bordi, R. Umeton, V. A. G. Ricigliano, et al., "A mechanistic, stochastic
@@ -40,9 +44,6 @@ _PACKAGE: Final = "msrelapse"
 
 _UNINSTALLED_VERSION: Final = "0+unknown"
 """Version reported when the package is imported without being installed."""
-
-_ZENODO_PLACEHOLDER: Final = "10.5281/zenodo.XXXXXXX"
-"""Stand-in for the archive DOI, which is minted at the first release."""
 
 _REPOSITORY: Final = "https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi"
 
@@ -98,26 +99,27 @@ PAPER_BIBTEX: Final = f"""@article{{bordi2013mechanistic,
 }}"""
 """str: The article as a BibTeX entry, keyed bordi2013mechanistic."""
 
-_PLACEHOLDER_NOTE: Final = (
-    "% The DOI below is a placeholder: the archive DOI is minted at the first release."
+_SOFTWARE_NOTE: Final = (
+    f"This software reproduces the article, doi {PAPER.paper_doi.value}, "
+    "which is the reference to cite."
 )
+"""What the note field of the entry below says, in one sentence."""
 
-SOFTWARE_BIBTEX: Final = f"""{_PLACEHOLDER_NOTE}
-@software{{{_PACKAGE},
+SOFTWARE_BIBTEX: Final = f"""@software{{{_PACKAGE},
   author  = {{Umeton, Renato}},
   title   = {{{_SOFTWARE_TITLE}}},
   year    = {{2026}},
   version = {{{_software_version()}}},
   url     = {{{_REPOSITORY}}},
-  doi     = {{{_ZENODO_PLACEHOLDER}}}
+  note    = {{{_SOFTWARE_NOTE}}}
 }}"""
-"""str: This package as a BibTeX entry, with a placeholder archive DOI.
+"""str: This package as a BibTeX entry, identified by its repository URL.
 
-The note about the placeholder sits on its own line above the entry rather than
-inside it. A per cent sign opens a comment in LaTeX but not in BibTeX, which
-reads the body of an entry as field names and would refuse one; outside an entry
-any text is ignored, so the note travels with the block and the entry still
-parses.
+The entry carries no DOI. The software is deposited in no archive, and a field
+left empty or filled with a stand-in would be read by a reference manager as an
+identifier that resolves. The note field carries the article instead, so a
+reader who reaches the software entry on its own still reaches the reference to
+cite.
 """
 
 

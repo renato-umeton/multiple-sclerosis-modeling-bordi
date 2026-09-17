@@ -55,6 +55,24 @@ RESULT_FIELDS = {
     "GammaFit": "k=",
 }
 
+# Every citation string the package builds, by the name it is reached under, so
+# that the sweep below reads each of them and not only the three that the text
+# of ``citation()`` happens to join.
+CITATION_STRINGS = (
+    "PAPER_REFERENCE",
+    "PAPER_BIBTEX",
+    "SOFTWARE_BIBTEX",
+    "citation()",
+    "short_citation()",
+)
+
+# The words no citation string carries any more: the archive service the
+# software was once to be deposited with, and the digits of the placeholder DOI
+# that stood in for its record. The first is spelled in pieces so that the word
+# itself appears in no file of the repository but the sweep of
+# tests/test_metadata.py, which is what holds that rule.
+ARCHIVE_WORDS = ("zen" + "odo", "XXXXXXX")
+
 # All four methods read their p value off replicates drawn under the rounded
 # exponential null. These three are the ones that read any sample at all: the
 # hazard needs three weeks with enough runs still at risk, so it is left out of
@@ -161,6 +179,30 @@ _MIN_WEEKS = 8
 # enough to carry hundreds of ordinates. All three are even, which is the parity
 # that has a Nyquist ordinate to leave out.
 WHITE_NOISE_WEEKS = (_MIN_WEEKS, 200, 1000)
+
+
+def citation_string(name: str) -> str:
+    """Return one citation string of the package, by the name it is reached under.
+
+    Parameters
+    ----------
+    name : str
+        One of ``CITATION_STRINGS``: a constant of ``msrelapse._citation``, or a
+        function of it written with its brackets.
+
+    Returns
+    -------
+    str
+        The constant itself, or what the function returns.
+    """
+    strings = {
+        "PAPER_REFERENCE": _citation.PAPER_REFERENCE,
+        "PAPER_BIBTEX": _citation.PAPER_BIBTEX,
+        "SOFTWARE_BIBTEX": _citation.SOFTWARE_BIBTEX,
+        "citation()": _citation.citation(),
+        "short_citation()": _citation.short_citation(),
+    }
+    return strings[name]
 
 
 def one_run_per_patient(values: npt.NDArray[np.int64], state: int) -> pd.DataFrame:
@@ -1749,7 +1791,9 @@ def test_test_result_rejects_an_impossible_level() -> None:
 
 
 def test_citation_quotes_the_doi_in_the_text_and_in_the_bibtex() -> None:
-    assert _citation.citation().count(DOI) == 2
+    # The reference and the article entry carry it, and the note of the software
+    # entry carries it again, so the floor rather than the count is what is held.
+    assert _citation.citation().count(DOI) >= 2
 
 
 def test_citation_names_the_package() -> None:
@@ -1790,20 +1834,37 @@ def test_a_result_repr_names_its_own_fields(
     assert RESULT_FIELDS[name] in repr(result_objects[name])
 
 
-def test_software_bibtex_marks_the_doi_as_a_placeholder() -> None:
-    lines = _citation.SOFTWARE_BIBTEX.splitlines()
-    assert "10.5281/zenodo.XXXXXXX" in _citation.SOFTWARE_BIBTEX
-    assert lines[0].startswith("%")
-    assert "placeholder" in lines[0]
+@pytest.mark.parametrize("name", CITATION_STRINGS)
+@pytest.mark.parametrize("word", ARCHIVE_WORDS)
+def test_no_citation_string_promises_an_archive_doi(name: str, word: str) -> None:
+    """The software is archived under no DOI, so no string may name one."""
+    assert word.lower() not in citation_string(name).lower()
 
 
-def test_software_bibtex_keeps_its_comment_outside_the_entry() -> None:
-    # A per cent sign is a LaTeX comment, not a BibTeX one: inside an entry
-    # BibTeX expects a field name, so a note written there stops the entry
-    # parsing. Above the entry the note is ignored and still travels with it.
+def test_software_bibtex_is_one_entry_and_nothing_else() -> None:
+    # The note that used to sit above the entry, on a line opened by a per cent
+    # sign, is a field of the entry now, so the block is a single entry that
+    # BibTeX reads whole.
     lines = _citation.SOFTWARE_BIBTEX.splitlines()
-    assert lines[1].startswith("@software{")
-    assert "%" not in "\n".join(lines[1:])
+    assert lines[0].startswith("@software{")
+    assert "%" not in _citation.SOFTWARE_BIBTEX
+
+
+@pytest.mark.parametrize("field", ["author", "title", "year", "version", "url", "note"])
+def test_software_bibtex_carries_the_field(field: str) -> None:
+    found = re.search(rf"^\s*{field}\s*=\s*\{{", _citation.SOFTWARE_BIBTEX, re.MULTILINE)
+    assert found is not None
+
+
+def test_software_bibtex_carries_no_doi_field() -> None:
+    assert re.search(r"^\s*doi\s*=", _citation.SOFTWARE_BIBTEX, re.MULTILINE) is None
+
+
+def test_software_bibtex_note_sends_the_reader_to_the_article() -> None:
+    note = re.search(r"^\s*note\s*=\s*\{(?P<text>.*)\}", _citation.SOFTWARE_BIBTEX, re.MULTILINE)
+    assert note is not None
+    assert DOI in note.group("text")
+    assert "cite" in note.group("text").lower()
 
 
 def test_version_of_an_uninstalled_source_tree_is_named_rather_than_raised(

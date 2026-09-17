@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import inspect
 import sys
 from collections.abc import Iterator
 from pathlib import Path
@@ -16,6 +17,7 @@ from msrelapse._params import PAPER, symmetric_barrier
 from msrelapse.io import events_to_weekly, weekly_to_durations
 from msrelapse.model import DoubleWell, calibrate
 from msrelapse.renewal import alternating_renewal
+from msrelapse.stats import WEEKS_PER_YEAR
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -92,6 +94,22 @@ ANIMATION_SEED = 118
 ANIMATION_FPS = 4
 ANIMATION_DPI = 40
 ANIMATION_FIGURE_SIZE = (6.0, 4.0)
+
+# The window the animation runs when it is asked for none: ten years, in the
+# whole weeks this package counts a year in, and the number of frames the
+# committed file holds.
+ANIMATION_YEARS = 10
+ANIMATION_DEFAULT_WEEKS = round(ANIMATION_YEARS * WEEKS_PER_YEAR)
+ANIMATION_DEFAULT_FRAMES = 260
+
+# How far from ten whole years the drawn window may sit: 522 weeks is 10.004 of
+# them, because a year is not a whole number of weeks.
+YEAR_TOLERANCE = 0.01
+
+# What the two time panels call their axis, and the opening of the title the
+# weekly panel counts the years of the record in.
+TIME_AXIS_LABEL = "Time (years)"
+RECORD_TITLE_OPENING = "Weekly record, year "
 
 # The opening bytes of the two formats the animation is written in.
 GIF_MAGIC = b"GIF89a"
@@ -957,6 +975,15 @@ def playback() -> Playback:
     return Playback(animation, figure, potential, series, edss)
 
 
+@pytest.fixture
+def ten_year_playback() -> Playback:
+    """Build the animation as it comes, over the ten year window of the README."""
+    figure = plt.figure(figsize=ANIMATION_FIGURE_SIZE, layout="constrained")
+    animation = plots.animate_double_well(rng=ANIMATION_SEED, fig=figure)
+    potential, series, edss = figure.axes
+    return Playback(animation, figure, potential, series, edss)
+
+
 def play(animation: Any, path: Path) -> Path:
     """Run every frame of an animation by writing it, and return the file."""
     animation.save(path, writer=animation_module.PillowWriter(fps=ANIMATION_FPS), dpi=ANIMATION_DPI)
@@ -1053,8 +1080,9 @@ def test_the_series_gives_the_current_week_its_full_width(playback: Playback) ->
 
     # Week k covers the interval from k to k + 1, so the step is closed one week
     # past the marked one, as Figure 2 closes a whole record. Without that point
-    # the current week would be drawn with no width at all.
-    assert xdata(step)[-1] == pytest.approx(xdata(current)[0] + 1.0)
+    # the current week would be drawn with no width at all. The panel is drawn
+    # in years, so one week is one over the weeks of a year wide.
+    assert xdata(step)[-1] == pytest.approx(xdata(current)[0] + 1.0 / WEEKS_PER_YEAR)
     assert ydata(step)[-1] == pytest.approx(ydata(current)[0])
 
 
@@ -1170,8 +1198,58 @@ def test_the_potential_panel_keeps_the_limits_of_the_paper(playback: Playback) -
 
 
 def test_the_time_panels_span_the_whole_record(playback: Playback) -> None:
-    assert playback.series.get_xlim() == (0.0, float(ANIMATION_WEEKS))
-    assert playback.edss.get_xlim() == (0.0, float(ANIMATION_WEEKS))
+    span = (0.0, ANIMATION_WEEKS / WEEKS_PER_YEAR)
+    assert playback.series.get_xlim() == pytest.approx(span)
+    assert playback.edss.get_xlim() == pytest.approx(span)
+
+
+def test_the_time_panels_are_labelled_in_years(playback: Playback) -> None:
+    assert playback.series.get_xlabel() == TIME_AXIS_LABEL
+    assert playback.edss.get_xlabel() == TIME_AXIS_LABEL
+
+
+def test_the_time_panels_place_each_week_at_the_year_it_falls_in(playback: Playback) -> None:
+    # Everything inside the animation is counted in weeks; a time panel divides
+    # by the weeks of a year to place it.
+    trace = line_labelled(playback.edss, EDSS_LABEL)
+
+    assert xdata(step_line(playback.series))[1] == pytest.approx(1.0 / WEEKS_PER_YEAR)
+    assert xdata(trace)[1] == pytest.approx(1.0 / WEEKS_PER_YEAR)
+
+
+def test_the_default_record_runs_for_ten_years_of_whole_weeks() -> None:
+    default = inspect.signature(plots.animate_double_well).parameters["n_weeks"].default
+
+    assert default == ANIMATION_DEFAULT_WEEKS
+
+
+def test_the_default_window_keeps_the_frame_budget(ten_year_playback: Playback) -> None:
+    assert len(list(ten_year_playback.animation.new_frame_seq())) == ANIMATION_DEFAULT_FRAMES
+
+
+def test_the_time_panels_of_the_default_window_run_from_zero_to_ten_years(
+    ten_year_playback: Playback,
+) -> None:
+    span = (0.0, float(ANIMATION_YEARS))
+
+    assert ten_year_playback.series.get_xlim() == pytest.approx(span, abs=YEAR_TOLERANCE)
+    assert ten_year_playback.edss.get_xlim() == pytest.approx(span, abs=YEAR_TOLERANCE)
+
+
+def test_the_time_panels_of_the_default_window_are_ticked_at_whole_years(
+    ten_year_playback: Playback,
+) -> None:
+    years = [float(year) for year in range(ANIMATION_YEARS + 1)]
+
+    assert list(ten_year_playback.series.get_xticks()) == years
+    assert list(ten_year_playback.edss.get_xticks()) == years
+
+
+def test_the_record_panel_counts_the_years_of_the_window(ten_year_playback: Playback) -> None:
+    title = ten_year_playback.series.get_title()
+
+    assert title.startswith(RECORD_TITLE_OPENING)
+    assert title.endswith(f" of {ANIMATION_YEARS}.0")
 
 
 def test_no_panel_rescales_while_the_animation_runs(playback: Playback, tmp_path: Path) -> None:

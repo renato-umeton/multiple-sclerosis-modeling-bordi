@@ -22,6 +22,16 @@ _Result = msrelapse.Cohort | msrelapse.FitResult | msrelapse.ARRResult
 
 RESULT_NAMES = ("Cohort", "FitResult", "ARRResult")
 
+# The two functions that hand back a citation as a string.
+CITATION_ENTRY_POINTS = ("citation", "short_citation")
+
+# The words no citation of this package carries any more: the archive service
+# the software was once to be deposited with, and the digits of the placeholder
+# DOI that stood in for its record. The first is spelled in pieces so that the
+# word itself appears in no file of the repository but the sweep of
+# tests/test_metadata.py, which is what holds that rule.
+ARCHIVE_WORDS = ("zen" + "odo", "XXXXXXX")
+
 # Every type alias the package re-exports, beside the module that defines it.
 # A caller annotating their own code reaches for these through the package, so
 # each one has to resolve to the very object its module holds.
@@ -224,8 +234,18 @@ def test_cite_prints_the_article_and_names_the_package(capsys: pytest.CaptureFix
     msrelapse.cite()
 
     printed = capsys.readouterr().out
-    assert printed.count(DOI) == 2
+    # The reference and the article entry carry the DOI, and the note of the
+    # software entry carries it again, so the floor is what is held here.
+    assert printed.count(DOI) >= 2
     assert "msrelapse" in printed
+
+
+@pytest.mark.parametrize("name", CITATION_ENTRY_POINTS)
+@pytest.mark.parametrize("word", ARCHIVE_WORDS)
+def test_no_citation_the_package_prints_promises_an_archive_doi(name: str, word: str) -> None:
+    """The software is archived under no DOI, so neither entry point names one."""
+    text: str = getattr(msrelapse, name)()
+    assert word.lower() not in text.lower()
 
 
 def test_cite_writes_to_the_stream_it_is_given() -> None:

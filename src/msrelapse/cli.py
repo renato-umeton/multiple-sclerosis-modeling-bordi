@@ -70,6 +70,7 @@ from msrelapse.io import (
     write_csv,
 )
 from msrelapse.model import calibrate
+from msrelapse.stats import WEEKS_PER_YEAR
 
 if TYPE_CHECKING:  # pragma: no cover - the names are needed only by the type checker
     from collections.abc import Callable, Sequence
@@ -124,8 +125,12 @@ _DEFAULT_OUT: Final = Path("reproduction")
 # numbers its options restate from msrelapse.plots. A test in tests/test_cli.py
 # reads those three off the signatures of animate_double_well and
 # save_double_well_gif and holds them against these, so neither set can drift.
+# The window is ten years written in the whole weeks the package counts a year
+# in, which is how msrelapse.plots writes it and how msrelapse.edss reads ten
+# years off a disability trace.
 _DEFAULT_GIF: Final = Path("docs/assets/double_well.gif")
-_DEFAULT_ANIMATION_WEEKS: Final = 520
+_DEFAULT_ANIMATION_YEARS: Final = 10.0
+_DEFAULT_ANIMATION_WEEKS: Final = round(_DEFAULT_ANIMATION_YEARS * WEEKS_PER_YEAR)
 _DEFAULT_FPS: Final = 8
 _DEFAULT_ANIMATION_DPI: Final = 80
 
@@ -418,11 +423,23 @@ def _add_animate(subcommands: argparse._SubParsersAction[argparse.ArgumentParser
         f"(default: {_DEFAULT_GIF.as_posix()})",
     )
     parser.add_argument("--seed", type=int, default=None, help="seed, for a reproducible animation")
-    parser.add_argument(
+    # The window is given in weeks or in years and never in both, since two
+    # windows at once have no reading that is not a guess at which one was meant.
+    window = parser.add_mutually_exclusive_group()
+    window.add_argument(
         "--weeks",
         type=int,
         default=_DEFAULT_ANIMATION_WEEKS,
-        help=f"length of the record, in whole weeks (default: {_DEFAULT_ANIMATION_WEEKS})",
+        help=f"length of the record, in whole weeks "
+        f"(default ten years, {_DEFAULT_ANIMATION_WEEKS} weeks)",
+    )
+    window.add_argument(
+        "--years",
+        type=float,
+        default=None,
+        help=f"length of the record in years instead, rounded to whole weeks at the "
+        f"{WEEKS_PER_YEAR:.3f} weeks of a year the package converts with, and not to be "
+        f"given with --weeks",
     )
     parser.add_argument(
         "--fps",
@@ -769,15 +786,20 @@ def _run_animate(args: argparse.Namespace) -> int:
     ------
     ImportError
         If matplotlib is not installed.
+    ValueError
+        If the window asked for is shorter than a whole week.
     """
     contact_sheet: Path | None = args.contact_sheet
+    # The two options are refused together by the parser, so at most one of them
+    # was given and a window in years is the same window in whole weeks.
+    n_weeks = args.weeks if args.years is None else round(args.years * WEEKS_PER_YEAR)
     written = [
         plots.save_double_well_gif(
             args.out,
             fps=args.fps,
             dpi=args.dpi,
             contact_sheet=contact_sheet,
-            n_weeks=args.weeks,
+            n_weeks=n_weeks,
             rng=args.seed,
         )
     ]

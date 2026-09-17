@@ -15,11 +15,11 @@ section of its own.
 
 ## The software
 
-This package is a reference implementation of that article and is versioned and
-archived separately. Cite it when the analysis used the code, in addition to
-the article and never instead of it. The archive DOI is minted at the first
-release, so until then the software entry carries a placeholder in place of the
-DOI and the repository URL is the stable reference.
+This package is a reference implementation of that article and is versioned
+separately. Cite it when the analysis used the code, in addition to the article
+and never instead of it. The software is deposited in no archive and carries no
+DOI of its own, so the repository URL is its stable reference and its BibTeX
+entry carries a note naming the article as the reference to cite.
 
 ## From inside a session
 
@@ -67,15 +67,12 @@ software as the thing being cited and the article as the reference the software
 implements, so a reader who follows the button reaches both.
 
 Tools that read the file directly include `cffconvert`, which converts it to
-BibTeX, APA, RIS, Zenodo and CodeMeta:
+BibTeX, APA, RIS and CodeMeta:
 
 ```bash
 uvx cffconvert --validate
 uvx cffconvert -f bibtex
 ```
-
-Zenodo also reads `CITATION.cff` when it archives a release, so the metadata of
-the archive comes from the same file rather than being typed again.
 
 ## BibTeX
 
@@ -96,7 +93,6 @@ the archive comes from the same file rather than being typed again.
 ```
 
 ```bibtex
-% The DOI below is a placeholder: the archive DOI is minted at the first release.
 @software{msrelapse,
   author  = {Umeton, Renato},
   title   = {msrelapse: a reference implementation of the Bordi et al. 2013 double
@@ -104,13 +100,14 @@ the archive comes from the same file rather than being typed again.
   year    = {2026},
   version = {0.1.0},
   url     = {https://github.com/renato-umeton/multiple-sclerosis-modeling-bordi},
-  doi     = {10.5281/zenodo.XXXXXXX}
+  note    = {This software reproduces the article, doi 10.1155/2013/910321, which
+             is the reference to cite.}
 }
 ```
 
-The comment line above the software entry is outside the entry on purpose. A
-per cent sign opens a comment in LaTeX but not in BibTeX, which reads the body
-of an entry as field names and would refuse one there.
+The software entry carries no `doi` field, because the software is deposited in
+no archive. Its `note` is what sends a reader who meets that entry on its own
+back to the article.
 
 ## Citing a result, not just the code
 

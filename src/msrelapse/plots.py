@@ -74,6 +74,7 @@ from msrelapse.fit import MIN_AT_RISK, discrete_hazard, fit_durations, fit_nb_co
 from msrelapse.io import validate
 from msrelapse.model import DEFAULT_BAND_FRACTION, CriticalPoints, DoubleWell, calibrate
 from msrelapse.simulate import BRIDGE_CONSTANT, Seed, simulate_paths, to_states, to_weekly
+from msrelapse.stats import WEEKS_PER_YEAR
 
 if TYPE_CHECKING:
     from matplotlib.animation import FuncAnimation
@@ -167,6 +168,18 @@ _DPI: Final = 150
 _ANIMATION_SIZE: Final = (9.0, 6.0)
 _ANIMATION_HEIGHT_RATIOS: Final = (1.0, 0.8)
 _ANIMATION_DT: Final = _FIG7_DT
+
+# How long the animation observes one patient for when it is asked for no
+# window: ten years, written in the whole weeks the package counts a year in,
+# which is the 522 weeks msrelapse.edss reads ten years at rather than the 520
+# of ten flat 52 week years. The frame budget is what keeps the written file
+# small enough for a README to carry, and one frame therefore covers a little
+# over two weeks.
+_ANIMATION_YEARS: Final = 10.0
+_ANIMATION_WEEKS: Final = round(_ANIMATION_YEARS * WEEKS_PER_YEAR)
+_ANIMATION_FRAMES: Final = 260
+_ANIMATION_WEEKS_PER_FRAME: Final = _ANIMATION_WEEKS / _ANIMATION_FRAMES
+
 _PARTICLE_SIZE: Final = 10
 _CURRENT_WEEK_SIZE: Final = 6
 _SADDLE_SIZE: Final = 5
@@ -191,6 +204,11 @@ _EDSS_LABEL: Final = "EDSS"
 _EDSS_DISPLAY_LABEL: Final = "displayed EDSS"
 _EDSS_BASELINE_LABEL: Final = "baseline"
 _EDSS_AXIS_LABEL: Final = "EDSS (illustrative model, see docs)"
+
+# What the two time panels of the animation call their axis. Everything the
+# animation computes is in weeks, and a year of them is what a panel divides by
+# to place a week on that axis.
+_TIME_AXIS_LABEL: Final = "Time (years)"
 
 
 def fig2_sample_patients(
@@ -921,10 +939,10 @@ def save_all_paper_figures(
 def animate_double_well(  # noqa: PLR0917
     well: DoubleWell | None = None,
     sigma: float | None = None,
-    n_weeks: int = 520,
+    n_weeks: int = _ANIMATION_WEEKS,
     dt: float = _ANIMATION_DT,
     band_fraction: float = DEFAULT_BAND_FRACTION,
-    weeks_per_frame: float = 2.0,
+    weeks_per_frame: float = _ANIMATION_WEEKS_PER_FRAME,
     rng: Seed = None,
     fig: Figure | None = None,
     spec: EDSSSpec | None = None,
@@ -935,7 +953,7 @@ def animate_double_well(  # noqa: PLR0917
     particle at the current x(t), with the two wells labelled Health and Flare
     and the barrier top between them marked. The weekly record at the top right
     is the step plot of Figure 2, the plus one and minus one series against the
-    week, drawn up to the current week and marked there. The panel across the
+    time, drawn up to the current week and marked there. The panel across the
     bottom is the illustrative EDSS trajectory of
     [`msrelapse.edss`][msrelapse.edss] that the same weekly series drives,
     drawn as a thin continuous line with the displayed half point score
@@ -962,7 +980,9 @@ def animate_double_well(  # noqa: PLR0917
         Noise amplitude. The default is the noise of that same calibration,
         which is not the noise the paper prints for its Figure 7.
     n_weeks : int, optional
-        Length of the record, in whole weeks. Must be at least one.
+        Length of the record, in whole weeks. Must be at least one. The default
+        is ten years, that is ``round(10 * WEEKS_PER_YEAR)`` weeks of
+        [`msrelapse.stats`][msrelapse.stats], which comes to 522.
     dt : float, optional
         Time step of the integration, in weeks. Not from the paper.
     band_fraction : float, optional
@@ -971,7 +991,8 @@ def animate_double_well(  # noqa: PLR0917
         [`msrelapse.simulate.to_states`][msrelapse.simulate.to_states] takes it.
     weeks_per_frame : float, optional
         How many weeks one frame advances by. Must be positive and finite. The
-        default of two weeks over the default record is 260 frames.
+        default is the ten year record over 260 frames, which is a little over
+        two weeks a frame.
     rng : numpy.random.Generator or int or None, optional
         Generator to draw the noise from, or a seed for
         ``numpy.random.default_rng``. A seed is what makes a written file
@@ -1036,6 +1057,14 @@ def animate_double_well(  # noqa: PLR0917
     potential from the figures of the paper and the time axes from the whole
     record, so that nothing moves during playback except the pieces that are
     meant to.
+
+    The two time panels are drawn in years, ticked at the whole years of the
+    record and titled with the year the record has reached, while everything
+    behind them stays in weeks: the path, the weekly series and the disability
+    trace are computed, cut and read in weeks, and a panel divides a week
+    number by [`msrelapse.stats.WEEKS_PER_YEAR`][msrelapse.stats.WEEKS_PER_YEAR]
+    to place it. A record shorter than a year keeps the ticks matplotlib picks
+    for it, since the only whole year inside it is zero.
     """
     record = _animation_record(well, sigma, n_weeks, dt, band_fraction, rng, spec)
     weeks = _animation_weeks(int(record.weekly.size), weeks_per_frame)
@@ -2212,16 +2241,20 @@ def _draw_animation(
         drawn = weeks[frame]
         position = float(record.x[_sample_at(record, drawn)])
         particle.set_data([position], [float(record.well.V(position))])
-        numbers = np.arange(drawn, dtype=np.float64)
+        # The record is held in weeks and shown in years, so the week number of
+        # each point is divided by the weeks of a year on its way to a panel.
+        years = np.arange(drawn, dtype=np.float64) / WEEKS_PER_YEAR
         states = record.weekly[:drawn]
         # Week k covers the interval from k to k + 1, so the step is closed one
         # week past the current one, as Figure 2 closes a whole record. Without
         # that point the week the marker sits on would have no width at all.
-        step.set_data(np.append(numbers, float(drawn)), np.append(states, states[-1]))
-        current.set_data([numbers[-1]], [states[-1]])
-        curve.set_data(numbers, record.edss[:drawn])
-        displayed.set_data(numbers, record.edss_display[:drawn])
-        series_panel.set_title(f"Weekly record, week {drawn} of {n_weeks}")
+        step.set_data(np.append(years, drawn / WEEKS_PER_YEAR), np.append(states, states[-1]))
+        current.set_data([years[-1]], [states[-1]])
+        curve.set_data(years, record.edss[:drawn])
+        displayed.set_data(years, record.edss_display[:drawn])
+        series_panel.set_title(
+            f"Weekly record, year {drawn / WEEKS_PER_YEAR:.1f} of {n_weeks / WEEKS_PER_YEAR:.1f}"
+        )
 
     update(0)
     return update
@@ -2296,11 +2329,10 @@ def _draw_animated_series(ax: Axes, n_weeks: int) -> tuple[Line2D, Line2D]:
         color="tab:red",
         label=_CURRENT_WEEK_LABEL,
     )
-    ax.set_xlim(0.0, float(n_weeks))
+    _time_axis_in_years(ax, n_weeks)
     ax.set_yticks([_HEALTH, _NO_HEALTH])
     ax.set_yticklabels([_HEALTH_LABEL, _FLARE_LABEL])
     ax.set_ylim(_HEALTH - _STATE_MARGIN, _NO_HEALTH + _STATE_MARGIN)
-    ax.set_xlabel("Time (week)")
     return step, current
 
 
@@ -2349,17 +2381,46 @@ def _draw_animated_edss(ax: Axes, record: _AnimationRecord, n_weeks: int) -> tup
         color=_GUIDE_COLOUR,
         label=_EDSS_BASELINE_LABEL,
     )
-    ax.set_xlim(0.0, float(n_weeks))
+    _time_axis_in_years(ax, n_weeks)
     # A quiet record keeps the whole of the lower half of the scale, so that a
     # small rise is not drawn as a large one by an axis fitted to it.
     top = max(_EDSS_PANEL_FLOOR, math.ceil(float(record.edss.max()) + _EDSS_HEADROOM))
     ax.set_ylim(0.0, top)
-    ax.set_xlabel("Time (week)")
     ax.set_ylabel(_EDSS_AXIS_LABEL)
     # The key sits in the upper left, which the trace reaches only on a record
     # that has climbed most of the drawn scale.
     ax.legend(loc="upper left", ncols=_EDSS_LEGEND_COLUMNS, fontsize="small", framealpha=1.0)
     return curve, displayed
+
+
+def _time_axis_in_years(ax: Axes, n_weeks: int) -> None:
+    """Set the time axis of one panel of the animation, in years of follow up.
+
+    The animation counts in weeks throughout, as the study does, and shows
+    those weeks as the years of follow up they come to, which is the unit a
+    reader of a ten year record thinks in.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The panel whose time axis to set.
+    n_weeks : int
+        Length of the whole record, in weeks.
+
+    Returns
+    -------
+    None
+        Nothing is returned; the axis of `ax` is set.
+    """
+    years = n_weeks / WEEKS_PER_YEAR
+    ax.set_xlim(0.0, years)
+    # A record of at least a year is ticked at every whole year it reaches,
+    # which is the eleven ticks of the ten year default. A shorter one keeps the
+    # ticks matplotlib picks for it, since the only whole year inside it is zero
+    # and an axis ticked there alone carries no scale at all.
+    if years >= 1.0:
+        ax.set_xticks(np.arange(math.floor(years) + 1.0))
+    ax.set_xlabel(_TIME_AXIS_LABEL)
 
 
 def _sample_at(record: _AnimationRecord, weeks: int) -> int:

@@ -23,6 +23,7 @@ from msrelapse.datasets import SYNTHETIC_SEED
 from msrelapse.fit import PeriodicityResult, fit_durations
 from msrelapse.fit import TestResult as PooledResult  # renamed: pytest collects Test* classes
 from msrelapse.io import read_durations, read_events, read_weekly
+from msrelapse.stats import WEEKS_PER_YEAR
 
 RELAPSE = PAPER.state_no_health.value
 HEALTH = PAPER.state_health.value
@@ -115,6 +116,13 @@ ANIMATION_WEEKS = 20
 ANIMATION_SEED = 4
 ANIMATION_FPS = 4
 ANIMATION_DPI = 40
+
+# The window the subcommand runs when it is asked for none, ten years in whole
+# weeks, and the short window a test gives in years instead of in weeks.
+ANIMATION_DEFAULT_YEARS = 10
+ANIMATION_DEFAULT_WEEKS = round(ANIMATION_DEFAULT_YEARS * WEEKS_PER_YEAR)
+ANIMATION_SHORT_YEARS = 0.4
+ANIMATION_SHORT_WEEKS = round(ANIMATION_SHORT_YEARS * WEEKS_PER_YEAR)
 
 # The opening bytes of the two files the animate subcommand writes.
 GIF_MAGIC = b"GIF89a"
@@ -838,8 +846,8 @@ def test_simulate_moves_under_a_different_seed(tmp_path: Path) -> None:
     assert first.read_bytes() != other.read_bytes()
 
 
-def animate(tmp_path: Path, *extra: str) -> Path:
-    """Write the short animation into a directory and return the file."""
+def animate_window(tmp_path: Path, *options: str) -> Path:
+    """Write the short animation over one window and return the file."""
     headless_matplotlib()
     path = tmp_path / "double_well.gif"
     code = main(
@@ -847,19 +855,22 @@ def animate(tmp_path: Path, *extra: str) -> Path:
             "animate",
             "-o",
             str(path),
-            "--weeks",
-            str(ANIMATION_WEEKS),
             "--seed",
             str(ANIMATION_SEED),
             "--fps",
             str(ANIMATION_FPS),
             "--dpi",
             str(ANIMATION_DPI),
-            *extra,
+            *options,
         ]
     )
     assert code == 0
     return path
+
+
+def animate(tmp_path: Path, *extra: str) -> Path:
+    """Write the short animation into a directory and return the file."""
+    return animate_window(tmp_path, "--weeks", str(ANIMATION_WEEKS), *extra)
 
 
 def test_animate_writes_a_gif(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -914,6 +925,42 @@ def test_animate_writes_where_the_readme_looks_for_the_animation() -> None:
     defaults = vars(msrelapse.cli._build_parser().parse_args(["animate"]))
     assert defaults["out"] == Path("docs/assets/double_well.gif")
     assert defaults["contact_sheet"] is None
+
+
+def test_animate_follows_one_patient_for_ten_years_by_default() -> None:
+    defaults = vars(msrelapse.cli._build_parser().parse_args(["animate"]))
+
+    assert defaults["weeks"] == ANIMATION_DEFAULT_WEEKS
+    assert defaults["years"] is None
+
+
+def test_animate_help_gives_the_default_window_in_years_and_in_weeks(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as raised:
+        main(["animate", "--help"])
+
+    assert raised.value.code == 0
+    printed = " ".join(capsys.readouterr().out.split())
+    assert f"default ten years, {ANIMATION_DEFAULT_WEEKS} weeks" in printed
+
+
+def test_animate_takes_the_window_in_years_instead_of_weeks(tmp_path: Path) -> None:
+    # A window given in years is that many weeks, so the two runs write one file.
+    in_years = animate_window(tmp_path / "years", "--years", str(ANIMATION_SHORT_YEARS))
+    in_weeks = animate_window(tmp_path / "weeks", "--weeks", str(ANIMATION_SHORT_WEEKS))
+
+    assert in_years.read_bytes() == in_weeks.read_bytes()
+
+
+def test_animate_refuses_a_window_in_weeks_and_one_in_years_together(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as raised:
+        main(["animate", "--weeks", str(ANIMATION_WEEKS), "--years", "1"])
+
+    assert raised.value.code == 2
+    assert "--years" in capsys.readouterr().err
 
 
 def test_the_animate_options_default_to_what_the_library_does() -> None:

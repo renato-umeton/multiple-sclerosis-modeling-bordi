@@ -12,6 +12,7 @@ notebook and a workflow are held to the rules the prose is held to.
 
 from __future__ import annotations
 
+import inspect
 import os
 import re
 import shutil
@@ -43,6 +44,7 @@ from _helpers import (
     text_files,
     three_hyphen_lines,
 )
+from msrelapse import plots
 
 DOCS = ROOT / "docs"
 PACKAGE = ROOT / "src" / "msrelapse"
@@ -1093,6 +1095,19 @@ def test_the_reproduction_page_lists_the_rows_of_the_closing_table() -> None:
     page = flatten(read(DOCS / "reproducing.md"))
     missing = [quantity for quantity in table["quantity"] if quantity not in page]
     assert missing == [], "docs/reproducing.md has drifted from reproduction_table"
+
+
+def test_the_reproduction_page_states_the_window_the_animation_runs_over() -> None:
+    """The page and ``animate_double_well`` give the record the same length.
+
+    The page tells a reader how long the committed file follows one patient
+    for, in years and in the whole weeks that comes to, and the seed that wrote
+    it was chosen over that window. Nothing but this check stops the page from
+    keeping a window the animation no longer runs.
+    """
+    weeks = inspect.signature(plots.animate_double_well).parameters["n_weeks"].default
+    page = flatten(read(DOCS / "reproducing.md"))
+    assert f"{weeks} weeks" in page, "docs/reproducing.md has drifted from animate_double_well"
 
 
 def test_the_home_page_sends_each_audience_to_its_entry_point() -> None:

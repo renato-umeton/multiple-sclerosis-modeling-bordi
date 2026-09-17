@@ -42,7 +42,7 @@ jobs:
       - name: Validate the citation metadata
         # CITATION.cff tells the maintainer to check a change with this command.
         # Running it here is what turns that note into a gate, and the file is
-        # what Zenodo and the reference managers read.
+        # what the reference managers read.
         run: uvx cffconvert --validate -i CITATION.cff
 
   test:

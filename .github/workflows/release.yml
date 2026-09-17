@@ -14,13 +14,7 @@
 #      Settings then Environments, and add a protection rule that requires a
 #      review from the maintainer. An accidental tag push then waits for an
 #      approval instead of publishing on its own.
-#   3. Enable the Zenodo GitHub integration for this repository, at
-#      https://zenodo.org/account/settings/github/, before the first tag is
-#      pushed, whichever version that first tag carries. Zenodo archives the
-#      release and mints the DOI only for releases created after the switch is
-#      turned on. Once the DOI exists, add it to CITATION.cff and codemeta.json
-#      and enable the DOI badge in README.md.
-#   4. Turn on the two repository features the published metadata already points
+#   3. Turn on the two repository features the published metadata already points
 #      at, so that neither link answers with a 404: GitHub Pages, as the header
 #      of docs.yml describes, which is the site URL in CITATION.cff and
 #      codemeta.json, and Discussions, which the issue chooser in
@@ -36,9 +30,9 @@ on:
     tags: ["v*"]
 
 # Two tags pushed close together, or a tag deleted and pushed again, would
-# otherwise build, publish and release in parallel against the same PyPI project
-# and the same Zenodo integration. A release cancelled halfway is worse than one
-# that waits, so runs queue rather than replace one another, as in docs.yml.
+# otherwise build, publish and release in parallel against the same PyPI
+# project. A release cancelled halfway is worse than one that waits, so runs
+# queue rather than replace one another, as in docs.yml.
 concurrency:
   group: release
   cancel-in-progress: false
@@ -132,9 +126,9 @@ jobs:
 
   github-release:
     name: Create the GitHub release
-    # After the publish, not beside it. A GitHub release is what Zenodo archives
-    # and mints the citation DOI from, so it must never stand for a version that
-    # failed to reach PyPI.
+    # After the publish, not beside it. A GitHub release is what a reader
+    # downloads the tagged distribution from, so it must never stand for a
+    # version that failed to reach PyPI.
     needs: [build, publish]
     runs-on: ubuntu-latest
     timeout-minutes: 15
