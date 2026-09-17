@@ -25,7 +25,7 @@ comes from, so that no reported value is written down twice.
 
 ![One simulated patient over ten years: the particle in the double well, the weekly flare and remission series, and an illustrative EDSS trajectory](docs/assets/double_well.gif)
 
-The three panels are one simulated record of 520 weeks: the particle moving
+The three panels are one simulated record of ten years, 522 weeks: the particle moving
 between the health and flare wells of the asymmetric double well, the weekly
 series of flare and remission weeks that path produces, and an illustrative
 EDSS trajectory the same series drives, the first two at the asymmetry and the
@@ -39,11 +39,10 @@ opens at a baseline of 2.0 after the first attack, gives every flare a nadir
 deficit drawn from the published distribution and mostly recovered within six
 months, and leaves a residual of at least 0.5 after 42 percent of them, every
 number of it taken from the literature with its source. The record drawn here
-is one draw of that model and not a typical one. Its first three flares all
-recover in full, the first two of them a week apart, so together they leave one
-spike, the slow decay after it and nothing more, and the last two leave half a
-point each, which is where the trace ends after ten years, a point above the
-baseline it opened at. A flare never leaves the trace below the level the
+is one draw of that model and not a typical one. It holds four flares over the ten years, the first of them in year 2.5. Two of
+them recover in full, so each leaves a spike and the slow decay after it and
+nothing more, and the other two leave half a point each, which is where the
+trace ends after ten years, a point above the baseline it opened at. A flare never leaves the trace below the level the
 record has accumulated for good, because accumulated disability does not
 decrease, so the only fall the panel shows is the recovery after a spike. The
 [disability page](https://renato-umeton.github.io/multiple-sclerosis-modeling-bordi/disability/)
@@ -173,7 +172,7 @@ takes `--help`.
 msrelapse reproduce --out reproduction   # the whole analysis, written out
 msrelapse simulate --n 200 --tau-health 80 --tau-relapse 3 \
     --weeks 400 --seed 0 -o cohort.csv   # a virtual cohort as a CSV file
-msrelapse animate --seed 6               # the animation above, as a GIF file
+msrelapse animate --seed 2               # the animation above, as a GIF file
 msrelapse fit durations.csv              # the duration law of each state
 msrelapse test-memoryless durations.csv  # do the durations carry memory
 msrelapse test-periodicity weekly.csv    # is there a period in the onsets

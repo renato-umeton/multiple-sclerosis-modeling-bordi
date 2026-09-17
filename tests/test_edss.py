@@ -616,7 +616,7 @@ def test_progression_alone_raises_the_trace_by_a_point_over_ten_years() -> None:
 def test_the_first_jump_stays_on_the_scale_and_is_a_point_on_median() -> None:
     spec = edss.EDSSSpec()
     # A single relapse of 27 weeks, the longest first flare seen while choosing
-    # the animation seed; the committed animation uses seed 6.
+    # the animation seed; the committed animation uses seed 2.
     states = states_of((RELAPSE, 27), (REMISSION, 200))
 
     tops = [
