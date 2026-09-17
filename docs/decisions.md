@@ -33,6 +33,24 @@ their sources and its caveats. It is an illustrative extension and not part of
 the 2013 article, which reports no disability score, and it is labelled that
 way on the page, in the module and in the caption of the animation.
 
+**The residual law carries no mass below zero, and the mean of the law is
+therefore above the published mean change per relapse.** The first version of
+the law gave 18 percent of relapses a residual below zero, which let one
+distribution meet the published incomplete recovery probabilities of 42 and 18
+percent and the published mean change of about 0.25 with a median of 0 at the
+same time. That was an arithmetic device with a clinical consequence: a flare
+could leave a patient permanently better than before it, and accumulated
+disability does not decrease. The published mean change is a raw difference
+between a pre-relapse and a post-relapse score, so it is net of visit to visit
+improvements and rater noise, which are not recovered disability, and a model
+of accumulation has to exclude them. The laws now put that mass at zero, which
+keeps every incomplete recovery probability and the median of 0 and raises the
+mean residual to 0.361. `msrelapse.edss.EDSSSpec` refuses a law that reaches
+below zero, a trace carries the floor it has accumulated, and the cost, a model
+that accrues about half a point to a point per decade faster than the observed
+mean slope, is recorded in the long run anchors and the caveats of
+[Disability trajectory](disability.md).
+
 **Time varying parameters are out of scope for version 0.1** and are recorded
 as future work. The asymmetry and the noise of the article are constants of a
 patient. A slowly varying asymmetry or noise, which would let a barrier drift

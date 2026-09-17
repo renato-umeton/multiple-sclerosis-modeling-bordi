@@ -193,10 +193,10 @@ msrelapse animate --seed 6 --contact-sheet docs/assets/double_well_frames.png
 
 The seed is what makes it repeatable, and 6 is the one the committed file was
 written under: it gives 520 weeks holding five flares spread over the whole
-record, a first flare whose deficit peaks well above the residual it leaves, so
-the spike and the slow decay after it are both there to see, and a trace that
-settles at a new level only where a flare left a residual behind and ends at
-2.5 after ten years, near the anchor of about 3 that
+record, a first flare whose deficit peaks a point and a half above the baseline
+and leaves nothing behind, so the spike and the slow decay after it are both
+there to see, and a trace that settles at a new level only where a flare left a
+residual behind and ends the 520 weeks at 3.0, on the anchor of about 3 that
 [Disability trajectory](disability.md) records. The command writes
 `docs/assets/double_well.gif`, 260 frames of about 0.9 MB in all, and the
 contact sheet beside it, which is four evenly spaced frames of the finished
@@ -212,8 +212,10 @@ The earlier 4 drew a residual equal to the peak at each of its first three
 flares, so the trace was a plain staircase for the first 380 weeks and stood at
 4.5 after ten years, well above the anchor; 6 is the smallest seed from 1 to
 300 whose record holds between four and seven flares, whose first flare is over
-within twelve weeks, recovers visibly from that first flare, and ends the ten
-years between 2.5 and 3.5. What the trace is,
+within twelve weeks and peaks at least half a point above the residual it
+leaves, so that the recovery after it is visible, and whose trace ends the 520
+weeks between 2.5 and 3.5. The rule was applied again when the residual law was
+corrected to carry no improvements, and it still returns 6. What the trace is,
 what each of its parameters rests on and what it cannot be used for are on
 [Disability trajectory](disability.md). Nothing in that panel is a clinical
 score.

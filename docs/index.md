@@ -32,11 +32,13 @@ opens at a baseline of 2.0 after the first attack, gives every flare a nadir
 deficit drawn from the published distribution and mostly recovered within six
 months, and leaves a residual of at least 0.5 after 42 percent of them, every
 number of it taken from the literature with its source. The record drawn here
-is one draw of that model and not a typical one. Its first two flares come a
-week apart and both recover in full, so together they leave one spike and the
-slow decay after it and nothing more; the third settles half a point below the
-score the record opened at; and the last two leave half a point each, which is
-where the trace ends after ten years.
+is one draw of that model and not a typical one. Its first three flares all
+recover in full, the first two of them a week apart, so together they leave one
+spike, the slow decay after it and nothing more, and the last two leave half a
+point each, which is where the trace ends after ten years, a point above the
+baseline it opened at. A flare never leaves the trace below the level the
+record has accumulated for good, because accumulated disability does not
+decrease, so the only fall the panel shows is the recovery after a spike.
 [Disability trajectory](disability.md) explains the model, the evidence behind
 it and what it cannot do, and no trace it draws is a prognosis.
 [Reproducing the paper](reproducing.md) has the command that writes the

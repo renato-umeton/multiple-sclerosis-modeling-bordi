@@ -26,11 +26,15 @@ of relapses at or above 0.5, 61 percent at or above 1.0 (both from the AFFIRM
 placebo arm, Lublin 2014) and 17 percent at or above 2.0 (Achiron 2019), and
 its mean of 1.05 sits just below the AFFIRM placebo mean of 1.09. The residual
 law reproduces the pooled incomplete recovery rate of 0.42 over 27,672 relapses
-(Ladeira 2025) together with the mean of about 0.25 and the median of 0 of the
-pooled placebo arms (Lublin 2003), which is what the mass below zero is for,
+(Ladeira 2025) and the median of 0 of the pooled placebo arms (Lublin 2003),
 and it is drawn from one of two laws by the severity of the peak, the strongest
-and most consistent predictor of incomplete recovery. The recovery constant of
-ten weeks is fitted to published median recovery times of 71 and 111 days (Koch
+and most consistent predictor of incomplete recovery. It does not reproduce the
+mean change of about 0.25 per relapse those same placebo arms report, and says
+so: that figure is a raw difference of two scores, net of the relapses that
+ended below the score they started from, which are improvements and rater noise
+rather than disability. Accumulated disability does not decrease, so the model
+excludes them, and its mean residual is 0.361. The recovery constant of ten
+weeks is fitted to published median recovery times of 71 and 111 days (Koch
 2023, Mostert 2025). Progression independent of relapse activity is off by
 default, so the trace is purely relapse driven.
 
@@ -58,7 +62,7 @@ Examples
 >>> states = np.array([1] * 4 + [-1] * 60)
 >>> trace = edss_trajectory(states, rng=0)
 >>> list(trace.columns)
-['week', 'edss', 'edss_display', 'episode']
+['week', 'edss', 'edss_display', 'floor', 'episode']
 >>> draws = episode_draws(states, rng=0)
 >>> list(draws["start"]), list(draws["duration_w"])
 ([0], [4])
@@ -152,19 +156,17 @@ of 1.09. The shape between the pinned points is a judgement call.
 """
 
 RESIDUAL_LAW_MILD: Final[Mapping[float, float]] = MappingProxyType(
-    {-1.0: 0.03, -0.5: 0.15, 0.0: 0.57, 0.5: 0.21, 1.0: 0.04}
+    {0.0: 0.75, 0.5: 0.21, 1.0: 0.04}
 )
 """Mapping: What a relapse whose peak is below ``SEVERE_PEAK`` leaves behind.
 
 Such relapses are 39 percent of the peak law. A quarter of them leave a
-residual of at least half a point, and their mean residual is 0.04.
+residual of at least half a point, and their mean residual is 0.145.
 """
 
 RESIDUAL_LAW_SEVERE: Final[Mapping[float, float]] = MappingProxyType(
     {
-        -1.0: 0.03,
-        -0.5: 0.15,
-        0.0: 0.29,
+        0.0: 0.47,
         0.5: 0.265,
         1.0: 0.15,
         1.5: 0.06,
@@ -177,11 +179,17 @@ RESIDUAL_LAW_SEVERE: Final[Mapping[float, float]] = MappingProxyType(
 
 Such relapses are 61 percent of the peak law. Marginally over the two classes
 the residual is at least 0.5 in 42 percent of relapses and at least 1.0 in 18
-percent, with a median of 0 and a mean of 0.256, which are the published
-figures the pair of laws was built to satisfy at once. The mass below zero, 18
-percent of relapses ending at least half a point below the pre-relapse score,
-is what lets one distribution meet both the thresholds and the mean; its size
-is inferred from that arithmetic rather than measured anywhere.
+percent, with a median of 0, which are the published figures the pair of laws
+reproduces, and a mean of 0.361.
+
+That mean is above the published mean change per relapse of about 0.25, and
+deliberately so. The published figure is a raw difference between a pre-relapse
+and a post-relapse score, so it is net of the relapses that ended below the
+score they started from, which are visit to visit improvements and rater noise
+rather than disability. Accumulated disability does not decrease, so no law
+here carries mass below zero, and the price of that is a mean residual above
+the published change. The incomplete recovery probabilities, which are what the
+meta-analysis measured directly, are matched exactly.
 """
 
 
@@ -324,20 +332,23 @@ EVIDENCE: Final[tuple[Evidence, ...]] = (
         unit="EDSS points",
         source=(
             "Lublin 2003, mean 0.27 with a median of 0 at a mean of 64 days in the pooled "
-            "placebo arms, and 0.28 in the AFFIRM placebo arm. Both are net of relapses that "
-            "ended below the pre-relapse score, which is why the residual law carries mass "
-            "below zero"
+            "placebo arms, and 0.28 in the AFFIRM placebo arm. Both are raw pre to post "
+            "differences, so both are net of the relapses that ended below the score they "
+            "started from. Those are improvements and rater noise rather than disability, and "
+            "the residual law of the model excludes them, which is why its own mean is higher"
         ),
         doi="10.1212/01.wnl.0000096175.39831.21",
     ),
     Evidence(
         parameter="Residual step law on the half point grid, by severity class",
-        value="mean 0.256, median 0, at least 0.5 in 0.42 and at least 1.0 in 0.18",
+        value="mean 0.361, median 0, at least 0.5 in 0.42 and at least 1.0 in 0.18",
         unit="probability per half point",
         source=(
             "Derived here from Ladeira 2025, Lublin 2003 and Achiron 2019 to reproduce the "
-            "pooled incomplete recovery rate, the published median and mean, and the severe "
-            "tail of about 3.5 percent of relapses retaining at least 2.0 points"
+            "pooled incomplete recovery rate, the published median, and the severe tail of "
+            "about 3.4 percent of relapses retaining at least 2.0 points. No mass sits below "
+            "zero, because accumulated disability does not decrease, so the mean of the law is "
+            "above the published mean change per relapse"
         ),
         doi="10.1016/j.msard.2025.106507",
     ),
@@ -394,11 +405,16 @@ EVIDENCE: Final[tuple[Evidence, ...]] = (
         value="0.0",
         unit="EDSS points per year",
         source=(
-            "Judgement call, derived here from Pittock 2004. At zero the model reproduces the "
-            "observed mean slope of about one point per decade in a near untreated "
-            "population; a positive rate instead matches the milestone medians and overshoots "
-            "that slope. Zero keeps the trace purely relapse driven and avoids counting the "
-            "same accrual twice"
+            "Judgement call, derived here from Pittock 2004. At zero the model already lands on "
+            "the two later milestone medians, a sustained EDSS 4 at about 11 years against a "
+            "published 11.4 and a sustained EDSS 6 at about 22 years against a published 21.7 "
+            "to 23.1, while it runs ahead of the earlier one, a sustained EDSS 3 at about 6 "
+            "years against a published 10, and it overshoots the observed mean slope of about "
+            "one point per decade in a near untreated population, because its residual law "
+            "carries no improvements. A positive rate accrues faster still and brings EDSS 6 "
+            "forward to about 19.5 years at 0.05 points a year, the fast end of the published "
+            "range. Zero keeps the trace purely relapse driven and avoids counting the same "
+            "accrual twice"
         ),
         doi="10.1212/01.wnl.0000101724.93433.00",
     ),
@@ -459,8 +475,16 @@ def _check_law(name: str, law: Mapping[float, float]) -> None:
     Raises
     ------
     ValueError
-        If the mapping is empty, holds a value off the half point grid or a
-        negative or non finite probability, or does not sum to one.
+        If the mapping is empty, holds a value off the half point grid, below
+        zero, or holds a negative or non finite probability, or does not sum to
+        one.
+
+    Notes
+    -----
+    A value below zero is refused because accumulated disability does not
+    decrease: a negative residual would leave a patient permanently better off
+    after a relapse than before it, and a negative peak would make the relapse
+    itself an improvement.
     """
     if not law:
         raise ValueError(f"{name} must hold at least one value, got an empty law")
@@ -468,6 +492,12 @@ def _check_law(name: str, law: Mapping[float, float]) -> None:
         if not math.isfinite(value) or abs(value / _HALF_POINT - round(value / _HALF_POINT)) > 0.0:
             raise ValueError(
                 f"{name} must sit on the half point grid of the EDSS scale, got {value!r}"
+            )
+        if value < 0.0:
+            raise ValueError(
+                f"{name} must hold no value below zero, because accumulated disability "
+                f"cannot decrease and a relapse never leaves a patient better off than "
+                f"before it, got {value!r}"
             )
         if not math.isfinite(probability):
             raise ValueError(
@@ -501,8 +531,9 @@ class EDSSSpec:
         published median recovery times of 71 and 111 days.
     pira_per_year : float
         Linear progression independent of relapse activity, in EDSS points per
-        year. The default of 0 keeps the trace purely relapse driven, which is
-        the point of the exercise, and avoids counting an accrual already
+        year, at or above zero because accumulated disability does not
+        decrease. The default of 0 keeps the trace purely relapse driven, which
+        is the point of the exercise, and avoids counting an accrual already
         inside the residual law a second time. A year here is the 365.25 over 7
         weeks of ``msrelapse.stats.WEEKS_PER_YEAR``, which the whole package
         converts with, and not the flat 52 weeks the published formula is
@@ -526,11 +557,11 @@ class EDSSSpec:
     Raises
     ------
     ValueError
-        If a law is empty, holds a value off the half point grid or a negative
-        probability, or does not sum to one; if `baseline` or
-        `recovery_tau_weeks` is not a positive number; if
+        If a law is empty, holds a value off the half point grid, holds a value
+        below zero, holds a negative probability, or does not sum to one; if
+        `baseline` or `recovery_tau_weeks` is not a positive number; if
         `time_to_nadir_weeks` is below one week; if `pira_per_year` is not
-        finite; or if `scale_max` is not above `scale_min`.
+        finite or falls below zero; or if `scale_max` is not above `scale_min`.
 
     Notes
     -----
@@ -545,9 +576,17 @@ class EDSSSpec:
     falls below the quarter point display threshold at the published median
     recovery time, which gives 7.3 weeks against one cohort and 11.4 against
     the other, both of them treated; the split of the residual mass above 1.0,
-    which is pinned only at the 2.0 threshold; the size of the mass below zero,
-    which is inferred from arithmetic rather than measured; two severity
-    classes rather than three; and a progression rate of zero.
+    which is pinned only at the 2.0 threshold; two severity classes rather than
+    three; and a progression rate of zero.
+
+    No law may reach below zero, and neither may `pira_per_year`, because
+    accumulated disability does not decrease and either of them below zero
+    would pull down the level the record has already reached for good. The
+    published mean change per relapse of about 0.25 is a raw difference of two
+    scores and is therefore net of the relapses that ended below the score they
+    started from, which are improvements and rater noise rather than
+    disability. Excluding them keeps every incomplete recovery probability and
+    puts the mean residual of the model at 0.361, above that published change.
 
     Examples
     --------
@@ -586,6 +625,12 @@ class EDSSSpec:
             raise ValueError(
                 f"pira_per_year must be a finite number of EDSS points per year, "
                 f"got {self.pira_per_year!r}"
+            )
+        if self.pira_per_year < 0.0:
+            raise ValueError(
+                f"pira_per_year must be at or above zero, because accumulated disability "
+                f"cannot decrease and a progression term below zero would pull the floor of "
+                f"the trace down week by week, got {self.pira_per_year!r}"
             )
         if not self.scale_max > self.scale_min:
             raise ValueError(
@@ -733,8 +778,13 @@ def edss_trajectory(
     T and the recovery constant as tau, the kernel is zero before u, it is
     ``A * min(1, (t - u + 1) / T)`` while the deficit rises, and it is
     ``r + (A - r) * exp(-(t - u - T) / tau)`` from the nadir onwards. The trace
-    is the baseline, plus the progression term, plus every kernel, clipped to
-    the scale.
+    is the baseline, plus the progression term, plus every kernel, held at or
+    above the floor and clipped to the scale.
+
+    The floor is the baseline, plus the progression term, plus the residual of
+    every episode that has started by that week. It is what the record has
+    accumulated for good: no residual and no progression rate reaches below
+    zero, so it never falls, and the trace never sits below it.
 
     Parameters
     ----------
@@ -754,7 +804,8 @@ def edss_trajectory(
     pandas.DataFrame
         One row per week of the record, with the columns ``week``, ``edss``,
         the continuous score, ``edss_display``, that score on the half point
-        grid, and ``episode``, the index of the episode in progress that week
+        grid, ``floor``, the level the record has accumulated for good by that
+        week, and ``episode``, the index of the episode in progress that week
         or -1 in remission.
 
     Raises
@@ -780,6 +831,11 @@ def edss_trajectory(
     series flips to remission: it goes on decaying towards the residual of that
     episode for months afterwards.
 
+    Recovering from a relapse is the only decrease the trace ever shows. No law
+    of the model reaches below zero and no progression rate does either, so
+    every relapse either leaves the record where it found it or raises it, and
+    the ``floor`` column is the level it has reached that way.
+
     Examples
     --------
     >>> trace = edss_trajectory([1, 1, -1, -1, -1], rng=3)
@@ -794,6 +850,9 @@ def edss_trajectory(
     elapsed = weeks.astype(np.float64)
     raw: _Vector = np.full(states.size, spec.baseline, dtype=np.float64)
     raw += spec.pira_per_year * elapsed / WEEKS_PER_YEAR
+    # The baseline and the progression term are all the record has accumulated
+    # before its first relapse, so the floor starts from the same two.
+    accumulated = raw.copy()
     episode = np.full(states.size, -1, dtype=np.int64)
     starts = draws["start"].to_numpy()
     ends = draws["end"].to_numpy()
@@ -802,13 +861,25 @@ def edss_trajectory(
     for index in range(len(draws)):
         start = int(starts[index])
         raw += _kernel(elapsed, start, float(peaks[index]), float(residuals[index]), spec)
+        accumulated[start:] += float(residuals[index])
         episode[start : int(ends[index]) + 1] = index
-    edss = np.clip(raw, spec.scale_min, spec.scale_max)
+    floor = np.clip(accumulated, spec.scale_min, spec.scale_max)
+    # The floor is the level the record has reached for good, so the trace is
+    # held at or above it. The maximum is taken against the column the frame
+    # ships rather than against the unclipped total, so that the promise the
+    # two carry, that the trace never sits below its floor, is plain on the one
+    # line that enforces it. Under the published time to nadir of one week the
+    # kernels already sit above the floor everywhere and the maximum changes
+    # nothing; it is what keeps the rule at a longer time to nadir, where a
+    # deficit still climbing to its peak would otherwise pass below a residual
+    # the same relapse has already committed the record to.
+    edss = np.clip(np.maximum(raw, floor), spec.scale_min, spec.scale_max)
     return pd.DataFrame(
         {
             "week": weeks,
             "edss": edss,
             "edss_display": _to_half_points(edss, spec),
+            "floor": floor,
             "episode": episode,
         }
     )
@@ -852,10 +923,18 @@ def expected_residual(spec: EDSSSpec = DEFAULT_SPEC) -> float:
         class, weighted by the share of the peak law that falls in each, in
         EDSS points.
 
+    Notes
+    -----
+    Under the published laws this is 0.361, which is above the published mean
+    change per relapse of about 0.25. That published figure is a raw difference
+    of two scores and is net of the relapses that ended below the score they
+    started from; the model excludes those, because accumulated disability does
+    not decrease.
+
     Examples
     --------
     >>> round(expected_residual(), 5)
-    0.25594
+    0.36094
     """
     severe_share = sum(p for value, p in spec.peak_law.items() if value >= SEVERE_PEAK)
     mild_share = sum(p for value, p in spec.peak_law.items() if value < SEVERE_PEAK)
@@ -885,9 +964,10 @@ def summarise(trajectory: pd.DataFrame, draws: pd.DataFrame | None = None) -> di
         score it reaches, and ``episodes``, how many relapses it holds, which a
         trace on its own always gives. ``episodes_with_a_residual``, how many
         of those relapses leave a residual above zero, is there only when
-        `draws` is given: the trace does not hold what each episode left
-        behind, so a caller that wants that number has to pass the draws.
-        ``edss_at_ten_years`` is there only when the record reaches ten years.
+        `draws` is given: the residuals cannot be read back off a trace on its
+        own, for the reasons the Notes set out, so a caller that wants that
+        number has to pass the draws. ``edss_at_ten_years`` is there only when
+        the record reaches ten years.
 
     Raises
     ------
@@ -899,14 +979,15 @@ def summarise(trajectory: pd.DataFrame, draws: pd.DataFrame | None = None) -> di
     Notes
     -----
     The draws are a second argument rather than something read back out of the
-    trace, because what each episode left behind is not in the trace: its four
-    columns are the week, the two scores and the episode in progress, and the
-    level at any week is the sum of every residual so far plus whatever the
-    current episode is still decaying through. Reading the residuals back out
-    of that would be guessing, so the dependency is explicit instead, and
-    optional, so that a trace on its own still summarises. The two frames of
-    one record, one spec and one seed agree by construction, and a pair that
-    disagrees on the number of episodes is refused rather than summarised.
+    trace. The ``floor`` column does step by the residual of each episode in
+    the week that episode opens, but reading the residuals back off it would be
+    guessing: a trace carries no spec, so the weekly progression increment
+    cannot be subtracted from those steps, and an episode that opens in week 0
+    has no week in front of it to difference against. The dependency is
+    explicit instead, and optional, so that a trace on its own still
+    summarises. The two frames of one record, one spec and one seed agree by
+    construction, and a pair that disagrees on the number of episodes is
+    refused rather than summarised.
 
     Ten years are read at the week
     ``round(10 * msrelapse.stats.WEEKS_PER_YEAR)``, which is 522 rather than

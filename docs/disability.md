@@ -31,11 +31,14 @@ r_i + (A_i - r_i)\, e^{-(t - u_i - T_n)/\tau}, & t \ge u_i + T_n
 $$
 
 The trajectory is the baseline $E_0$, plus an optional linear progression term
-at $k$ points a year, plus the sum of the kernels, held inside the scale:
+at $k$ points a year, plus the sum of the kernels, held at or above the floor
+$F(t)$ and inside the scale:
 
 $$
-\mathrm{EDSS}(t) = \mathrm{clip}\!\left(E_0 + \frac{k\,t}{365.25/7}
-+ \sum_i g_i(t),\; 0,\; 10\right) ,
+\mathrm{EDSS}(t) = \mathrm{clip}\!\left(\max\!\left(F(t),\; E_0
++ \frac{k\,t}{365.25/7} + \sum_i g_i(t)\right),\; 0,\; 10\right) ,
+\qquad
+F(t) = E_0 + \frac{k\,t}{365.25/7} + \sum_{u_i \le t} r_i ,
 $$
 
 the denominator being the number of weeks in a year, 365.25 over 7, which is
@@ -58,6 +61,17 @@ that $\tau$ is far longer than the mean relapse episode of 4.3 weeks the
 article reports, so the trace does not step back down in the week the weekly
 series flips to remission.
 
+$F(t)$ is what the record has accumulated for good by week $t$. No residual is
+ever negative, and `msrelapse.edss.EDSSSpec` refuses a $k$ below zero for the
+same reason, so the floor never falls and the trace never sits below it:
+recovering from a relapse is the only decrease a trace ever shows, and it stops
+at the floor. `msrelapse.edss_trajectory` returns the floor as a column of the
+trace beside the two scores. Under the published time to nadir of one week the
+kernels already sit above the floor everywhere and the maximum above changes
+nothing; it is what keeps the rule at a longer time to nadir, where a deficit
+still climbing to its peak would otherwise pass below a residual the same
+relapse has already committed the record to.
+
 ### Drawing the peak and the residual
 
 For each episode the peak $A_i$ is drawn from the peak law, then the residual
@@ -76,18 +90,30 @@ drawn from, not the peaks a trace ends up showing: the raise to the residual
 lifts the realised figures to 0.88, 0.63 and 0.19, a little above each
 published marginal.
 
-| Residual $r$ | -1.0 | -0.5 | 0.0 | +0.5 | +1.0 | +1.5 | +2.0 | +2.5 | +3.0 |
-|---|---|---|---|---|---|---|---|---|---|
-| mild peak, $A \le 0.5$ | 0.03 | 0.15 | 0.57 | 0.21 | 0.04 | 0 | 0 | 0 | 0 |
-| moderate or severe peak, $A \ge 1.0$ | 0.03 | 0.15 | 0.29 | 0.265 | 0.15 | 0.06 | 0.032 | 0.013 | 0.010 |
+| Residual $r$ | 0.0 | +0.5 | +1.0 | +1.5 | +2.0 | +2.5 | +3.0 |
+|---|---|---|---|---|---|---|---|
+| mild peak, $A \le 0.5$ | 0.75 | 0.21 | 0.04 | 0 | 0 | 0 | 0 |
+| moderate or severe peak, $A \ge 1.0$ | 0.47 | 0.265 | 0.15 | 0.06 | 0.032 | 0.013 | 0.010 |
 
 Marginally, over the 39 percent of relapses that are mild and the 61 percent
 that are not, this gives $P(r \ge 0.5) = 0.42$, $P(r \ge 1.0) = 0.18$,
-$P(r \ge 2.0) = 0.034$, a median of 0, a mean of 0.256 and an odds ratio of 3.4
-for incomplete recovery in severe against mild relapses. The mass below zero,
-18 percent of relapses ending at least half a point below the pre-relapse
-score, is what lets the distribution satisfy both the published thresholds and
-the published mean of 0.27 with a median of 0 at the same time.
+$P(r \ge 2.0) = 0.034$, a median of 0, a mean of 0.361 and an odds ratio of 3.4
+for incomplete recovery in severe against mild relapses.
+
+That mean is higher than the published mean change per relapse, and
+deliberately so. The published figure, about 0.25 to 0.27 with a median of 0,
+is a raw difference between a pre-relapse and a post-relapse score, so it is
+net of every relapse that ended below the score it started from, which is
+visit to visit variation and rater noise rather than recovered disability: the
+inter-rater spread of the EDSS is itself of the order of the half point steps
+being modelled. Accumulated disability does not decrease, so the model carries
+no residual below zero and excludes those apparent improvements, and the price
+of that is a mean residual of 0.361 against the published 0.25. What the model
+does reproduce is the quantity the meta-analysis measured directly, the
+probability that a relapse leaves something behind: 0.42 at half a point and
+0.18 at a full point, with the published median of 0 intact. The cost is
+recorded in the caveats and in the long run anchors below, where the model now
+accrues faster than the observed mean slope.
 
 ### The defaults
 
@@ -119,8 +145,8 @@ the page.
 | Recovery decay constant tau of the model (derived) | 10 weeks | 7 to 14 | weeks | from Koch 2023 and Mostert 2025 |
 | Residual of at least 0.5 at 6 to 12 months | 0.42 | 0.31 to 0.54 (95 percent CI of the pooled estimate) | proportion of relapses | Ladeira 2025; Lublin 2003; Lublin 2014 |
 | Residual of at least 1.0 at 6 to 12 months | 0.18 | 0.16 to 0.28 | proportion of relapses | Lublin 2003; Achiron 2019 |
-| Mean net residual per relapse | 0.25 | 0.20 to 0.30, rising to 0.50 in a high disability cohort | EDSS points | Lublin 2003; Confavreux 2006 (Clinical Neurology and Neurosurgery); Lublin 2014; Hirst 2008; Stewart 2017 |
-| Residual step law of the model (derived) | the two severity classes above, mean 0.256, median 0 | implies at least 0.5 in 0.42, at least 1.0 in 0.18 and at least 2.0 in 0.034 of relapses | EDSS points | from Ladeira 2025, Lublin 2003 and Achiron 2019 |
+| Mean net change per relapse, a raw pre to post difference | 0.25 | 0.20 to 0.30, rising to 0.50 in a high disability cohort | EDSS points | Lublin 2003; Confavreux 2006 (Clinical Neurology and Neurosurgery); Lublin 2014; Hirst 2008; Stewart 2017 |
+| Residual step law of the model (derived) | the two severity classes above, no mass below zero, mean 0.361, median 0 | implies at least 0.5 in 0.42, at least 1.0 in 0.18 and at least 2.0 in 0.034 of relapses; above the published mean change, which is net of improvements | EDSS points | from Ladeira 2025, Lublin 2003 and Achiron 2019 |
 | Dependence of the residual on relapse severity | odds ratio about 3.4 for incomplete recovery, severe against mild | 2.4 to 17.2 across studies | odds ratio | Ladeira 2025; Koch 2023; Leone 2008 |
 | Dependence of the residual on prior EDSS and on age | direction well supported, magnitude poorly quantified; odds ratio 2.9 for age 30 or more at relapse onset | 95 percent CI 1.5 to 5.7 for the age effect; no usable coefficient published for the EDSS effect | odds ratio | Lublin 2022; Kalincik 2014; Conway 2019; Leone 2008; Sotiropoulos 2021; Hirst 2008 |
 | Dependence of the residual on relapse duration | odds ratio 3.2 for sequelae, long or intermediate against short | 95 percent CI 1.5 to 6.9 | odds ratio | Leone 2008; Hosny 2023; Naldi 2011 |
@@ -168,12 +194,11 @@ Judgement calls: $\tau = 10$ weeks, obtained by requiring that a typical
 median recovery time, which gives 7.3 weeks against the DECIDE median of 71
 days and 11.4 weeks against the CombiRx median of 111 days, both from treated
 cohorts; the split of the residual mass above 1.0, which is pinned only at the
-2.0 threshold; the 18 percent of mass below zero, whose size is inferred from
-the arithmetic rather than measured anywhere; two severity classes rather than
-three; and $k = 0$, chosen so that the trace is driven by relapses alone, which
-is the point of the exercise, and because adding a progression term on top of a
-residual law already calibrated to the whole observed slope would count the
-same accrual twice.
+2.0 threshold; two severity classes rather than three; and $k = 0$, chosen so
+that the trace is driven by relapses alone, which is the point of the exercise,
+and because adding a progression term on top of a residual law that already
+carries the whole observed accrual, and now somewhat more than it, would count
+the same accrual twice.
 
 ## What the first relapse looks like in the trace
 
@@ -182,10 +207,10 @@ The patient starts at EDSS 2.0. The first relapse draws a peak with a mean of
 first week of the episode, holds near the nadir only briefly, and then decays
 with a ten week constant, losing about 86 percent of the recoverable excess by
 week 20 and about 92 percent by week 26. The residual decides where it settles:
-40 percent of first relapses leave nothing at all and the trace returns exactly
-to 2.0, 18 percent end at 1.5 or lower, 42 percent leave 0.5 or more and 18
+58 percent of first relapses leave nothing at all and the trace returns exactly
+to 2.0, which is as low as it ever goes, 42 percent leave 0.5 or more and 18
 percent leave 1.0 or more. The expected sustained level after the first relapse
-is 2.25.
+is 2.36.
 
 The honest picture of a first attack is therefore a spike of about one EDSS
 point that is visually gone within six months, with a slightly better than even
@@ -201,23 +226,40 @@ irreversible score the natural history cohorts measure:
 
 | Quantity | This model | Published anchor |
 |---|---|---|
-| Median sustained EDSS at 10 years | 3.0 | about 3, from a mean change of 1 point per decade |
-| Median sustained EDSS at 14 years | 3.5 | 3.25 |
-| Median sustained EDSS at 20 years | 4.5 | wide; 39 percent at EDSS 3 or below |
-| Median years to a sustained EDSS 3 | about 7 | 10.0 |
-| Median years to a sustained EDSS 4 | about 14 | 11.4 |
-| Median years to a sustained EDSS 6 | about 29 | 15 to 28 |
+| Median sustained EDSS at 10 years | 3.5 | about 3, from a mean change of 1 point per decade |
+| Median sustained EDSS at 14 years | 4.0 to 4.5 | 3.25 |
+| Median sustained EDSS at 20 years | 5.5 | wide; 39 percent at EDSS 3 or below |
+| Median years to a sustained EDSS 3 | about 6 | 10.0 |
+| Median years to a sustained EDSS 4 | about 11 | 11.4 |
+| Median years to a sustained EDSS 6 | about 22 | 15 to 28 |
 | Relapses per year | 0.50 | 0.65 to 0.93 |
 
-With $k = 0.05$ the picture inverts: a median sustained EDSS 4 at about 11
-years against a published 11.4 and EDSS 6 at about 22.5 years against a
-published 21.7 to 23.1, but the 10 year level rises to 3.5 and overshoots the
-mean change data. The two families of anchors cannot both be matched, because
-the real curve accelerates, at about 0.1 EDSS points per year over the first
-stage and about 0.4 over the DSS 3 to DSS 6 stage, while a model in which every
-relapse contributes an independent residual is linear. The acceleration comes
-from the secondary progressive transition, which begins at a median of 15 years
-and is not in the weekly series at all.
+Every row but one reproduces to the figure shown when the simulation is re-run
+under another seed. The 14 year median is the exception: the cohort mean there
+is about 4.5, which sits almost exactly on a half point step, so the median
+reads 4.0 or 4.5 depending on the seed, and the row gives both.
+
+The model sits on the two later milestone medians and runs ahead of everything
+else. It reaches a sustained EDSS 4 at about 11 years against a published 11.4
+and an EDSS 6 at about 22 years against a published 21.7 to 23.1, but it
+reaches a sustained EDSS 3 at about 6 years against a published 10, and its 10
+year level of 3.5, with a cohort mean of 3.9 in the anchor test of
+`tests/test_edss.py`, overshoots the observed slope of about one point per
+decade. That is the price of a residual law that carries no improvements, and
+it is a half point to a point of EDSS at ten years. The agreement at the two
+later milestones is a crossing rather than a match: this model accrues at a
+constant rate while the published curve accelerates, so a trace that is four
+years early to EDSS 3 arrives on time at EDSS 4 and at EDSS 6. Adding a
+progression term on top makes it worse rather than better: at $k = 0.05$ the 10
+year level rises to 4.0 and EDSS 6 arrives at about 19.5 years, inside the
+published range but at its fast end, which is why $k$ stays at zero.
+
+The two families of anchors cannot both be matched, because the real curve
+accelerates, at about 0.1 EDSS points per year over the first stage and about
+0.4 over the DSS 3 to DSS 6 stage, while a model in which every relapse
+contributes an independent residual is linear. The acceleration comes from the
+secondary progressive transition, which begins at a median of 15 years and is
+not in the weekly series at all.
 
 ## Caveats
 
@@ -233,9 +275,13 @@ and is not in the weekly series at all.
   first 15 years from onset. The article's own period of interest runs from the
   first relapse at onset to the last relapse before the shift to secondary
   progressive MS, and secondary progression begins at a median of 15 years in
-  both London Ontario and Gothenburg. Run past that window the trace undershoots
-  the natural history medians for EDSS 6, by design, because the mechanism that
-  takes patients there is not in the weekly series.
+  both London Ontario and Gothenburg. Run past that window the trace has no
+  mechanism for the accrual that carries patients further, because that
+  mechanism is not in the weekly series at all. It does reach a sustained EDSS
+  6 at about 22 years, inside the published range, but it gets there by adding
+  up relapse residuals faster than the observed mean slope rather than by
+  modelling the progressive phase, so that figure should not be read as
+  agreement about the course.
 - **The model cannot reproduce the accelerating shape of the real curve.**
   Observed accrual is about 0.1 EDSS points per year over the first stage and
   about 0.4 over the DSS 3 to DSS 6 stage, and the second stage lasts a near
@@ -282,11 +328,18 @@ and is not in the weekly series at all.
   inter-rater variability of the EDSS is of the order of the half point steps
   being modelled, which is part of why the published standard deviation of the
   residual, 1.04, is far larger than any distribution here.
-- **The published mean residual of about 0.27 and the published thresholds of
-  42 and 28 percent cannot both be satisfied by a non-negative residual.** The
-  reconciliation used here, giving 18 percent of relapses a residual below
-  zero, matches the reported median of 0, but its size is inferred from
-  arithmetic rather than measured anywhere.
+- **The published mean change of about 0.27 per relapse and the published
+  thresholds of 42 and 28 percent cannot both be satisfied by a non-negative
+  residual.** They cannot, and this model keeps the thresholds and lets the
+  mean differ: its residual law reproduces the incomplete recovery
+  probabilities exactly and has a mean of 0.361 against the published 0.25 to
+  0.27. The published figure is a raw pre to post difference and is net of the
+  relapses that ended below the score they started from, which are improvements
+  and rater noise rather than disability, and accumulated disability does not
+  decrease. The consequence is visible in the long run anchors above: the model
+  accrues about a half point to a point per decade faster than the observed
+  mean slope, a median of 3.5 and a cohort mean of 3.9 at ten years against a
+  published level near 3.
 - **The model carries no relapse phenotype, no MRI, no sex, no functional
   systems and no treatment effect**, and it cannot separate relapse associated
   worsening from progression independent of relapse activity in a way any
@@ -316,10 +369,11 @@ and is not in the weekly series at all.
 
 `msrelapse.edss_trajectory` takes a weekly record of one patient, in the weekly
 schema of [`msrelapse.io`](api/io.md) or as a plain array of states, and
-returns the week, the continuous EDSS, the displayed half point EDSS and the
-index of the episode in progress. It draws a peak and a residual for every
-episode, so it takes a seed or a generator like every other random operation in
-the package, and the same seed gives the same trace.
+returns the week, the continuous EDSS, the displayed half point EDSS, the floor
+that record has accumulated for good by that week, and the index of the episode
+in progress. It draws a peak and a residual for every episode, so it takes a
+seed or a generator like every other random operation in the package, and the
+same seed gives the same trace.
 
 ```python
 import msrelapse as ms
@@ -337,9 +391,10 @@ print(ms.summarise(trajectory, draws))
 
 That record holds six relapses over about fifteen years. The draws say what the
 trace does: a spike at every attack, a return towards the level it started
-from, and a step left behind only where a residual was drawn. Another seed
-gives another patient's story out of the same record, because a trace is one
-draw from the laws above, never a median and never a prognosis.
+from and never below it, and a step left behind only where a residual was
+drawn. Another seed gives another patient's story out of the same record,
+because a trace is one draw from the laws above, never a median and never a
+prognosis.
 
 The rest of the module is small. `msrelapse.episode_draws` gives one row per
 episode, with its start, its end, its peak and its residual, which is how a
