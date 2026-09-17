@@ -1150,9 +1150,16 @@ follows <a href="https://semver.org/spec/v2.0.0.html">semantic versioning</a>.</
   relapse series, with a baseline, a peak deficit and a residual drawn per
   episode and an optional independent progression term, every parameter taken
   from the literature that followed the article and carried with its source in
-  an evidence record. The article reports no disability score, so this is an
-  extension and not a reproduction, and the Disability trajectory page sets out
-  the model, its evidence, its validation anchors and its caveats.</li>
+  an evidence record. Accumulated disability does not decrease, so no law
+  carries mass below zero, a specification refuses a law or a progression rate
+  that reaches below zero, and a trace carries a <code>floor</code> column, the level the
+  record has accumulated for good, which never falls and which the trace never
+  sits below. The mean residual of the laws is therefore 0.361, above the
+  published mean change per relapse, because that published figure is a raw
+  pre to post difference and is net of improvements that are not disability.
+  The article reports no disability score, so this is an extension and not a
+  reproduction, and the Disability trajectory page sets out the model, its
+  evidence, its validation anchors and its caveats.</li>
 <li>Four notebooks: the reproduction, the approach of the exit times to an
   exponential, the Poisson to negative binomial story, and a two arm virtual
   trial.</li>
