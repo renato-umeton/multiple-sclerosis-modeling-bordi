@@ -33,7 +33,7 @@ jobs:
         with:
           # gh-deploy writes to another branch, so the full history is needed.
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v10.1.0
+      - uses: astral-sh/setup-uv@v10.2.0
         with:
           python-version: "3.13"
       - name: Name the committer of the deploy commit
